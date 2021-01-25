@@ -13,5 +13,5 @@ Official name of compiler will be "gfcc".
 
 ### TODO:
  - Invite others to this repository privately.
- - Make folders "bin", "inc", "obj", "shared_obj", "src", etc. and makefile.
+ - [DONE] Make folders "bin", "inc", "obj", "shared_obj", "src", etc. and makefile. Change structure as required.
  - Start working on preprocessor.
