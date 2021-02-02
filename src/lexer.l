@@ -10,10 +10,11 @@ IS			(u|U|l|L)*
 #include "y.tab.h"
 
 void count();
+int check_type();
 %}
 
 %%
-"/*"			{ comment(); }
+"/*"			{ ;}//comment(); }
 
 "auto"			{ count(); return(AUTO); }
 "break"			{ count(); return(BREAK); }
@@ -119,8 +120,9 @@ yywrap()
 }
 
 
-comment()
+/*comment()
 {
+
 	char c, c1;
 
 loop:
@@ -135,24 +137,27 @@ loop:
 
 	if (c != 0)
 		putchar(c1);
-}
+
+}*/
 
 
-int column = 0;
+int column = 1;
+int prev_column=1;
+int line = 1;
 
 void count()
 {
 	int i;
-
+	prev_column = column;
 	for (i = 0; yytext[i] != '\0'; i++)
 		if (yytext[i] == '\n')
-			column = 0;
+			{column = 1; line ++;}
 		else if (yytext[i] == '\t')
 			column += 8 - (column % 8);
 		else
 			column++;
 
-	ECHO;
+	//ECHO;
 }
 
 
@@ -172,4 +177,25 @@ int check_type()
 */
 
 	return(IDENTIFIER);
+}
+
+int main(int argc , char *argv[])
+{	
+	if(argc!=2){printf("Number of arguments not matching."); return -1;}
+
+	FILE *temp = fopen(argv[1],"r");
+	if(!temp)
+	{
+		printf("File does not exist."); return -1;
+	}
+	yyin = temp;
+	int token;
+	token = yylex();
+
+	while(token>0)
+	{	
+		printf("TOKEN NUMBER:%d ; LEXEME:%s ; LINE#:%d ; COLUMN#:%d\n", token, yytext, line, prev_column);
+		token=yylex();
+	}
+
 }
