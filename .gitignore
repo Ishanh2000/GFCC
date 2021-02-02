@@ -1,6 +1,5 @@
 build/
 bin/
-include/
 
 # Prerequisites
 *.d
