@@ -10,7 +10,7 @@ IS			(u|U|l|L)*
 #include "y.tab.h"
 
 void count();
-int check_type();
+int check_type();	
 %}
 
 %%
@@ -113,11 +113,11 @@ L?\"(\\.|[^\\"])*\"	{ count(); return(STRING_LITERAL); }
 .			{ /* ignore bad characters */ }
 
 %%
-
+/* 
 yywrap()
 {
 	return(1);
-}
+} */
 
 
 /*comment()
