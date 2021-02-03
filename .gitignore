@@ -1,6 +1,6 @@
 build/
 bin/
-
+generated/
 # Prerequisites
 *.d
 

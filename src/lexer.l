@@ -192,10 +192,11 @@ int main(int argc , char *argv[])
 	int token;
 	token = yylex();
 
+	printf("%-15s %-15s %-15s %-15s\n", "TOKEN NUMBER", "LEXEME", "LINE#", "COLUMN");
 	while(token>0)
 	{	
-		printf("TOKEN NUMBER:%d ; LEXEME:%s ; LINE#:%d ; COLUMN#:%d\n", token, yytext, line, prev_column);
+		printf("%-15d %-15s %-15d %-15d\n", token, yytext, line, prev_column);
 		token=yylex();
 	}
-
+	return 0;
 }

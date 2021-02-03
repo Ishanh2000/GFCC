@@ -7,13 +7,13 @@ project(GFCC VERSION 0.1)
 # set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # add executable
-add_executable(lexer ${CMAKE_CURRENT_SOURCE_DIR}/src/lex.yy.c)
+add_executable(lexer ${CMAKE_CURRENT_SOURCE_DIR}/src/generated/lex.yy.c)
 target_link_libraries(lexer PUBLIC fl)
 
 # generate lexical analyser
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/src/lex.yy.c
-  COMMAND flex --outfile=${CMAKE_CURRENT_SOURCE_DIR}/src/lex.yy.c ${CMAKE_CURRENT_SOURCE_DIR}/src/lexer.l
+  COMMAND flex --outfile=${CMAKE_CURRENT_SOURCE_DIR}/src/generated/lex.yy.c ${CMAKE_CURRENT_SOURCE_DIR}/src/lexer.l
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/lexer.l
   )
 
