@@ -5,10 +5,10 @@ if [[ !(-d "build") ]]; then
 fi
 
 ROOT_DIR=$(pwd)
+CMAKE="cmake"
+
 
 cd build;
-cmake ..;
-cmake --build .
-cmake --install . --prefix $ROOT_DIR
-# cd $ROOT_DIR
-# rm -r build
+$CMAKE ..;
+$CMAKE --build .
+$CMAKE --install . --prefix $ROOT_DIR
