@@ -18,9 +18,9 @@ Official name of compiler will be "gfcc".
  - Rwit Panda (180635) - rwit@iitk.ac.in
 
 ### TODO:
- - Invite others to this repository privately.
+ - [DONE] Invite others to this repository privately.
  - [DONE] Make folders "bin", "inc", "obj", "shared_obj", "src", etc. and makefile. Change structure as required.
- - Start working on preprocessor.
+ - Add tests
 
 ### Dependecies
  - flex v2.6.4

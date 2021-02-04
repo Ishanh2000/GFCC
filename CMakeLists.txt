@@ -12,7 +12,7 @@ target_link_libraries(lexer PUBLIC fl)
 
 # generate lexical analyser
 add_custom_command(
-  OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/src/lex.yy.c
+  OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/src/generated/lex.yy.c
   COMMAND flex --outfile=${CMAKE_CURRENT_SOURCE_DIR}/src/generated/lex.yy.c ${CMAKE_CURRENT_SOURCE_DIR}/src/lexer.l
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/lexer.l
   )
