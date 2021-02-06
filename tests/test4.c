@@ -8,10 +8,10 @@ int main()
 {
 	int n;
 	scanf("%d",&n);
-	for(int i=0;i<n;i++) 
+	for(int i=0;i<=n-1;i++) 
 		scanf("%d",&a[i]);
 	ll *p = a;
-	*p = *p + 100;
+	*p = *p*100;
 	printf("%d",a[0]);
 	return 0;
 }
