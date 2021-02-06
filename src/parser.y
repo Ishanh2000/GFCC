@@ -1,5 +1,5 @@
 
-
+%token INCLUDE
 %token IDENTIFIER CONSTANT STRING_LITERAL SIZEOF
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
@@ -14,6 +14,10 @@
 
 %start translation_unit
 %%
+
+include_statement
+	: INCLUDE '<' IDENTIFIER '>'
+	;
 
 primary_expression
 	: IDENTIFIER
@@ -402,6 +406,7 @@ jump_statement
 translation_unit
 	: external_declaration
 	| translation_unit external_declaration
+	| include_statement
 	;
 
 external_declaration

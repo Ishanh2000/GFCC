@@ -14,6 +14,7 @@ int check_type();
 %}
 
 %%
+"#include"              { count(); return(INCLUDE); }
 "/*"			{ ;}//comment(); }
 
 "auto"			{ count(); return(AUTO); }

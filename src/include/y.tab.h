@@ -45,6 +45,7 @@ extern int yydebug;
 # define YYTOKENTYPE
   enum yytokentype
   {
+    INCLUDE = 257,
     IDENTIFIER = 258,
     CONSTANT = 259,
     STRING_LITERAL = 260,
@@ -106,6 +107,7 @@ extern int yydebug;
   };
 #endif
 /* Tokens.  */
+#define INCLUDE 257
 #define IDENTIFIER 258
 #define CONSTANT 259
 #define STRING_LITERAL 260
