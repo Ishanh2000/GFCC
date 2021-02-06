@@ -34,6 +34,8 @@ Official name of compiler will be "gfcc".
   # Source: https://askubuntu.com/a/865294/884513
   version=3.18
   build=5
+  mkdir ~/temp
+  cd ~/temp
   wget https://github.com/Kitware/CMake/releases/download/v$version.$build/cmake-$version.$build.tar.gz
 
   tar -xzvf cmake-$version.$build.tar.gz
