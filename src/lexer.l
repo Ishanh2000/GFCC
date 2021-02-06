@@ -122,14 +122,14 @@ L?\"(\\.|[^\\"])*\"	{ count(); return (STRING_LITERAL); }
 
 %%
 
-int column = 1, prev_column = 1, line = 1;
+int column = 1, token_column = 1, token_line = 1;
 
 
 /* yywrap() { return 1; } */
 
+
 void update_location (char c) {
-	prev_column = column;
-	if (c == '\n') { column = 1; line++; }
+	if (c == '\n') { column = 1; token_line++; }
 	else if (c == '\t') column += TAB_LEN - (column % TAB_LEN);
 	else column++;
 }
@@ -139,36 +139,29 @@ void comment() { // multi line comment (MLC)
 	column += 2; // since '/*' was never counted
 	char c, c_next;
 
-  mlc_loop:
+    mlc_loop:
 	while ((c = input()) != '*' && c != 0) { // normal characters in an MLC
-		prev_column = column;
-		if (c == '\n') { column = 1; line++; }
-		else if (c == '\t') column += TAB_LEN - (column % TAB_LEN);
-		else column++;
+		token_column = column;
+		update_location(c);
 	}
 
-	if ((c_next = input()) != '/' && c != 0) { // (Lookahead) '*' is not followed by '/'
+	if ((c_next = input()) != '/' && c != 0) {
+		// (Lookahead) '*' is not followed by '/'
 		unput(c_next);
 		goto mlc_loop;
 	}
 
 	if (c != 0) { // End of an MLC (but not due to EOF)
 		column++; // because we need to take ending '/' into account
-		prev_column = column;
-		if (c == '\n') { column = 1; line++; }
-		else if (c == '\t') column += TAB_LEN - (column % TAB_LEN);
-		else column++;
+		token_column = column;
+		update_location(c);
 	}
 }
 
 
 void count() {
-	prev_column = column;
-	for (int i = 0; yytext[i] != '\0'; i++) {
-		if (yytext[i] == '\n') { column = 1; line++; }
-		else if (yytext[i] == '\t') column += TAB_LEN - (column % TAB_LEN);
-		else column++;
-	}
+	token_column = column;
+	for (int i = 0; yytext[i] != '\0'; i++) update_location(yytext[i]);
 
 	// ECHO;
 }
@@ -198,12 +191,11 @@ int main (int argc , char *argv[]) {
 	}
 
 	yyin = temp;
-	int token = yylex();
-	printf("%-15s %-15s %-15s %-15s\n", "TOKEN NUMBER", "LEXEME", "LINE #", "COLUMN #");
+	int token;
+	printf("%-15s %-15s %-15s %-15s\n", "TOKEN #", "LEXEME", "LINE #", "COLUMN #");
 
-	while (token > 0) {
-		printf("%-15d %-15s %-15d %-15d\n", token, yytext, line, prev_column);
-		token = yylex();
+	while ((token = yylex()) > 0) {
+		printf("%-15d %-15s %-15d %-15d\n", token, yytext, token_line, token_column);
 	}
 
 	return 0;
