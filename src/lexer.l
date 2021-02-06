@@ -9,15 +9,20 @@ IS			(u|U|l|L)*
 
 #include <stdio.h>
 #include "y.tab.h"
+#define TAB_LEN 8
 
 void count();
+void comment();
 int check_type();	
 
 %}
 
 %%
+
+"//"([^\n\0])*		{ count(); }
+"/*"			{ comment(); }
+
 "#include"              { count(); return (INCLUDE); }
-"/*"			{ ; } //comment();
 
 "auto"			{ count(); return (AUTO); }
 "break"			{ count(); return (BREAK); }
@@ -117,33 +122,51 @@ L?\"(\\.|[^\\"])*\"	{ count(); return (STRING_LITERAL); }
 
 %%
 
-/* 
-yywrap() {
-	return 1;
-}
-*/
-
-
-/*
-comment() {
-	char c, c1;
-
-  loop:
-	while ((c = input()) != '*' && c != 0) putchar(c);
-
-	if ((c1 = input()) != '/' && c != 0) { unput(c1); goto loop; }
-
-	if (c != 0) putchar(c1);
-}
-*/
-
 int column = 1, prev_column = 1, line = 1;
+
+
+/* yywrap() { return 1; } */
+
+void update_location (char c) {
+	prev_column = column;
+	if (c == '\n') { column = 1; line++; }
+	else if (c == '\t') column += TAB_LEN - (column % TAB_LEN);
+	else column++;
+}
+
+
+void comment() { // multi line comment (MLC)
+	column += 2; // since '/*' was never counted
+	char c, c_next;
+
+  mlc_loop:
+	while ((c = input()) != '*' && c != 0) { // normal characters in an MLC
+		prev_column = column;
+		if (c == '\n') { column = 1; line++; }
+		else if (c == '\t') column += TAB_LEN - (column % TAB_LEN);
+		else column++;
+	}
+
+	if ((c_next = input()) != '/' && c != 0) { // (Lookahead) '*' is not followed by '/'
+		unput(c_next);
+		goto mlc_loop;
+	}
+
+	if (c != 0) { // End of an MLC (but not due to EOF)
+		column++; // because we need to take ending '/' into account
+		prev_column = column;
+		if (c == '\n') { column = 1; line++; }
+		else if (c == '\t') column += TAB_LEN - (column % TAB_LEN);
+		else column++;
+	}
+}
+
 
 void count() {
 	prev_column = column;
 	for (int i = 0; yytext[i] != '\0'; i++) {
 		if (yytext[i] == '\n') { column = 1; line++; }
-		else if (yytext[i] == '\t') column += 8 - (column % 8);
+		else if (yytext[i] == '\t') column += TAB_LEN - (column % TAB_LEN);
 		else column++;
 	}
 
@@ -161,8 +184,9 @@ int check_type() {
 	return (IDENTIFIER); // it actually will only return IDENTIFIER
 }
 
-int main(int argc , char *argv[]) {
-	if(argc != 2) {
+
+int main (int argc , char *argv[]) {
+	if (argc != 2) {
 		printf("Number of arguments not matching.\n");
 		return -1;
 	}
@@ -175,9 +199,9 @@ int main(int argc , char *argv[]) {
 
 	yyin = temp;
 	int token = yylex();
-	printf("%-15s %-15s %-15s %-15s\n", "TOKEN NUMBER", "LEXEME", "LINE#", "COLUMN");
+	printf("%-15s %-15s %-15s %-15s\n", "TOKEN NUMBER", "LEXEME", "LINE #", "COLUMN #");
 
-	while (token > 0) {	
+	while (token > 0) {
 		printf("%-15d %-15s %-15d %-15d\n", token, yytext, line, prev_column);
 		token = yylex();
 	}
