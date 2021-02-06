@@ -1,15 +1,11 @@
 #include <stdio.h>
-#include <string.h>
 
 int main() 
 {
 	char a[100];
-	scanf("%s",a);
+	int 0b = 100;
+	int hb=   22;
 	int len = strlen(a);
-	for(int i=0;i<len/2;i++)
-	{
-		a[i] = a[len-1-i];
-	}
-	printf("Reversed string : %s\n",a);
+	printf("String : %s\n",a);
 	return 0;
 }
