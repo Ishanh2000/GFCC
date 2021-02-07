@@ -4,6 +4,10 @@
 CS335A (Compiler Design) Project, Semester 6, 2020-21-II (Jan - Apr 2021).
 Official name of compiler will be "gfcc".
 
+Source (S): C.
+Implemetation (I): C (maybe C++ later on, if required, especially in case of object orientation).
+Target (T): ??
+
 ### Usage:
 Building Project:
 ```bash
@@ -20,7 +24,7 @@ Running lexer:
 ```
 
 Note: All files will not be jeopardized due to failure in opening a few files.
-
+Use "-h" flag for more knowing options.
 
 ### Participants:
  - Debarsho Sannyasi (180218) - debarsho@iitk.ac.in
@@ -30,9 +34,9 @@ Note: All files will not be jeopardized due to failure in opening a few files.
  - Rwit Panda (180635) - rwit@iitk.ac.in
 
 ### TODO:
- - Try updating repositry to CPP.
- - Check for more pre-processor directives.
+ - Decide Target Language.
  - Modify tests.
+ - Try updating repositry to CPP, if required in future.
 
 ### Dependecies
  - flex v2.6.4

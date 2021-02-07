@@ -33,3 +33,6 @@ generated/
 *.exe
 *.out
 *.app
+
+# Unix Swap Files
+*.swp
