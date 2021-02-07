@@ -45,7 +45,6 @@ extern int yydebug;
 # define YYTOKENTYPE
   enum yytokentype
   {
-    INCLUDE = 257,
     IDENTIFIER = 258,
     CONSTANT = 259,
     STRING_LITERAL = 260,
@@ -103,11 +102,12 @@ extern int yydebug;
     GOTO = 312,
     CONTINUE = 313,
     BREAK = 314,
-    RETURN = 315
+    RETURN = 315,
+    INCLUDE = 316
   };
 #endif
+
 /* Tokens.  */
-#define INCLUDE 257
 #define IDENTIFIER 258
 #define CONSTANT 259
 #define STRING_LITERAL 260
@@ -166,6 +166,7 @@ extern int yydebug;
 #define CONTINUE 313
 #define BREAK 314
 #define RETURN 315
+#define INCLUDE 316
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
@@ -174,6 +175,67 @@ typedef int YYSTYPE;
 # define YYSTYPE_IS_DECLARED 1
 #endif
 
+char* TOKEN_NAME_ARRAY[] = {
+	"IDENTIFIER",
+	"CONSTANT",
+	"STRING_LITERAL",
+	"SIZEOF",
+	"PTR_OP",
+	"INC_OP",
+	"DEC_OP",
+	"LEFT_OP",
+	"RIGHT_OP",
+	"LE_OP",
+	"GE_OP",
+	"EQ_OP",
+	"NE_OP",
+	"AND_OP",
+	"OR_OP",
+	"MUL_ASSIGN",
+	"DIV_ASSIGN",
+	"MOD_ASSIGN",
+	"ADD_ASSIGN",
+	"SUB_ASSIGN",
+	"LEFT_ASSIGN",
+	"RIGHT_ASSIGN",
+	"AND_ASSIGN",
+	"XOR_ASSIGN",
+	"OR_ASSIGN",
+	"TYPE_NAME",
+	"TYPEDEF",
+	"EXTERN",
+	"STATIC",
+	"AUTO",
+	"REGISTER",
+	"CHAR",
+	"SHORT",
+	"INT",
+	"LONG",
+	"SIGNED",
+	"UNSIGNED",
+	"FLOAT",
+	"DOUBLE",
+	"CONST",
+	"VOLATILE",
+	"VOID",
+	"STRUCT",
+	"UNION",
+	"ENUM",
+	"ELLIPSIS",
+	"CASE",
+	"DEFAULT",
+	"IF",
+	"ELSE",
+	"SWITCH",
+	"WHILE",
+	"DO",
+	"FOR",
+	"GOTO",
+	"CONTINUE",
+	"BREAK",
+	"RETURN",
+	"INCLUDE"
+};
 
 extern YYSTYPE yylval;
 

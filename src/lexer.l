@@ -9,22 +9,8 @@ IS			(u|U|l|L)*
 
 #include <stdio.h>
 #include <string.h>
-#include "y.tab.h"
-
-#define TAB_LEN 8
-#define GFCC_LEXER_VERSION "0.0.1"
-#define VERSION_DATE "February 8, 2021"
-
-#define E_TOO_FEW_ARGS (-1)
-#define E_INV_OPTION (-2)
-#define E_OUTPUT_TWICE (-3)
-#define E_NUM_IO_UNEQUAL (-4)
-#define E_NO_FILES (-5)
-
-void count();
-void comment();
-int check_type();	
-void gfcc_lexer_help();
+#include <y.tab.h>
+#include <gfcc_lexer.h>
 
 %}
 
@@ -133,7 +119,7 @@ L?\"(\\.|[^\\"])*\"	{ count(); return (STRING_LITERAL); }
 
 %%
 
-int column = 1, token_column = 1, token_line = 1;
+int column = 1, token_column = 1, token_line = 1; // Please do not change their names.
 
 
 /* yywrap() { return 1; } */
@@ -147,7 +133,7 @@ void update_location (char c) {
 
 
 void comment() { // multi line comment (MLC)
-	column += 2; // since '/*' was never counted
+	column += 2; /* since '/*' start was never counted */
 	char c, c_next;
 
     mlc_loop:
@@ -156,8 +142,7 @@ void comment() { // multi line comment (MLC)
 		update_location(c);
 	}
 
-	if ((c_next = input()) != '/' && c != 0) {
-		// (Lookahead) '*' is not followed by '/'
+	if ((c_next = input()) != '/' && c != 0) { // (Lookahead) '*' is not followed by '/'
 		unput(c_next);
 		goto mlc_loop;
 	}
@@ -188,34 +173,32 @@ int check_type() {
 	return (IDENTIFIER); // it actually will only return IDENTIFIER
 }
 
+
 int isEqual(char* option, char* a, char* b) { // return 1 iff option matched a OR b
-	if (!(a || b)) return 0;
+	if (!option || !(a || b)) return 0;
 	if (!a) return !strcmp(option, b); // compare with b if a not given
 	if (!b) return !strcmp(option, a);
 	return !strcmp(option, a) || !strcmp(option, b);
 }
 
+
 int main (int argc , char *argv[]) {
 	// ARGC TOO FEW
 	if (argc < 2) {
-		printf("ERROR: Too few arguments. Use \"-h\" or \"--help\" for help.\n");
+		printf("ERROR: Too few arguments. Use \"--help\" or \"-h\" for help.\n");
 		return E_TOO_FEW_ARGS;
 	}
 
 	// HELP - DO NOT CHECK FURTHER OPTIONS
-	if (isEqual(argv[1], "--help", "-h")) {
-		gfcc_lexer_help();
-		return 0;
-	}
+	if (isEqual(argv[1], "--help", "-h")) {	gfcc_lexer_help(); return 0; }
+
 
 	// VERSION - DO NOT CHECK FURTHER OPTIONS
-	if (isEqual(argv[1], "--version", "-v")) {
-		printf("GFCC Lexer Version: v%s (%s)\n", GFCC_LEXER_VERSION, VERSION_DATE);
-		return 0;
-	}
+	if (isEqual(argv[1], "--version", "-v")) { gfcc_lexer_version(); return 0; }
 
-	// ALL - MUST SPECIFY JUST AFTER EXECUTABLE'S NAME
-	int all = isEqual(argv[1], "--all", "-a");
+
+	// ALL - MUST SPECIFY JUST AFTER EXECUTABLE'S NAME (NOT IMPLEMENTING NOW)
+	int all = 0; // all = isEqual(argv[1], "--all", "-a");
 
 
 	// CHECK FILE LIST AND ALSO SEARCH OPTION [--output|-o]
@@ -225,7 +208,7 @@ int main (int argc , char *argv[]) {
 			if (o_flag_index < 0) o_flag_index = i;
 			else {
 				printf("ERROR: Option [--output|-o] specified twice. Use \"--help\" or \"-h\" for help.\n");
-				return E_OUTPUT_TWICE;
+				return E_O_FLAG_TWICE;
 			}
 			continue;
 		}
@@ -243,7 +226,6 @@ int main (int argc , char *argv[]) {
 		return E_NUM_IO_UNEQUAL;
 	}
 
-	// printf("Reached here! start = %d, total_files = %d, o_flag_index = %d\n", start, total_files, o_flag_index);
 	if (total_files < 1) {
 		printf("ERROR: Specify at least one file as input. See \"--help\" or \"-h\" for help.\n");
 		return E_NO_FILES;
@@ -254,11 +236,13 @@ int main (int argc , char *argv[]) {
 		// OPEN FILE	
 		FILE *temp_in = fopen(argv[start + i], "r"), *temp_out = stdout;
 		if (!temp_in) {
-			printf("WARNING: Problem opening file \"%s\". Skipping it.\n", argv[start + i]);
+			printf(i > 0 ? "\n" : "");
+			printf("WARNING: File \"%s\" does not exist or problem reading it. Skipping it.\n", argv[start + i]);
 			file_failures++;
 			continue;
 		}
 		if ( o_flag_index >= 0 && !(temp_out = fopen(argv[o_flag_index + i + 1], "w")) ) {
+			printf(i > 0 ? "\n" : "");
 			printf("WARNING: Problem writing to file \"%s\". Output will print to STDOUT.\n", argv[o_flag_index + i + 1]);
 			file_failures++;
 			temp_out = stdout;
@@ -266,33 +250,31 @@ int main (int argc , char *argv[]) {
 		
 		yyin = temp_in;
 		if (temp_out == stdout) {
-			printf(i > 0 ? "================================================================\n\n" : "");
+			printf(i > 0 ? "\n" : "");
 			printf("Token Stream for file \"%s\":\n", argv[start + i]);
 		}
 		
-		fprintf(temp_out, "%-15s %-15s %-15s %-15s\n", "TOKEN #", "LEXEME", "LINE #", "COLUMN #");
-		fprintf(temp_out, "--------------- --------------- --------------- ---------------\n");
+		fprintf(temp_out, "%-8s %-18s %-30s %-8s %-8s\n", "TOKEN #", "TOKEN NAME", "LEXEME", "LINE #", "COLUMN #");
+		fprintf(temp_out, "-------- ------------------ ------------------------------ -------- --------\n");
 
 		column = token_line = token_column = 1;
 
-		int token;
-		while ((token = yylex()) > 0) fprintf(temp_out, "%-15d %-15s %-15d %-15d\n", token, yytext, token_line, token_column);
+		int token, total_tokens = 0;
+		while ((token = yylex()) > 0) {
+			char* token_name = (token < 258 || token > 316) ? yytext : TOKEN_NAME_ARRAY[token - 258];
+			fprintf(temp_out, "%-8d %-18s %-30s %-8d %-8d\n", token, token_name, yytext, token_line, token_column);
+			total_tokens++;
+		}
+		fprintf(temp_out, "*** TOTAL TOKENS = %d ***\n", total_tokens);
 	}
 
 	return file_failures;
 }
 
+void gfcc_lexer_version() {
+	printf("GFCC Lexer Version: v%s (%s)\n", GFCC_LEXER_VERSION, VERSION_DATE);
+}
+
 void gfcc_lexer_help() {
-  printf("Usage: <exec-name> [--help|-h] [--version|-v] [--all|-a] files... [--output|-o] output-files...\n");
-  printf("\n");
-  printf("Options:\n");
-  printf("\t --help \t\t -h \t\t: Help.\n");
-  printf("\t --version \t\t -v \t\t: Version and release date. Maybe author names/licenses.\n");
-  printf("\t --output \t\t -o \t\t: Names of output files in the same order as inputs are specified.\n");
-  printf("\t --all \t\t -a \t\t: All information (including token type, lexeme address, type, etc.).\n");
-  printf("\n");
-  printf("NOTES:\n");
-  printf("\t 1) Specify output files AFTER input files.\n");
-  printf("\t 2) The number of output files must be EQUAL to the number of input files.\n");
-  printf("\n");
+	printf("%s", lexer_help);
 }

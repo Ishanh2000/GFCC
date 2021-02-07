@@ -427,7 +427,9 @@ function_definition
 extern char yytext[];
 extern int column;
 
-yyerror(s)
+int yylex();
+
+void yyerror(s)
 char *s;
 {
 	fflush(stdout);
