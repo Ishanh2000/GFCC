@@ -12,9 +12,10 @@ Options:\n\
   --version   -v : Version and release date. Maybe author names/licenses.\n\
   --output    -o : Names of output files in the same order as inputs are specified.\n\
 \n\
-NOTES:\n\
+Notes:\n\
   1) Specify output files AFTER input files.\n\
   2) The number of output files must be EQUAL to the number of input files.\n\
+  3) Tab length is considered 8 characters.\n\
 ";
 
 /*  --all       -a : All information (including token type, token number, lexeme address, etc.).\n */

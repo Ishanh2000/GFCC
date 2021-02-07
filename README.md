@@ -5,10 +5,22 @@ CS335A (Compiler Design) Project, Semester 6, 2020-21-II (Jan - Apr 2021).
 Official name of compiler will be "gfcc".
 
 ### Usage:
+Building Project:
 ```bash
   # will generate lexer binary in bin/
   ./runme.sh  
 ```
+
+Running lexer:
+```bash
+  ./bin/lexer ./tests/*.c # test cases
+  ./bin/lexer -h # help
+  ./bin/lexer -v # version
+  ./bin/lexer ./tests/*.c -o out1.txt out2.txt out3.txt out4.txt out5.txt
+```
+
+Note: All files will not be jeopardized due to failure in opening a few files.
+
 
 ### Participants:
  - Debarsho Sannyasi (180218) - debarsho@iitk.ac.in
@@ -18,9 +30,9 @@ Official name of compiler will be "gfcc".
  - Rwit Panda (180635) - rwit@iitk.ac.in
 
 ### TODO:
- - [DONE] Invite others to this repository privately.
- - [DONE] Make folders "bin", "inc", "obj", "shared_obj", "src", etc. and makefile. Change structure as required.
- - Add tests
+ - Try updating repositry to CPP.
+ - Check for more pre-processor directives.
+ - Modify tests.
 
 ### Dependecies
  - flex v2.6.4
