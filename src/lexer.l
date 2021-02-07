@@ -18,8 +18,8 @@ IS			(u|U|l|L)*
 
 "//"([^\n\0])*		{ count(); }
 "/*"			{ comment(); }
+"#"([^\n\0])*		{ count(); }
 
-"#include"              { count(); return (INCLUDE); }
 
 "auto"			{ count(); return (AUTO); }
 "break"			{ count(); return (BREAK); }
