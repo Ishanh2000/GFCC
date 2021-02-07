@@ -261,7 +261,7 @@ int main (int argc , char *argv[]) {
 
 		int token, total_tokens = 0;
 		while ((token = yylex()) > 0) {
-			char* token_name = (token < 258 || token > 316) ? yytext : TOKEN_NAME_ARRAY[token - 258];
+			char* token_name = (token < IDENTIFIER || token > RETURN) ? yytext : TOKEN_NAME_ARRAY[token - IDENTIFIER];
 			fprintf(temp_out, "%-8d %-18s %-30s %-8d %-8d\n", token, token_name, yytext, token_line, token_column);
 			total_tokens++;
 		}

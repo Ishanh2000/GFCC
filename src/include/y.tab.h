@@ -102,8 +102,7 @@ extern int yydebug;
     GOTO = 312,
     CONTINUE = 313,
     BREAK = 314,
-    RETURN = 315,
-    INCLUDE = 316
+    RETURN = 315
   };
 #endif
 
@@ -166,7 +165,6 @@ extern int yydebug;
 #define CONTINUE 313
 #define BREAK 314
 #define RETURN 315
-#define INCLUDE 316
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED

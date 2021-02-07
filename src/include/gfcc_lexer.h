@@ -73,7 +73,6 @@ char* TOKEN_NAME_ARRAY[] = {
 	"CONTINUE",
 	"BREAK",
 	"RETURN",
-	"INCLUDE"
 };
 
 void count(); // count characters for every token encountered
