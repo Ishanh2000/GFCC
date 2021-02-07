@@ -127,7 +127,7 @@ int column = 1, token_column = 1, token_line = 1; // Please do not change their 
 
 void update_location (char c) {
 	if (c == '\n') { column = 1; token_line++; }
-	else if (c == '\t') column += TAB_LEN - (column % TAB_LEN);
+	else if (c == '\t') column += TAB_LEN - ((column - 1) % TAB_LEN);
 	else column++;
 }
 

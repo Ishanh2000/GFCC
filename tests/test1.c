@@ -8,7 +8,7 @@ int main()
 	scanf("%s",a);
 	printf("String : %s\n",a);
 
-	in t n, exit_m;
+	in t n, exit_m;//Sincle line comment
 	scanf("%d",&n);
 	while(n&1==1)
 	{

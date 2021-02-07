@@ -1,8 +1,9 @@
-enum truth{tre = 0, flse = 0};
+enum truth{tre = 0, flse = 0};/* Multiline comment
+this code is 
 
-/* this code is check to see the comment working */
+check to see 
 
-int main()
+the comment working */int main()
 {
 	int a;
 	float b;
