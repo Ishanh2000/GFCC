@@ -24,12 +24,12 @@ Official name of compiler will be "gfcc".
 
 ### Dependecies
  - flex v2.6.4
- - cmake v3.18.5 or above
+ - cmake v3.10.2 or above
  - gcc v7.5 or above
 
 
  ### Misc
-  To install cmake-3.18.5:
+  To install cmake-3.18.5 which is used in development (NOTE: Also tested on cmake-3.10.2):
  ```bash
   # Source: https://askubuntu.com/a/865294/884513
   version=3.18
@@ -42,10 +42,16 @@ Official name of compiler will be "gfcc".
   cd cmake-$version.$build/
 
   ./bootstrap
-  make -j$(nproc) # no. of threads
+  make -j$(nproc) # build with multithreading
   sudo make install
 
   # test
   cmake --version
   which cmake
+
+  # to uninstall cmake
+  cd ~/temp
+  sudo make uninstall
+  rm -r ~/temp
  ```
+ 
