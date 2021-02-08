@@ -34,7 +34,7 @@ if the comment working */int main()
 
 	a = 5;
 
-	float c = 12;./bin/lexer ./tests/*.c -o out1.txt out2.txt out3.txt out4.txt out5.txt
+	float c = 12;
 	int x = 23.4re;
 
 	int ad = b, bd = c int zx;

@@ -8,6 +8,9 @@ if [[ !(-d "src/generated") ]]; then
   mkdir -p src/generated
 fi
 
+if [[ !(-d "src/include/generated") ]]; then
+  mkdir -p src/include/generated
+fi
 
 ROOT_DIR=$(pwd)
 CMAKE="cmake"

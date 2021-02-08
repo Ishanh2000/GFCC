@@ -40,6 +40,7 @@ Use "-h" flag for more knowing options.
 
 ### Dependecies
  - flex v2.6.4
+ - bison v3.0.4 or above
  - cmake v3.10.2 or above
  - gcc v7.5 or above
 
