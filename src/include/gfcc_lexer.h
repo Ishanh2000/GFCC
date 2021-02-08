@@ -9,11 +9,12 @@
 #define TAB_LEN 8
 
 // ERROR CODES
-#define E_TOO_FEW_ARGS (-1)
-#define E_INV_OPTION (-2)
-#define E_O_FLAG_TWICE (-3)
-#define E_NUM_IO_UNEQUAL (-4)
-#define E_NO_FILES (-5)
+#define E_TOO_FEW_ARGS		(-1)
+#define E_INV_OPTION		(-2)
+#define E_O_FLAG_TWICE		(-3)
+#define E_NUM_IO_UNEQUAL	(-4)
+#define E_NO_FILES		(-5)
+#define E_TAB_LEN		(-6)
 
 char* TOKEN_NAME_ARRAY[] = {
 	"IDENTIFIER",

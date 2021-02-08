@@ -122,14 +122,16 @@ L?\"(\\.|[^\\"])*\"	{ count(); return (STRING_LITERAL); }
 
 // Please do not change their names.
 int column = 1, token_column = 1, token_line = 1;
-int colorize = 0; // to colorize output (supported by modern terminals)
+int colorize = 0; // [BOOLEAN ONLY] to colorize output (supported by modern terminals)
+FILE* temp_out = NULL; // if this is NULL, use stdout
+int tab_len = TAB_LEN;
 
 /* yywrap() { return 1; } */
 
 
 void update_location (char c) {
 	if (c == '\n') { column = 1; token_line++; }
-	else if (c == '\t') column += TAB_LEN - ((column - 1) % TAB_LEN);
+	else if (c == '\t') column += tab_len - ((column - 1) % tab_len);
 	else column++;
 }
 
@@ -189,7 +191,6 @@ void handle_bad_char() {
 
 
 int main (int argc , char *argv[]) {
-	colorize = 1;
 	// ARGC TOO FEW
 	if (argc < 2) {
 		lex_err("Too few arguments. Use \"--help\" or \"-h\" for help.\n");
@@ -203,15 +204,31 @@ int main (int argc , char *argv[]) {
 	// VERSION - DO NOT CHECK FURTHER OPTIONS
 	if (isEqual(argv[1], "--version", "-v")) { gfcc_lexer_version(); return 0; }
 
-	
 
+	// maximum three more flags (-b, -c, -t) can be specified (apart from -o)
+	int brief = 0, t_flag = 0; // colorize is global param
+	for (int i = 0; i < 3; i++) {
+		int curr_pos = 1 + brief + colorize + (2 * t_flag);
 
-	// ALL - MUST SPECIFY JUST AFTER EXECUTABLE'S NAME (NOT IMPLEMENTING NOW)
-	int all = 0; // all = isEqual(argv[1], "--all", "-a");
+		brief |= isEqual(argv[curr_pos], "--brief", "-b");
+		colorize |= isEqual(argv[curr_pos], "--color", "-c");
+
+		if (isEqual(argv[curr_pos], "--tab-len", "-t")) {
+			t_flag = 1;
+			if ((2 + brief + colorize) >= argc) {
+				lex_err("Please specify desired tab length and also at least one input file. Use \"--help\" or \"-h\" for help.\n");
+				return E_TAB_LEN;
+			}
+			if ((tab_len = atoi(argv[2 + brief + colorize])) < 1) {
+				lex_err("Tab length must be a positive integer. Use \"--help\" or \"-h\" for help.\n");
+				return E_TAB_LEN;
+			}
+		}
+	}
 
 
 	// CHECK FILE LIST AND ALSO SEARCH OPTION [--output|-o]
-	int start = 1 + all, o_flag_index = -1;
+	int start = 1 + brief + colorize + (2 * t_flag), o_flag_index = -1;
 	for (int i = start; i < argc; i++) {
 		if (isEqual(argv[i], "--output", "-o")) {
 			if (o_flag_index < 0) o_flag_index = i;
@@ -221,6 +238,7 @@ int main (int argc , char *argv[]) {
 			}
 			continue;
 		}
+
 
 		if (argv[i][0] == '-') {
 			lex_err("Invalid option \"%s\". Use \"--help\" or \"-h\" for help.\n", argv[i]);
@@ -243,7 +261,7 @@ int main (int argc , char *argv[]) {
 	int file_failures = 0;
 	for (int i = 0; i < total_files; i++) {
 		// OPEN FILE	
-		FILE *temp_in = fopen(argv[start + i], "r"), *temp_out = stdout;
+		FILE *temp_in = fopen(argv[start + i], "r");
 		if (!temp_in) {
 			printf(i > 0 ? "\n" : "");
 			lex_warn("File \"%s\" does not exist or problem reading it. Skipping it.\n", argv[start + i]);
@@ -254,32 +272,39 @@ int main (int argc , char *argv[]) {
 			printf(i > 0 ? "\n" : "");
 			lex_warn("Problem writing to file \"%s\". Output will print to STDOUT.\n", argv[o_flag_index + i + 1]);
 			file_failures++;
-			temp_out = stdout;
 		}
 		
 		yyin = temp_in;
-		if (temp_out == stdout) {
+		if (!temp_out) {
 			printf(i > 0 ? "\n" : "");
 			printf("Token Stream for file \"%s\":\n", argv[start + i]);
 		}
 		
-		fprintf(temp_out, "%s%s", _C_BOLD_, _FORE_GREEN_);
-		fprintf(temp_out, "%-8s %-18s %-30s %-8s %-8s\n", "TOKEN #", "TOKEN NAME", "LEXEME", "LINE #", "COLUMN #");
-		fprintf(temp_out, "-------- ------------------ ------------------------------ -------- --------\n");
-		fprintf(temp_out, _C_NONE_);
+		if (colorize && !temp_out) printf("%s%s", _C_BOLD_, _FORE_GREEN_);
+		if (brief) {
+			fprintf(temp_out ? temp_out : stdout, "%-18s %-30s %-10s\n", "TOKEN NAME", "LEXEME", "LOCATION");
+			fprintf(temp_out ? temp_out : stdout, "------------------ ------------------------------ ----------\n");
+		} else {
+			fprintf(temp_out ? temp_out : stdout, "%-8s %-18s %-30s %-8s %-8s\n", "TOKEN #", "TOKEN NAME", "LEXEME", "LINE #", "COLUMN #");
+			fprintf(temp_out ? temp_out : stdout, "-------- ------------------ ------------------------------ -------- --------\n");
+		}
+		if (colorize && !temp_out) printf(_C_NONE_);
 		
 		column = token_line = token_column = 1;
 
 		int token, total_tokens = 0;
 		while ((token = yylex()) > 0) {
 			char* token_name = (token < IDENTIFIER || token > RETURN) ? yytext : TOKEN_NAME_ARRAY[token - IDENTIFIER];
-			fprintf(temp_out, "%-8d %-18s %-30s %-8d %-8d\n", token, token_name, yytext, token_line, token_column);
+			if (brief)	fprintf(temp_out ? temp_out : stdout, "%-18s %-30s %d:%d\n", token_name, yytext, token_line, token_column);
+			else		fprintf(temp_out ? temp_out : stdout, "%-8d %-18s %-30s %-8d %-8d\n", token, token_name, yytext, token_line, token_column);
 			total_tokens++;
 		}
 
-		fprintf(temp_out, "%s%s", _C_BOLD_, _FORE_GREEN_);
-		fprintf(temp_out, "*** TOTAL TOKENS = %d ***\n", total_tokens);
-		fprintf(temp_out, _C_NONE_);
+		if (colorize && !temp_out) printf("%s%s", _C_BOLD_, _FORE_GREEN_);
+		fprintf(temp_out ? temp_out : stdout, "*** TOTAL TOKENS = %d ***\n", total_tokens);
+		if (colorize && !temp_out) printf(_C_NONE_);
+
+		temp_out = NULL; // reset for next file
 	}
 
 	return file_failures;
@@ -296,21 +321,19 @@ void gfcc_lexer_help() {
 void lex_warn(const char* format, ...) {
 	va_list args;
 	va_start(args, format);
-	if (colorize) printf(_FORE_YELLOW_);
-	printf("WARNING: ");
-	vprintf(format, args);
-	printf(_C_NONE_);
+	if (colorize && !temp_out) printf(_FORE_YELLOW_);
+	fprintf(temp_out ? temp_out : stdout, "WARNING: ");
+	vfprintf(temp_out ? temp_out : stdout, format, args);
+	if (colorize && !temp_out) printf(_C_NONE_);
 	va_end(args);
-
 }
 
 void lex_err(const char* format, ...) {
 	va_list args;
 	va_start(args, format);
-	if (colorize) printf(_FORE_RED_);
-	printf("ERROR: ");
-	vprintf(format, args);
-	printf(_C_NONE_);
+	if (colorize && !temp_out) printf(_FORE_RED_);
+	fprintf(temp_out ? temp_out : stdout, "ERROR: ");
+	vfprintf(temp_out ? temp_out : stdout, format, args);
+	if (colorize && !temp_out) printf(_C_NONE_);
 	va_end(args);
-
 }
