@@ -10,6 +10,7 @@ IS			(u|U|l|L)*
 #include <stdio.h>
 #include <string.h>
 #include <y.tab.h>
+#include <stdarg.h>
 #include <gfcc_lexer.h>
 
 %}
@@ -115,12 +116,13 @@ L?\"(\\.|[^\\"])*\"	{ count(); return (STRING_LITERAL); }
 "?"			{ count(); return ('?'); }
 
 [ \t\v\n\f]		{ count(); }
-.			{ /* ignore bad characters */ }
+.			{ count(); handle_bad_char(); }
 
 %%
 
-int column = 1, token_column = 1, token_line = 1; // Please do not change their names.
-
+// Please do not change their names.
+int column = 1, token_column = 1, token_line = 1;
+int colorize = 0; // to colorize output (supported by modern terminals)
 
 /* yywrap() { return 1; } */
 
@@ -181,11 +183,16 @@ int isEqual(char* option, char* a, char* b) { // return 1 iff option matched a O
 	return !strcmp(option, a) || !strcmp(option, b);
 }
 
+void handle_bad_char() {
+	lex_err("Bad character seen at line %d, column %d.\n", token_line, token_column);
+}
+
 
 int main (int argc , char *argv[]) {
+	colorize = 1;
 	// ARGC TOO FEW
 	if (argc < 2) {
-		printf("ERROR: Too few arguments. Use \"--help\" or \"-h\" for help.\n");
+		lex_err("Too few arguments. Use \"--help\" or \"-h\" for help.\n");
 		return E_TOO_FEW_ARGS;
 	}
 
@@ -195,6 +202,8 @@ int main (int argc , char *argv[]) {
 
 	// VERSION - DO NOT CHECK FURTHER OPTIONS
 	if (isEqual(argv[1], "--version", "-v")) { gfcc_lexer_version(); return 0; }
+
+	
 
 
 	// ALL - MUST SPECIFY JUST AFTER EXECUTABLE'S NAME (NOT IMPLEMENTING NOW)
@@ -207,14 +216,14 @@ int main (int argc , char *argv[]) {
 		if (isEqual(argv[i], "--output", "-o")) {
 			if (o_flag_index < 0) o_flag_index = i;
 			else {
-				printf("ERROR: Option [--output|-o] specified twice. Use \"--help\" or \"-h\" for help.\n");
+				lex_err("Option [--output|-o] specified twice. Use \"--help\" or \"-h\" for help.\n");
 				return E_O_FLAG_TWICE;
 			}
 			continue;
 		}
 
 		if (argv[i][0] == '-') {
-			printf("ERROR: Invalid option \"%s\". Use \"--help\" or \"-h\" for help.\n", argv[i]);
+			lex_err("Invalid option \"%s\". Use \"--help\" or \"-h\" for help.\n", argv[i]);
 			return E_INV_OPTION;
 		}
 	}
@@ -222,12 +231,12 @@ int main (int argc , char *argv[]) {
 	int total_files;
 	if (o_flag_index < 0) total_files = argc - start; // -o was never specified. Output on STDOUT
 	else if ((total_files = o_flag_index - start) != (argc - o_flag_index - 1)) { // check no. of input and output files are equal
-		printf("ERROR: Number of input and files must be equal. Use \"--help\" or \"-h\" for help.\n");
+		lex_err("Number of input and files must be equal. Use \"--help\" or \"-h\" for help.\n");
 		return E_NUM_IO_UNEQUAL;
 	}
 
 	if (total_files < 1) {
-		printf("ERROR: Specify at least one file as input. See \"--help\" or \"-h\" for help.\n");
+		lex_err("Specify at least one file as input. See \"--help\" or \"-h\" for help.\n");
 		return E_NO_FILES;
 	}
 
@@ -237,13 +246,13 @@ int main (int argc , char *argv[]) {
 		FILE *temp_in = fopen(argv[start + i], "r"), *temp_out = stdout;
 		if (!temp_in) {
 			printf(i > 0 ? "\n" : "");
-			printf("WARNING: File \"%s\" does not exist or problem reading it. Skipping it.\n", argv[start + i]);
+			lex_warn("File \"%s\" does not exist or problem reading it. Skipping it.\n", argv[start + i]);
 			file_failures++;
 			continue;
 		}
 		if ( o_flag_index >= 0 && !(temp_out = fopen(argv[o_flag_index + i + 1], "w")) ) {
 			printf(i > 0 ? "\n" : "");
-			printf("WARNING: Problem writing to file \"%s\". Output will print to STDOUT.\n", argv[o_flag_index + i + 1]);
+			lex_warn("Problem writing to file \"%s\". Output will print to STDOUT.\n", argv[o_flag_index + i + 1]);
 			file_failures++;
 			temp_out = stdout;
 		}
@@ -254,9 +263,11 @@ int main (int argc , char *argv[]) {
 			printf("Token Stream for file \"%s\":\n", argv[start + i]);
 		}
 		
+		fprintf(temp_out, "%s%s", _C_BOLD_, _FORE_GREEN_);
 		fprintf(temp_out, "%-8s %-18s %-30s %-8s %-8s\n", "TOKEN #", "TOKEN NAME", "LEXEME", "LINE #", "COLUMN #");
 		fprintf(temp_out, "-------- ------------------ ------------------------------ -------- --------\n");
-
+		fprintf(temp_out, _C_NONE_);
+		
 		column = token_line = token_column = 1;
 
 		int token, total_tokens = 0;
@@ -265,7 +276,10 @@ int main (int argc , char *argv[]) {
 			fprintf(temp_out, "%-8d %-18s %-30s %-8d %-8d\n", token, token_name, yytext, token_line, token_column);
 			total_tokens++;
 		}
+
+		fprintf(temp_out, "%s%s", _C_BOLD_, _FORE_GREEN_);
 		fprintf(temp_out, "*** TOTAL TOKENS = %d ***\n", total_tokens);
+		fprintf(temp_out, _C_NONE_);
 	}
 
 	return file_failures;
@@ -277,4 +291,26 @@ void gfcc_lexer_version() {
 
 void gfcc_lexer_help() {
 	printf("%s", lexer_help);
+}
+
+void lex_warn(const char* format, ...) {
+	va_list args;
+	va_start(args, format);
+	if (colorize) printf(_FORE_YELLOW_);
+	printf("WARNING: ");
+	vprintf(format, args);
+	printf(_C_NONE_);
+	va_end(args);
+
+}
+
+void lex_err(const char* format, ...) {
+	va_list args;
+	va_start(args, format);
+	if (colorize) printf(_FORE_RED_);
+	printf("ERROR: ");
+	vprintf(format, args);
+	printf(_C_NONE_);
+	va_end(args);
+
 }
