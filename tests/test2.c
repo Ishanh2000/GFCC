@@ -1,9 +1,9 @@
 enum truth{tre = 0, flse = 0};/* Multiline comment
 this code is 
 
-check to see 
+to see 
 
-the comment working */int main()
+if the comment working */int main()
 {
 	int a;
 	float b;
@@ -34,7 +34,7 @@ the comment working */int main()
 
 	a = 5;
 
-	float c = 12;
+	float c = 12;./bin/lexer ./tests/*.c -o out1.txt out2.txt out3.txt out4.txt out5.txt
 	int x = 23.4re;
 
 	int ad = b, bd = c int zx;
