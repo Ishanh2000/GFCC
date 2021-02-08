@@ -1,5 +1,6 @@
 // AUM SHREEGANESHAAYA NAMAH|| // DIETY INVOCATION
 #include <gfcc_meta.h>
+#include <gfcc_colors.h>
 
 #ifndef __GFCC_LEXER__
 #define __GFCC_LEXER__
@@ -82,5 +83,11 @@ void comment(); // [DO NOT CHANGE NAME] for multi-line comment (MLC)
 int check_type();
 
 int isEqual(char*, char*, char*); // check if first is equal to second ot third
+
+void lex_err(const char*, ...); // printf wrapper for colorized output
+
+void lex_warn(const char*, ...); // printf wrapper for colorized output
+
+void handle_bad_char(); // to handle errors
 
 #endif
