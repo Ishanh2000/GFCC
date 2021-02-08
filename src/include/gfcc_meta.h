@@ -26,6 +26,8 @@ Notes:\n\
   3) The number of output files must be EQUAL to the number of input files.\n\
   4) If erreneous options (and their values) are given, desired output may not be achieved.\n\
   5) All files won't be jeopardized due failure in opening a few files.\n\
+  6) Bad (invalid) characters are reported, but lexical analysis is still carried on.\n\
+  7) Pre-processor directives / macros treated as comments (basically everything beginning with #)\n\
 ";
 
 void gfcc_lexer_help();

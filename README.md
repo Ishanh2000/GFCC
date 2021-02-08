@@ -21,10 +21,16 @@ Running lexer:
   ./bin/lexer -h # help
   ./bin/lexer -v # version
   ./bin/lexer ./tests/*.c -o out1.txt out2.txt out3.txt out4.txt out5.txt
+  ./bin/lexer -c ./tests/*.c	# colorized output (only on terminal)
+  ./bin/lexer -b ./tests/*.c	# brevity/conciseness
+  ./bin/lexer -t 9 ./tests/*.c	# change tab length (default = 8)
 ```
 
 Note: All files will not be jeopardized due to failure in opening a few files.
-Use "-h" flag for more knowing options.
+Use "-h" flag for more knowing options. Bad characters are reported, but
+lexical analysis is carried on. Pre-processor directives / macros ignored.
+
+Use help flag for more details.
 
 ### Participants:
  - Debarsho Sannyasi (180218) - debarsho@iitk.ac.in
@@ -35,7 +41,6 @@ Use "-h" flag for more knowing options.
 
 ### TODO:
  - Decide Target Language.
- - Modify tests.
  - Try updating repositry to CPP, if required in future.
 
 ### Dependecies

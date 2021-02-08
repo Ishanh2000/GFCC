@@ -15,3 +15,9 @@ int main()
 	printf("%d",a[0]);
 	return 0;
 }
+// Bad character here
+@hhhh
+// But lexical analysis continued...
+void func() {
+
+}
