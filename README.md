@@ -5,8 +5,10 @@ CS335A (Compiler Design) Project, Semester 6, 2020-21-II (Jan - Apr 2021).
 Official name of compiler will be "gfcc".
 
 Source (S): C.
+
 Implemetation (I): C (maybe C++ later on, if required, especially in case of object orientation).
-Target (T): ??
+
+Target (T): MIPS (mat change, if backend can be better implemented on another target).
 
 ### Usage:
 Building Project:
@@ -40,7 +42,6 @@ Use help flag for more details.
  - Rwit Panda (180635) - rwit@iitk.ac.in
 
 ### TODO:
- - Decide Target Language.
  - Try updating repositry to CPP, if required in future.
 
 ### Dependecies

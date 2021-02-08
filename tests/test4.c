@@ -15,9 +15,14 @@ int main()
 	printf("%d",a[0]);
 	return 0;
 }
-// Bad character here
-@hhhh
-// But lexical analysis continued...
-void func() {
 
+// Bad character here
+@
+	$
+   `
+
+// But lexical analysis continued...
+void func(int x) {
+   (~main());
+      printf((x > 0) ? "POSITIVE" : "NEGATIVE");
 }

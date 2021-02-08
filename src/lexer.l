@@ -186,7 +186,7 @@ int isEqual(char* option, char* a, char* b) { // return 1 iff option matched a O
 }
 
 void handle_bad_char() {
-	lex_err("Bad character seen at line %d, column %d.\n", token_line, token_column);
+	lex_err("Bad character (%s) seen at line %d, column %d.\n", yytext, token_line, token_column);
 }
 
 
