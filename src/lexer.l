@@ -8,7 +8,10 @@ IS			(u|U|l|L)*
 %{
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <y.tab.h>
 #include <stdarg.h>
 #include <gfcc_lexer.h>
@@ -125,6 +128,7 @@ int column = 1, token_column = 1, token_line = 1;
 int colorize = 0; // [BOOLEAN ONLY] to colorize output (supported by modern terminals)
 FILE* temp_out = NULL; // if this is NULL, use stdout
 int tab_len = TAB_LEN;
+int bad_char_seen = 0; // to notify parser
 
 /* yywrap() { return 1; } */
 
@@ -186,7 +190,19 @@ int isEqual(char* option, char* a, char* b) { // return 1 iff option matched a O
 }
 
 void handle_bad_char() {
+	bad_char_seen = 1;
 	lex_err("Bad character (%s) seen at line %d, column %d.\n", yytext, token_line, token_column);
+}
+
+void fprintTokens(FILE *f, token_t* tok_str, unsigned long int size, int brief) {
+	if (!(f && tok_str)) return;
+	for (unsigned long int i = 0; i < size; i++) {
+		int _id = tok_str[i].id, _line = tok_str[i].line, _column = tok_str[i].column;
+		char *_lexeme = tok_str[i].lexeme, *_name = getTokenName(_id, _lexeme);
+
+		if (brief)	fprintf(f, "%-18s %-30s %d:%d\n", _name, _lexeme, _line, _column);
+		else		fprintf(f, "%-8d %-18s %-30s %-8d %-8d\n", _id, _name, _lexeme, _line, _column);
+	}
 }
 
 
@@ -293,8 +309,23 @@ int main (int argc , char *argv[]) {
 		column = token_line = token_column = 1;
 
 		int token, total_tokens = 0;
+		token_t *tok_str = NULL;
+		if (
+			fseek(temp_in, 0, SEEK_END) || !( tok_str = malloc(ftell(temp_in) * sizeof(token_t)) )
+		) lex_warn("Could not get size of file \"%s\". Will skip parsing.\n", argv[start + i]);
+		
+		fseek(temp_in, 0, SEEK_SET); // return to beginning of the file. Assume success for now - lift assumption later.
+
 		while ((token = yylex()) > 0) {
-			char* token_name = (token < IDENTIFIER || token > RETURN) ? yytext : TOKEN_NAME_ARRAY[token - IDENTIFIER];
+			if (tok_str) {
+				tok_str[total_tokens].id = token;
+				tok_str[total_tokens].lexeme = malloc(sizeof(char) * (strlen(yytext) + 1));
+				strcpy(tok_str[total_tokens].lexeme, yytext);
+				tok_str[total_tokens].line = token_line;
+				tok_str[total_tokens].column = token_column;
+			}
+			
+			char* token_name = getTokenName(token, yytext);
 			if (brief)	fprintf(temp_out ? temp_out : stdout, "%-18s %-30s %d:%d\n", token_name, yytext, token_line, token_column);
 			else		fprintf(temp_out ? temp_out : stdout, "%-8d %-18s %-30s %-8d %-8d\n", token, token_name, yytext, token_line, token_column);
 			total_tokens++;
@@ -303,6 +334,19 @@ int main (int argc , char *argv[]) {
 		if (colorize && !temp_out) printf("%s%s", _C_BOLD_, _FORE_GREEN_);
 		fprintf(temp_out ? temp_out : stdout, "*** TOTAL TOKENS = %d ***\n", total_tokens);
 		if (colorize && !temp_out) printf(_C_NONE_);
+
+		if (bad_char_seen) {
+			if (tok_str) lex_warn("Bad characters encountered. Skipping parsing...\n");
+			tok_str = NULL;
+		}
+
+		if (tok_str) {
+			token_t* tmp = realloc(tok_str, total_tokens * sizeof(token_t));
+			if (tmp) tok_str = tmp; // else not a very critical issue
+		}
+
+		// TRY USING THIS FOR PRINTING IN LEXICAL ANALYSIS TOO
+		fprintTokens(temp_out ? temp_out : stdout, tok_str, (unsigned long int) total_tokens, brief);
 
 		temp_out = NULL; // reset for next file
 	}
@@ -337,3 +381,8 @@ void lex_err(const char* format, ...) {
 	if (colorize && !temp_out) printf(_C_NONE_);
 	va_end(args);
 }
+
+char* getTokenName(int tok_num, char* lexeme) {
+	return (tok_num < IDENTIFIER || tok_num > RETURN) ? lexeme : TOKEN_NAME_ARRAY[tok_num - IDENTIFIER];
+}
+

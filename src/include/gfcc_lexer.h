@@ -1,4 +1,5 @@
 // AUM SHREEGANESHAAYA NAMAH|| // DIETY INVOCATION
+#include <stdio.h>
 #include <gfcc_meta.h>
 #include <gfcc_colors.h>
 
@@ -16,6 +17,14 @@
 #define E_NO_FILES		(-5)
 #define E_TAB_LEN		(-6)
 
+typedef struct _token_t {
+	int id; // type
+	char* lexeme; // keep this NULL terminated (as usual)
+	int line;
+	int column;
+} token_t;
+
+// make this const
 char* TOKEN_NAME_ARRAY[] = {
 	"IDENTIFIER",
 	"CONSTANT",
@@ -91,4 +100,10 @@ void lex_warn(const char*, ...); // printf wrapper for colorized output
 
 void handle_bad_char(); // to handle errors
 
+char* getTokenName(int, char*); // get token name (type) using TOKEN_NAME_ARRAY
+
+// TRY USING THIS FOR SCANNING (LEXICAL ANALYSIS)
+void fprintTokens(FILE*, token_t*, unsigned long int, int);
+
 #endif
+
