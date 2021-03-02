@@ -1,0 +1,5 @@
+digraph {
+    A -> { B C }
+    INT -> UN
+    UN -> B
+}

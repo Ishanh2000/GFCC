@@ -1,3 +1,16 @@
+%{
+
+/* how to include yytext when terminals are seen? */ 
+#include <stdio.h>
+#include <stdarg.h>
+
+extern FILE* temp_out;
+extern char yytext[];
+
+void dot_stmt(const char* format, ...);
+
+%}
+
 %token IDENTIFIER CONSTANT STRING_LITERAL SIZEOF
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
@@ -14,6 +27,7 @@
 
 primary_expression
 	: IDENTIFIER
+		{ printf("IDENTIFIER = %s\n", yytext); }
 	| CONSTANT
 	| STRING_LITERAL
 	| '(' expression ')'
@@ -186,6 +200,7 @@ type_specifier
 	| CHAR
 	| SHORT
 	| INT
+		{ dot_stmt("type_specifier -> INT"); /* how to include yytext when terminals are seen? */ }
 	| LONG
 	| FLOAT
 	| DOUBLE
@@ -418,12 +433,19 @@ function_definition
 
 extern char yytext[];
 extern int column;
-
 int yylex();
 
-void yyerror(s)
-char *s;
-{
+void yyerror(s) char *s; {
 	fflush(stdout);
 	printf("\n%*s\n%*s\n", column, "^", column, s);
 }
+
+void dot_stmt(const char* format, ...) { // just a wrapper function
+	va_list args;
+	va_start(args, format);
+	fprintf(temp_out, "\t");
+	vfprintf(temp_out, format, args);
+	fprintf(temp_out, ";\n");
+	va_end(args);
+}
+

@@ -12,9 +12,10 @@ IS			(u|U|l|L)*
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <y.tab.h>
+#include <parser.tab.h>
 #include <stdarg.h>
 #include <gfcc_lexer.h>
+// int yyarse();
 
 %}
 
@@ -277,76 +278,99 @@ int main (int argc , char *argv[]) {
 	int file_failures = 0;
 	for (int i = 0; i < total_files; i++) {
 		// OPEN FILE	
-		FILE *temp_in = fopen(argv[start + i], "r");
-		if (!temp_in) {
+		yyin = fopen(argv[start + i], "r");
+		if (!yyin) {
 			printf(i > 0 ? "\n" : "");
 			lex_warn("File \"%s\" does not exist or problem reading it. Skipping it.\n", argv[start + i]);
 			file_failures++;
 			continue;
 		}
+
 		if ( o_flag_index >= 0 && !(temp_out = fopen(argv[o_flag_index + i + 1], "w")) ) {
 			printf(i > 0 ? "\n" : "");
-			lex_warn("Problem writing to file \"%s\". Output will print to STDOUT.\n", argv[o_flag_index + i + 1]);
+			lex_warn("Problem writing to file \"%s\". Skipping it.\n", argv[o_flag_index + i + 1]);
 			file_failures++;
-		}
-		
-		yyin = temp_in;
-		if (!temp_out) {
-			printf(i > 0 ? "\n" : "");
-			printf("Token Stream for file \"%s\":\n", argv[start + i]);
-		}
-		
-		if (colorize && !temp_out) printf("%s%s", _C_BOLD_, _FORE_GREEN_);
-		if (brief) {
-			fprintf(temp_out ? temp_out : stdout, "%-18s %-30s %-10s\n", "TOKEN NAME", "LEXEME", "LOCATION");
-			fprintf(temp_out ? temp_out : stdout, "------------------ ------------------------------ ----------\n");
+			continue;
 		} else {
-			fprintf(temp_out ? temp_out : stdout, "%-8s %-18s %-30s %-8s %-8s\n", "TOKEN #", "TOKEN NAME", "LEXEME", "LINE #", "COLUMN #");
-			fprintf(temp_out ? temp_out : stdout, "-------- ------------------ ------------------------------ -------- --------\n");
-		}
-		if (colorize && !temp_out) printf(_C_NONE_);
-		
-		column = token_line = token_column = 1;
+			int len = strlen(argv[start + i]);
+			char out_file_name[len + 5]; strcpy(out_file_name, argv[start + i]);
 
-		int token, total_tokens = 0;
-		token_t *tok_str = NULL;
-		if (
-			fseek(temp_in, 0, SEEK_END) || !( tok_str = malloc(ftell(temp_in) * sizeof(token_t)) )
-		) lex_warn("Could not get size of file \"%s\". Will skip parsing.\n", argv[start + i]);
-		
-		fseek(temp_in, 0, SEEK_SET); // return to beginning of the file. Assume success for now - lift assumption later.
+			// check if ".c" extension or not.
+			int _start = len + ((argv[start + i][len - 2] == '.' && argv[start + i][len - 1] == 'c') ? (-2) : 0);
+			out_file_name[_start] = '.'; out_file_name[_start + 1] = 'd';
+			out_file_name[_start + 2] = 'o'; out_file_name[_start + 3] = 't';
+			out_file_name[_start + 4] = '\0';
 
-		while ((token = yylex()) > 0) {
-			if (tok_str) {
-				tok_str[total_tokens].id = token;
-				tok_str[total_tokens].lexeme = malloc(sizeof(char) * (strlen(yytext) + 1));
-				strcpy(tok_str[total_tokens].lexeme, yytext);
-				tok_str[total_tokens].line = token_line;
-				tok_str[total_tokens].column = token_column;
+			if ( !(temp_out = fopen(out_file_name, "w")) ) {
+				printf(i > 0 ? "\n" : "");
+				lex_warn("Problem writing to file \"%s\". Skipping it.\n", out_file_name);
+				file_failures++;
+				continue;
 			}
+		}
+
+		fprintf(temp_out, "digraph {\n");
+
+		printf("yyparse() = %d\n", yyparse());
+		
+		fprintf(temp_out, "}");
+		
+		// if (!temp_out) {
+		// 	printf(i > 0 ? "\n" : "");
+		// 	printf("Token Stream for file \"%s\":\n", argv[start + i]);
+		// }
+		
+		// if (colorize && !temp_out) printf("%s%s", _C_BOLD_, _FORE_GREEN_);
+		// if (brief) {
+		// 	fprintf(temp_out ? temp_out : stdout, "%-18s %-30s %-10s\n", "TOKEN NAME", "LEXEME", "LOCATION");
+		// 	fprintf(temp_out ? temp_out : stdout, "------------------ ------------------------------ ----------\n");
+		// } else {
+		// 	fprintf(temp_out ? temp_out : stdout, "%-8s %-18s %-30s %-8s %-8s\n", "TOKEN #", "TOKEN NAME", "LEXEME", "LINE #", "COLUMN #");
+		// 	fprintf(temp_out ? temp_out : stdout, "-------- ------------------ ------------------------------ -------- --------\n");
+		// }
+		// if (colorize && !temp_out) printf(_C_NONE_);
+		
+		// column = token_line = token_column = 1;
+
+		// int token, total_tokens = 0;
+		// token_t *tok_str = NULL;
+		// if (
+		// 	fseek(temp_in, 0, SEEK_END) || !( tok_str = malloc(ftell(temp_in) * sizeof(token_t)) )
+		// ) lex_warn("Could not get size of file \"%s\". Will skip parsing.\n", argv[start + i]);
+		
+		// fseek(temp_in, 0, SEEK_SET); // return to beginning of the file. Assume success for now - lift assumption later.
+
+		// while ((token = yylex()) > 0) {
+		// 	if (tok_str) {
+		// 		tok_str[total_tokens].id = token;
+		// 		tok_str[total_tokens].lexeme = malloc(sizeof(char) * (strlen(yytext) + 1));
+		// 		strcpy(tok_str[total_tokens].lexeme, yytext);
+		// 		tok_str[total_tokens].line = token_line;
+		// 		tok_str[total_tokens].column = token_column;
+		// 	}
 			
-			char* token_name = getTokenName(token, yytext);
-			if (brief)	fprintf(temp_out ? temp_out : stdout, "%-18s %-30s %d:%d\n", token_name, yytext, token_line, token_column);
-			else		fprintf(temp_out ? temp_out : stdout, "%-8d %-18s %-30s %-8d %-8d\n", token, token_name, yytext, token_line, token_column);
-			total_tokens++;
-		}
+		// 	char* token_name = getTokenName(token, yytext);
+		// 	if (brief)	fprintf(temp_out ? temp_out : stdout, "%-18s %-30s %d:%d\n", token_name, yytext, token_line, token_column);
+		// 	else		fprintf(temp_out ? temp_out : stdout, "%-8d %-18s %-30s %-8d %-8d\n", token, token_name, yytext, token_line, token_column);
+		// 	total_tokens++;
+		// }
 
-		if (colorize && !temp_out) printf("%s%s", _C_BOLD_, _FORE_GREEN_);
-		fprintf(temp_out ? temp_out : stdout, "*** TOTAL TOKENS = %d ***\n", total_tokens);
-		if (colorize && !temp_out) printf(_C_NONE_);
+		// if (colorize && !temp_out) printf("%s%s", _C_BOLD_, _FORE_GREEN_);
+		// fprintf(temp_out ? temp_out : stdout, "*** TOTAL TOKENS = %d ***\n", total_tokens);
+		// if (colorize && !temp_out) printf(_C_NONE_);
 
-		if (bad_char_seen) {
-			if (tok_str) lex_warn("Bad characters encountered. Skipping parsing...\n");
-			tok_str = NULL;
-		}
+		// if (bad_char_seen) {
+		// 	if (tok_str) lex_warn("Bad characters encountered. Skipping parsing...\n");
+		// 	tok_str = NULL;
+		// }
 
-		if (tok_str) {
-			token_t* tmp = realloc(tok_str, total_tokens * sizeof(token_t));
-			if (tmp) tok_str = tmp; // else not a very critical issue
-		}
+		// if (tok_str) {
+		// 	token_t* tmp = realloc(tok_str, total_tokens * sizeof(token_t));
+		// 	if (tmp) tok_str = tmp; // else not a very critical issue
+		// }
 
-		// TRY USING THIS FOR PRINTING IN LEXICAL ANALYSIS TOO
-		fprintTokens(temp_out ? temp_out : stdout, tok_str, (unsigned long int) total_tokens, brief);
+		// // TRY USING THIS FOR PRINTING IN LEXICAL ANALYSIS TOO
+		// fprintTokens(temp_out ? temp_out : stdout, tok_str, (unsigned long int) total_tokens, brief);
 
 		temp_out = NULL; // reset for next file
 	}
