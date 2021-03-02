@@ -1,7 +1,8 @@
 %{
-
+/* PLEASE ENSURE ALL NON-TERMINALS START WITH SMALL ALPHABETS */
 /* how to include yytext when terminals are seen? */ 
 #include <stdio.h>
+#include <string.h>
 #include <stdarg.h>
 
 #define MAX_PARSE_TREE_HEIGHT 10000
@@ -12,55 +13,14 @@ extern FILE* temp_out;
 extern char yytext[];
 extern int yylex();
 int yyerror(char *s);
-
 void dotStmt(const char*, ...);
 void dotNode(ull_t, char*);
 void dotEdge(ull_t, ull_t);
+void takeAction(const char*);
 
 ull_t currNumNodes = 0; // invariant: currNumNodes > 0 for all existing nodes.
-
-ull_t newNode() {
-	return ++currNumNodes;
-}
-
-ull_t newDotNode(char* label) {
-	ull_t id = newNode();
-	fprintf(temp_out, "\t%lld [label = \"%s\"];\n", id, label);
-	return id;
-}
-
 ull_t nodeStack[MAX_PARSE_TREE_HEIGHT];
 ull_t nodeStackSize = 0;
-
-int nodeStackPush(ull_t nodeId) {
-	if (nodeStackSize == MAX_PARSE_TREE_HEIGHT) return -1;
-	nodeStack[nodeStackSize++] = nodeId;
-	return 0;
-}
-
-ull_t nodeStackPop() {
-	if (nodeStackSize) return nodeStack[--nodeStackSize];
-	return 0; // 0 is not id for any node
-}
-
-ull_t nodeStackTop() {
-	if (nodeStackSize) return nodeStack[nodeStackSize-1];
-	return 0; // 0 is not id for any node
-}
-
-/** ACTION UPON SEEING A RULE (PSEUDO-CODE)
-* parent = newNode()
-* for childSymbol in { Cn, ..., C2, C1 }: // reverse order
-*	child = newNode() IF child is ternminal, ELSE nodeStackPop()
-* 	add edge (parent, child)
-* nodeStackPush(parent)
-*/
-
-// TRY IMPLEMENTING USING A SINGLE FUNCTION
-// void takeAction(char* parent, )
-
-
-ull_t parent, child;
 
 %}
 
@@ -80,27 +40,15 @@ ull_t parent, child;
 
 primary_expression
 	: IDENTIFIER
-	| CONSTANT {
-		printf("primary_expression -> CONSTANT\n");
-
-		parent = newDotNode("primary_expression");
-		child = newDotNode("CONSTANT");
-		printf("HERE %lld, %lld\n", parent, child);
-		dotEdge(parent, child); // CONSTANT
-		nodeStackPush(parent);
-	}
+	| CONSTANT
+		{ takeAction("primary_expression CONSTANT"); }
 	| STRING_LITERAL
 	| '(' expression ')'
 	;
 
 postfix_expression
-	: primary_expression {
-		printf("postfix_expression -> primary_expression\n");
-
-		parent = newDotNode("postfix_expression");
-		child = nodeStackPop(); dotEdge(parent, child); // primary_expression
-		nodeStackPush(parent);
-	}
+	: primary_expression
+		{ takeAction("postfix_expression primary_expression"); }
 	| postfix_expression '[' expression ']'
 	| postfix_expression '(' ')'
 	| postfix_expression '(' argument_expression_list ')'
@@ -116,13 +64,8 @@ argument_expression_list
 	;
 
 unary_expression
-	: postfix_expression {
-		printf("unary_expression -> postfix_expression\n");
-		
-		parent = newDotNode("unary_expression");
-		child = nodeStackPop(); dotEdge(parent, child); // postfix_expression
-		nodeStackPush(parent);
-	}
+	: postfix_expression
+		{ takeAction("unary_expression postfix_expression"); }
 	| INC_OP unary_expression
 	| DEC_OP unary_expression
 	| unary_operator cast_expression
@@ -140,24 +83,14 @@ unary_operator
 	;
 
 cast_expression
-	: unary_expression {
-		printf("cast_expression -> unary_expression\n");
-		
-		parent = newDotNode("cast_expression");
-		child = nodeStackPop(); dotEdge(parent, child); // unary_expression
-		nodeStackPush(parent);
-	}
+	: unary_expression
+		{ takeAction("cast_expression unary_expression"); }
 	| '(' type_name ')' cast_expression
 	;
 
 multiplicative_expression
-	: cast_expression {
-		printf("multiplicative_expression -> cast_expression\n");
-		
-		parent = newDotNode("multiplicative_expression");
-		child = nodeStackPop(); dotEdge(parent, child); // cast_expression
-		nodeStackPush(parent);
-	}
+	: cast_expression
+		{ takeAction("multiplicative_expression cast_expression"); }
 	| multiplicative_expression '*' cast_expression
 	| multiplicative_expression '/' cast_expression
 	| multiplicative_expression '%' cast_expression
@@ -165,15 +98,8 @@ multiplicative_expression
 
 additive_expression
 	: multiplicative_expression
-	| additive_expression '+' multiplicative_expression {
-		printf("additive_expression -> multiplicative_expression\n");
-		
-		parent = newDotNode("additive_expression");
-		child = nodeStackPop(); dotEdge(parent, child); // multiplicative_expression
-		child = newDotNode("+"); dotEdge(parent, child); // '+'
-		child = nodeStackPop(); dotEdge(parent, child); // additive_expression
-		nodeStackPush(parent);
-	}
+	| additive_expression '+' multiplicative_expression
+		{ takeAction("additive_expression multiplicative_expression + additive_expression"); }
 	| additive_expression '-' multiplicative_expression
 	;
 
@@ -546,4 +472,93 @@ void dotNode(ull_t id, char* label) { // just a wrapper function
 void dotEdge(ull_t parent, ull_t child) { // just a wrapper function
 	printf("HERE2 %lld, %lld\n", parent, child);
 	fprintf(temp_out, "\t%lld -> %lld;\n", parent, child);
+}
+
+ull_t newNode() {
+	return ++currNumNodes;
+}
+
+int nodeStackPush(ull_t nodeId) {
+	if (nodeStackSize == MAX_PARSE_TREE_HEIGHT) return -1;
+	nodeStack[nodeStackSize++] = nodeId;
+	return 0;
+}
+
+ull_t nodeStackPop() {
+	if (nodeStackSize) return nodeStack[--nodeStackSize];
+	return 0; // 0 is not id for any node
+}
+
+ull_t nodeStackTop() {
+	if (nodeStackSize) return nodeStack[nodeStackSize-1];
+	return 0; // 0 is not id for any node
+}
+
+
+/** ACTION UPON SEEING A RULE (PSEUDO-CODE)
+* parent = newNode()
+* for childSymbol in { Cn, ..., C2, C1 }: // reverse order
+*	child = newNode() IF child is ternminal, ELSE nodeStackPop()
+* 	add edge (parent, child)
+* nodeStackPush(parent)
+*/
+void takeAction(const char* str) { // input: parent{attr}|child_N{attr}| ... |child_2{attr}|child_1{attr}
+    // use of strtok avoided - vanilla string manipulation is faster.
+    int n = strlen(str);
+    int start = 0, end = 0;
+    int parent_seen = 0; ull_t parentId;
+	char enforceOrder[2*n]; // to enforce order by introducing invisible edges (and maybe ranks later on).
+	int enforceLen = 0;
+	int numChild = 0;
+
+    while (start < n) {
+        while (str[end] && (str[end] != ' ')) end++;
+        end--;
+        
+        // now concerned with str[start ... end] (both indices included)
+		int sep = start; // index of separator
+		while ((sep <= end) && str[sep] != '@') sep++;
+
+		ull_t nodeId;
+		// [THE FOLLOWING IF-THEN-ELSE STATEMENT ASSUMES THAT A NON-TERMINAL BEGINS WITH A SMALL ALPHABET]
+		if (parent_seen && 'a' <= str[start] && str[start] <= 'z') nodeId = nodeStackPop(); // non-terminal symbol
+		else nodeId = ++currNumNodes; // parent OR terminal child
+        
+		fprintf(temp_out, "\t%lld [label=\"", nodeId);
+        for (int i = start; i <= sep - 1; i++) fputc(str[i], temp_out); // str[start ... (sep - 1)] is label (keep inside "")
+		fprintf(temp_out, (sep > end) ? "\"" : "\",");
+        for (int i = sep + 1; i <= end; i++) fputc(str[i], temp_out); // str[(sep + 1) ... end] are label and attributes
+		fprintf(temp_out, "];\n");
+        
+		if (parent_seen) {
+			char arr[25]; int l = 0;
+			ull_t num = nodeId;
+			while (num) { arr[l++] = (num % 10) + '0'; num /= 10; }
+			for (int i = l-1; i >= 0; i--) enforceOrder[enforceLen++] = arr[i];
+			enforceOrder[enforceLen++] = ' '; enforceOrder[enforceLen++] = '-';
+			enforceOrder[enforceLen++] = '>'; enforceOrder[enforceLen++] = ' ';
+			// add "nodeId -> " to enforceOrder
+		}
+
+		if (parent_seen) numChild++;
+
+        if (!parent_seen) { parentId = nodeId; parent_seen = 1; }
+		else fprintf(temp_out, "\t%lld -> %lld;\n", parentId, nodeId); // add edge from parent (parentId) to child (nodeId)
+
+        end = start = end + 2;
+    }
+
+	nodeStackPush(parentId);
+
+	// Assume that at least one child exists.
+	// So, enforceOrder = "... xyz -> "
+	// So, you can go back 3-4 indices successfully.
+	if (numChild > 1) {
+		enforceOrder[enforceLen - 4] = '\0';
+		fprintf(temp_out, "\t{\n");
+		fprintf(temp_out, "\t\trank = same;\n");
+		fprintf(temp_out, "\t\t%s [style = \"invis\"];\n", enforceOrder);
+		fprintf(temp_out, "\t\trankdir = RL;\n"); // right to left (adjusted experimentally)
+		fprintf(temp_out, "\t}\n");
+	}
 }
