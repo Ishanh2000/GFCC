@@ -7,7 +7,29 @@
 extern FILE* temp_out;
 extern char yytext[];
 
-void dot_stmt(const char* format, ...);
+typedef unsigned long long ull_t;
+
+void dotStmt(const char*, ...);
+void dotNode(ull_t, char*);
+void dotEdge(ull_t, ull_t);
+
+ull_t currNumNodes = 0;
+
+ull_t newNode() {
+	return ++currNumNodes;
+}
+
+// ull_t nodeStack[10000];
+// ull_t nodeStackSize = 0;
+
+// ull_t nodeStackTop() {
+// 	if(nodeStackSize > 0) return nodeStack[nodeStackSize - 1];
+// 	return 0;
+// }
+
+// ull_t parent = newNode(); dotNode(parent, "primary_expression"); // faulty
+// ull_t child = newNode(); dotNode(child, "("); dotEdge(parent, child);
+
 
 %}
 
@@ -27,14 +49,21 @@ void dot_stmt(const char* format, ...);
 
 primary_expression
 	: IDENTIFIER
-		{ printf("IDENTIFIER = %s\n", yytext); }
-	| CONSTANT
+	| CONSTANT {
+		printf("primary_expression -> CONSTANT\n");
+		ull_t parent = newNode(); dotNode(parent, "primary_expression"); // faulty
+		ull_t child = newNode(); dotNode(child, "CONSTANT"); dotEdge(parent, child);
+	}
 	| STRING_LITERAL
 	| '(' expression ')'
 	;
 
 postfix_expression
-	: primary_expression
+	: primary_expression {
+		printf("postfix_expression -> primary_expression\n");
+		ull_t parent = newNode(); dotNode(parent, "postfix_expression"); // faulty
+		ull_t child = newNode(); dotNode(child, "primary_expression"); dotEdge(parent, child);
+	}
 	| postfix_expression '[' expression ']'
 	| postfix_expression '(' ')'
 	| postfix_expression '(' argument_expression_list ')'
@@ -50,7 +79,11 @@ argument_expression_list
 	;
 
 unary_expression
-	: postfix_expression
+	: postfix_expression {
+		printf("unary_expression -> postfix_expression\n");
+		ull_t parent = newNode(); dotNode(parent, "unary_expression"); // faulty
+		ull_t child = newNode(); dotNode(child, "postfix_expression"); dotEdge(parent, child);
+	}
 	| INC_OP unary_expression
 	| DEC_OP unary_expression
 	| unary_operator cast_expression
@@ -68,12 +101,20 @@ unary_operator
 	;
 
 cast_expression
-	: unary_expression
+	: unary_expression {
+		printf("cast_expression -> unary_expression\n");
+		ull_t parent = newNode(); dotNode(parent, "cast_expression"); // faulty
+		ull_t child = newNode(); dotNode(child, "unary_expression"); dotEdge(parent, child);
+	}
 	| '(' type_name ')' cast_expression
 	;
 
 multiplicative_expression
-	: cast_expression
+	: cast_expression {
+		printf("multiplicative_expression -> cast_expression\n");
+		ull_t parent = newNode(); dotNode(parent, "multiplicative_expression"); // faulty
+		ull_t child = newNode(); dotNode(child, "cast_expression"); dotEdge(parent, child);
+	}
 	| multiplicative_expression '*' cast_expression
 	| multiplicative_expression '/' cast_expression
 	| multiplicative_expression '%' cast_expression
@@ -81,7 +122,13 @@ multiplicative_expression
 
 additive_expression
 	: multiplicative_expression
-	| additive_expression '+' multiplicative_expression
+	| additive_expression '+' multiplicative_expression {
+		printf("additive_expression -> multiplicative_expression\n");
+		ull_t parent = newNode(); dotNode(parent, "additive_expression"); // faulty
+		ull_t child = newNode(); dotNode(child, "additive_expression"); dotEdge(parent, child);
+		child = newNode(); dotNode(child, "+"); dotEdge(parent, child);
+		child = newNode(); dotNode(child, "additive_expression"); dotEdge(parent, child);
+	}
 	| additive_expression '-' multiplicative_expression
 	;
 
@@ -200,7 +247,6 @@ type_specifier
 	| CHAR
 	| SHORT
 	| INT
-		{ dot_stmt("type_specifier -> INT"); /* how to include yytext when terminals are seen? */ }
 	| LONG
 	| FLOAT
 	| DOUBLE
@@ -435,17 +481,25 @@ extern char yytext[];
 extern int column;
 int yylex();
 
-void yyerror(s) char *s; {
+yyerror(s) char *s; {
 	fflush(stdout);
 	printf("\n%*s\n%*s\n", column, "^", column, s);
 }
 
-void dot_stmt(const char* format, ...) { // just a wrapper function
+void dotStmt(const char* format, ...) { // just a wrapper function
 	va_list args;
 	va_start(args, format);
 	fprintf(temp_out, "\t");
 	vfprintf(temp_out, format, args);
 	fprintf(temp_out, ";\n");
 	va_end(args);
+}
+
+void dotNode(ull_t id, char* label) { // just a wrapper function
+	fprintf(temp_out, "\t%lld [label = \"%s\"];\n", id, label);
+}
+
+void dotEdge(ull_t parent, ull_t child) { // just a wrapper function
+	fprintf(temp_out, "\t%lld -> %lld;\n", parent, child);
 }
 

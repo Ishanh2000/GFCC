@@ -1,1 +1,3 @@
-int main;
+int main() {
+    23+99;
+}

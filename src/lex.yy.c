@@ -629,7 +629,7 @@ char *yytext;
 #include <parser.tab.h>
 #include <stdarg.h>
 #include <gfcc_lexer.h>
-// int yyarse();
+int yyarse();
 
 #line 635 "lex.yy.c"
 #line 636 "lex.yy.c"
@@ -2571,6 +2571,7 @@ int main (int argc , char *argv[]) {
 		}
 
 		fprintf(temp_out, "digraph {\n");
+		fprintf(temp_out, "\tsize=\"8.25,11.75!\" ratio = \"fit\";\n");
 
 		printf("yyparse() = %d\n", yyparse());
 		

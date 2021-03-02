@@ -15,7 +15,7 @@ IS			(u|U|l|L)*
 #include <parser.tab.h>
 #include <stdarg.h>
 #include <gfcc_lexer.h>
-// int yyarse();
+int yyarse();
 
 %}
 
@@ -310,6 +310,7 @@ int main (int argc , char *argv[]) {
 		}
 
 		fprintf(temp_out, "digraph {\n");
+		fprintf(temp_out, "\tsize=\"8.25,11.75!\" ratio = \"fit\";\n");
 
 		printf("yyparse() = %d\n", yyparse());
 		

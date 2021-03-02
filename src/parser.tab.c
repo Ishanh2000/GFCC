@@ -76,10 +76,32 @@
 extern FILE* temp_out;
 extern char yytext[];
 
-void dot_stmt(const char* format, ...);
+typedef unsigned long long ull_t;
+
+void dotStmt(const char*, ...);
+void dotNode(ull_t, char*);
+void dotEdge(ull_t, ull_t);
+
+ull_t currNumNodes = 0;
+
+ull_t newNode() {
+	return ++currNumNodes;
+}
+
+// ull_t nodeStack[10000];
+// ull_t nodeStackSize = 0;
+
+// ull_t nodeStackTop() {
+// 	if(nodeStackSize > 0) return nodeStack[nodeStackSize - 1];
+// 	return 0;
+// }
+
+// ull_t parent = newNode(); dotNode(parent, "primary_expression"); // faulty
+// ull_t child = newNode(); dotNode(child, "("); dotEdge(parent, child);
 
 
-#line 83 "parser.tab.c"
+
+#line 105 "parser.tab.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -568,28 +590,28 @@ static const yytype_int8 yytranslate[] =
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int16 yyrline[] =
 {
-       0,    29,    29,    31,    32,    33,    37,    38,    39,    40,
-      41,    42,    43,    44,    48,    49,    53,    54,    55,    56,
-      57,    58,    62,    63,    64,    65,    66,    67,    71,    72,
-      76,    77,    78,    79,    83,    84,    85,    89,    90,    91,
-      95,    96,    97,    98,    99,   103,   104,   105,   109,   110,
-     114,   115,   119,   120,   124,   125,   129,   130,   134,   135,
-     139,   140,   144,   145,   146,   147,   148,   149,   150,   151,
-     152,   153,   154,   158,   159,   163,   167,   168,   172,   173,
-     174,   175,   176,   177,   181,   182,   186,   187,   191,   192,
-     193,   194,   195,   199,   200,   201,   202,   204,   205,   206,
-     207,   208,   209,   210,   211,   215,   216,   217,   221,   222,
-     226,   227,   231,   235,   236,   237,   238,   242,   243,   247,
-     248,   249,   253,   254,   255,   259,   260,   264,   265,   269,
-     270,   274,   275,   279,   280,   281,   282,   283,   284,   285,
-     289,   290,   291,   292,   296,   297,   302,   303,   307,   308,
-     312,   313,   314,   318,   319,   323,   324,   328,   329,   330,
-     334,   335,   336,   337,   338,   339,   340,   341,   342,   346,
-     347,   348,   352,   353,   357,   358,   359,   360,   361,   362,
-     366,   367,   368,   372,   373,   374,   375,   379,   380,   384,
-     385,   389,   390,   394,   395,   396,   400,   401,   402,   403,
-     407,   408,   409,   410,   411,   415,   416,   420,   421,   425,
-     426,   427,   428
+       0,    51,    51,    52,    57,    58,    62,    67,    68,    69,
+      70,    71,    72,    73,    77,    78,    82,    87,    88,    89,
+      90,    91,    95,    96,    97,    98,    99,   100,   104,   109,
+     113,   118,   119,   120,   124,   125,   132,   136,   137,   138,
+     142,   143,   144,   145,   146,   150,   151,   152,   156,   157,
+     161,   162,   166,   167,   171,   172,   176,   177,   181,   182,
+     186,   187,   191,   192,   193,   194,   195,   196,   197,   198,
+     199,   200,   201,   205,   206,   210,   214,   215,   219,   220,
+     221,   222,   223,   224,   228,   229,   233,   234,   238,   239,
+     240,   241,   242,   246,   247,   248,   249,   250,   251,   252,
+     253,   254,   255,   256,   257,   261,   262,   263,   267,   268,
+     272,   273,   277,   281,   282,   283,   284,   288,   289,   293,
+     294,   295,   299,   300,   301,   305,   306,   310,   311,   315,
+     316,   320,   321,   325,   326,   327,   328,   329,   330,   331,
+     335,   336,   337,   338,   342,   343,   348,   349,   353,   354,
+     358,   359,   360,   364,   365,   369,   370,   374,   375,   376,
+     380,   381,   382,   383,   384,   385,   386,   387,   388,   392,
+     393,   394,   398,   399,   403,   404,   405,   406,   407,   408,
+     412,   413,   414,   418,   419,   420,   421,   425,   426,   430,
+     431,   435,   436,   440,   441,   442,   446,   447,   448,   449,
+     453,   454,   455,   456,   457,   461,   462,   466,   467,   471,
+     472,   473,   474
 };
 #endif
 
@@ -1829,20 +1851,70 @@ yyreduce:
   YY_REDUCE_PRINT (yyn);
   switch (yyn)
     {
-  case 2:
-#line 30 "parser.y"
-                { printf("IDENTIFIER = %s\n", yytext); }
-#line 1836 "parser.tab.c"
+  case 3:
+#line 52 "parser.y"
+                   {
+		printf("primary_expression -> CONSTANT\n");
+		ull_t parent = newNode(); dotNode(parent, "primary_expression"); // faulty
+		ull_t child = newNode(); dotNode(child, "CONSTANT"); dotEdge(parent, child);
+	}
+#line 1862 "parser.tab.c"
     break;
 
-  case 96:
-#line 203 "parser.y"
-                { dot_stmt("type_specifier -> INT"); /* how to include yytext when terminals are seen? */ }
-#line 1842 "parser.tab.c"
+  case 6:
+#line 62 "parser.y"
+                             {
+		printf("postfix_expression -> primary_expression\n");
+		ull_t parent = newNode(); dotNode(parent, "postfix_expression"); // faulty
+		ull_t child = newNode(); dotNode(child, "primary_expression"); dotEdge(parent, child);
+	}
+#line 1872 "parser.tab.c"
+    break;
+
+  case 16:
+#line 82 "parser.y"
+                             {
+		printf("unary_expression -> postfix_expression\n");
+		ull_t parent = newNode(); dotNode(parent, "unary_expression"); // faulty
+		ull_t child = newNode(); dotNode(child, "postfix_expression"); dotEdge(parent, child);
+	}
+#line 1882 "parser.tab.c"
+    break;
+
+  case 28:
+#line 104 "parser.y"
+                           {
+		printf("cast_expression -> unary_expression\n");
+		ull_t parent = newNode(); dotNode(parent, "cast_expression"); // faulty
+		ull_t child = newNode(); dotNode(child, "unary_expression"); dotEdge(parent, child);
+	}
+#line 1892 "parser.tab.c"
+    break;
+
+  case 30:
+#line 113 "parser.y"
+                          {
+		printf("multiplicative_expression -> cast_expression\n");
+		ull_t parent = newNode(); dotNode(parent, "multiplicative_expression"); // faulty
+		ull_t child = newNode(); dotNode(child, "cast_expression"); dotEdge(parent, child);
+	}
+#line 1902 "parser.tab.c"
+    break;
+
+  case 35:
+#line 125 "parser.y"
+                                                            {
+		printf("additive_expression -> multiplicative_expression\n");
+		ull_t parent = newNode(); dotNode(parent, "additive_expression"); // faulty
+		ull_t child = newNode(); dotNode(child, "additive_expression"); dotEdge(parent, child);
+		child = newNode(); dotNode(child, "+"); dotEdge(parent, child);
+		child = newNode(); dotNode(child, "additive_expression"); dotEdge(parent, child);
+	}
+#line 1914 "parser.tab.c"
     break;
 
 
-#line 1846 "parser.tab.c"
+#line 1918 "parser.tab.c"
 
       default: break;
     }
@@ -2074,7 +2146,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 431 "parser.y"
+#line 477 "parser.y"
 
 #include <stdio.h>
 
@@ -2082,17 +2154,25 @@ extern char yytext[];
 extern int column;
 int yylex();
 
-void yyerror(s) char *s; {
+yyerror(s) char *s; {
 	fflush(stdout);
 	printf("\n%*s\n%*s\n", column, "^", column, s);
 }
 
-void dot_stmt(const char* format, ...) { // just a wrapper function
+void dotStmt(const char* format, ...) { // just a wrapper function
 	va_list args;
 	va_start(args, format);
 	fprintf(temp_out, "\t");
 	vfprintf(temp_out, format, args);
 	fprintf(temp_out, ";\n");
 	va_end(args);
+}
+
+void dotNode(ull_t id, char* label) { // just a wrapper function
+	fprintf(temp_out, "\t%lld [label = \"%s\"];\n", id, label);
+}
+
+void dotEdge(ull_t parent, ull_t child) { // just a wrapper function
+	fprintf(temp_out, "\t%lld -> %lld;\n", parent, child);
 }
 
