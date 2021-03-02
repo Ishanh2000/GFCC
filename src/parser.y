@@ -4,32 +4,61 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-extern FILE* temp_out;
-extern char yytext[];
+#define MAX_PARSE_TREE_HEIGHT 10000
 
 typedef unsigned long long ull_t;
+
+extern FILE* temp_out;
+extern char yytext[];
 
 void dotStmt(const char*, ...);
 void dotNode(ull_t, char*);
 void dotEdge(ull_t, ull_t);
 
-ull_t currNumNodes = 0;
+ull_t currNumNodes = 0; // invariant: currNumNodes > 0 for all existing nodes.
 
 ull_t newNode() {
 	return ++currNumNodes;
 }
 
-// ull_t nodeStack[10000];
-// ull_t nodeStackSize = 0;
+ull_t newDotNode(char* label) {
+	ull_t id = newNode();
+	fprintf(temp_out, "\t%lld [label = \"%s\"];\n", id, label);
+	return id;
+}
 
-// ull_t nodeStackTop() {
-// 	if(nodeStackSize > 0) return nodeStack[nodeStackSize - 1];
-// 	return 0;
-// }
+ull_t nodeStack[MAX_PARSE_TREE_HEIGHT];
+ull_t nodeStackSize = 0;
 
-// ull_t parent = newNode(); dotNode(parent, "primary_expression"); // faulty
-// ull_t child = newNode(); dotNode(child, "("); dotEdge(parent, child);
+int nodeStackPush(ull_t nodeId) {
+	if (nodeStackSize == MAX_PARSE_TREE_HEIGHT) return -1;
+	nodeStack[nodeStackSize++] = nodeId;
+	return 0;
+}
 
+ull_t nodeStackPop() {
+	if (nodeStackSize) return nodeStack[--nodeStackSize];
+	return 0; // 0 is not id for any node
+}
+
+ull_t nodeStackTop() {
+	if (nodeStackSize) return nodeStack[nodeStackSize-1];
+	return 0; // 0 is not id for any node
+}
+
+/** ACTION UPON SEEING A RULE (PSEUDO-CODE)
+* parent = newNode()
+* for childSymbol in { Cn, ..., C2, C1 }: // reverse order
+*	child = newNode() IF child is ternminal, ELSE nodeStackPop()
+* 	add edge (parent, child)
+* nodeStackPush(parent)
+*/
+
+// TRY IMPLEMENTING USING A SINGLE FUNCTION
+// void takeAction(char* parent, )
+
+
+ull_t parent, child;
 
 %}
 
@@ -51,8 +80,12 @@ primary_expression
 	: IDENTIFIER
 	| CONSTANT {
 		printf("primary_expression -> CONSTANT\n");
-		ull_t parent = newNode(); dotNode(parent, "primary_expression"); // faulty
-		ull_t child = newNode(); dotNode(child, "CONSTANT"); dotEdge(parent, child);
+
+		parent = newDotNode("primary_expression");
+		child = newDotNode("CONSTANT");
+		printf("HERE %lld, %lld\n", parent, child);
+		dotEdge(parent, child); // CONSTANT
+		nodeStackPush(parent);
 	}
 	| STRING_LITERAL
 	| '(' expression ')'
@@ -61,8 +94,10 @@ primary_expression
 postfix_expression
 	: primary_expression {
 		printf("postfix_expression -> primary_expression\n");
-		ull_t parent = newNode(); dotNode(parent, "postfix_expression"); // faulty
-		ull_t child = newNode(); dotNode(child, "primary_expression"); dotEdge(parent, child);
+
+		parent = newDotNode("postfix_expression");
+		child = nodeStackPop(); dotEdge(parent, child); // primary_expression
+		nodeStackPush(parent);
 	}
 	| postfix_expression '[' expression ']'
 	| postfix_expression '(' ')'
@@ -81,8 +116,10 @@ argument_expression_list
 unary_expression
 	: postfix_expression {
 		printf("unary_expression -> postfix_expression\n");
-		ull_t parent = newNode(); dotNode(parent, "unary_expression"); // faulty
-		ull_t child = newNode(); dotNode(child, "postfix_expression"); dotEdge(parent, child);
+		
+		parent = newDotNode("unary_expression");
+		child = nodeStackPop(); dotEdge(parent, child); // postfix_expression
+		nodeStackPush(parent);
 	}
 	| INC_OP unary_expression
 	| DEC_OP unary_expression
@@ -103,8 +140,10 @@ unary_operator
 cast_expression
 	: unary_expression {
 		printf("cast_expression -> unary_expression\n");
-		ull_t parent = newNode(); dotNode(parent, "cast_expression"); // faulty
-		ull_t child = newNode(); dotNode(child, "unary_expression"); dotEdge(parent, child);
+		
+		parent = newDotNode("cast_expression");
+		child = nodeStackPop(); dotEdge(parent, child); // unary_expression
+		nodeStackPush(parent);
 	}
 	| '(' type_name ')' cast_expression
 	;
@@ -112,8 +151,10 @@ cast_expression
 multiplicative_expression
 	: cast_expression {
 		printf("multiplicative_expression -> cast_expression\n");
-		ull_t parent = newNode(); dotNode(parent, "multiplicative_expression"); // faulty
-		ull_t child = newNode(); dotNode(child, "cast_expression"); dotEdge(parent, child);
+		
+		parent = newDotNode("multiplicative_expression");
+		child = nodeStackPop(); dotEdge(parent, child); // cast_expression
+		nodeStackPush(parent);
 	}
 	| multiplicative_expression '*' cast_expression
 	| multiplicative_expression '/' cast_expression
@@ -124,10 +165,12 @@ additive_expression
 	: multiplicative_expression
 	| additive_expression '+' multiplicative_expression {
 		printf("additive_expression -> multiplicative_expression\n");
-		ull_t parent = newNode(); dotNode(parent, "additive_expression"); // faulty
-		ull_t child = newNode(); dotNode(child, "additive_expression"); dotEdge(parent, child);
-		child = newNode(); dotNode(child, "+"); dotEdge(parent, child);
-		child = newNode(); dotNode(child, "additive_expression"); dotEdge(parent, child);
+		
+		parent = newDotNode("additive_expression");
+		child = nodeStackPop(); dotEdge(parent, child); // multiplicative_expression
+		child = newDotNode("+"); dotEdge(parent, child); // '+'
+		child = nodeStackPop(); dotEdge(parent, child); // additive_expression
+		nodeStackPush(parent);
 	}
 	| additive_expression '-' multiplicative_expression
 	;
@@ -500,6 +543,7 @@ void dotNode(ull_t id, char* label) { // just a wrapper function
 }
 
 void dotEdge(ull_t parent, ull_t child) { // just a wrapper function
+	printf("HERE2 %lld, %lld\n", parent, child);
 	fprintf(temp_out, "\t%lld -> %lld;\n", parent, child);
 }
 
