@@ -10,6 +10,8 @@ typedef unsigned long long ull_t;
 
 extern FILE* temp_out;
 extern char yytext[];
+extern int yylex();
+int yyerror(char *s);
 
 void dotStmt(const char*, ...);
 void dotNode(ull_t, char*);
@@ -522,9 +524,8 @@ function_definition
 
 extern char yytext[];
 extern int column;
-int yylex();
 
-yyerror(s) char *s; {
+int yyerror(char *s) {
 	fflush(stdout);
 	printf("\n%*s\n%*s\n", column, "^", column, s);
 }
@@ -546,4 +547,3 @@ void dotEdge(ull_t parent, ull_t child) { // just a wrapper function
 	printf("HERE2 %lld, %lld\n", parent, child);
 	fprintf(temp_out, "\t%lld -> %lld;\n", parent, child);
 }
-
