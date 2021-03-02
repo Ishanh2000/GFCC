@@ -20,6 +20,7 @@ void dotStmt(const char*, ...);
 void dotNode(ull_t, char*);
 void dotEdge(ull_t, ull_t);
 void takeAction(const char*);
+ull_t newNode();
 
 ull_t currNumNodes = 0; // invariant: currNumNodes > 0 for all existing nodes.
 ull_t nodeStack[MAX_PARSE_TREE_HEIGHT];
