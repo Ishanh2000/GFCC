@@ -15,7 +15,7 @@ IS			(u|U|l|L)*
 #include <parser.tab.h>
 #include <stdarg.h>
 #include <gfcc_lexer.h>
-int yyarse();
+// int yyarse();
 
 %}
 
@@ -59,18 +59,18 @@ int yyarse();
 "volatile"		{ count(); return (VOLATILE); }
 "while"			{ count(); return (WHILE); }
 
-{L}({L}|{D})*		{ count(); return (check_type()); }
+{L}({L}|{D})*		{ yylval.terminal = yytext; count(); return (check_type()); }
 
-0[xX]{H}+{IS}?		{ count(); return (CONSTANT); }
-0{D}+{IS}?		{ count(); return (CONSTANT); }
-{D}+{IS}?		{ count(); return (CONSTANT); }
+0[xX]{H}+{IS}?		{ yylval.terminal = yytext; count(); return (CONSTANT); }
+0{D}+{IS}?		{ yylval.terminal = yytext; count(); return (CONSTANT); }
+{D}+{IS}?		{ yylval.terminal = yytext; count(); return (CONSTANT); }
 L?'(\\.|[^\\'])+'	{ count(); return (CONSTANT); }
 
-{D}+{E}{FS}?		{ count(); return (CONSTANT); }
-{D}*"."{D}+({E})?{FS}?	{ count(); return (CONSTANT); }
-{D}+"."{D}*({E})?{FS}?	{ count(); return (CONSTANT); }
+{D}+{E}{FS}?		{ yylval.terminal = yytext; count(); return (CONSTANT); }
+{D}*"."{D}+({E})?{FS}?	{ yylval.terminal = yytext; count(); return (CONSTANT); }
+{D}+"."{D}*({E})?{FS}?	{ yylval.terminal = yytext; count(); return (CONSTANT); }
 
-L?\"(\\.|[^\\"])*\"	{ count(); return (STRING_LITERAL); }
+L?\"(\\.|[^\\"])*\"	{ yylval.terminal = yytext; count(); return (STRING_LITERAL); }
 
 "..."			{ count(); return (ELLIPSIS); }
 ">>="			{ count(); return (RIGHT_ASSIGN); }
@@ -314,7 +314,7 @@ int main (int argc , char *argv[]) {
 
 		printf("yyparse() = %d\n", yyparse());
 		
-		fprintf(temp_out, "}");
+		fprintf(temp_out, "}\n");
 		
 		// if (!temp_out) {
 		// 	printf(i > 0 ? "\n" : "");

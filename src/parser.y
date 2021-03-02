@@ -3,6 +3,7 @@
 /* how to include yytext when terminals are seen? */ 
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdio.h>
 
 #define MAX_PARSE_TREE_HEIGHT 10000
 
@@ -12,6 +13,7 @@ extern FILE* temp_out;
 extern char yytext[];
 extern int yylex();
 int yyerror(char *s);
+extern int column;
 
 void dotStmt(const char*, ...);
 void dotNode(ull_t, char*);
@@ -64,7 +66,14 @@ ull_t parent, child;
 
 %}
 
-%token IDENTIFIER CONSTANT STRING_LITERAL SIZEOF
+%union {
+    // for some reason ull_t isn't working
+	unsigned long long node;         // if non-terminal
+	char *terminal;     // if terminal
+}
+
+/* Terminals */
+%token <terminal> IDENTIFIER CONSTANT STRING_LITERAL SIZEOF
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
 %token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN
@@ -73,21 +82,34 @@ ull_t parent, child;
 %token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE CONST VOLATILE VOID
 %token STRUCT UNION ENUM ELLIPSIS
 %token CASE DEFAULT IF ELSE SWITCH WHILE DO FOR GOTO CONTINUE BREAK RETURN
+/* Non-Terminals */
+%type <node> primary_expression postfix_expression argument_expression_list
+unary_expression unary_operator cast_expression multiplicative_expression
+additive_expression shift_expression relational_expression equality_expression
+and_expression  // ! add rest
 
 %start translation_unit
 
 %%
 
 primary_expression
-	: IDENTIFIER
+	: IDENTIFIER {
+		ull_t parent = newNode();
+		dotNode(parent, $1);
+		$$ = parent;
+		printf("primary_expression -> IDENTIFIER\n");
+	}
 	| CONSTANT {
+		ull_t parent = newNode();
+		dotNode(parent, $1);
+		$$ = parent;
 		printf("primary_expression -> CONSTANT\n");
 
-		parent = newDotNode("primary_expression");
-		child = newDotNode("CONSTANT");
-		printf("HERE %lld, %lld\n", parent, child);
-		dotEdge(parent, child); // CONSTANT
-		nodeStackPush(parent);
+		// parent = newDotNode("primary_expression");
+		// child = newDotNode("CONSTANT");
+		// printf("HERE %lld, %lld\n", parent, child);
+		// dotEdge(parent, child); // CONSTANT
+		// nodeStackPush(parent);
 	}
 	| STRING_LITERAL
 	| '(' expression ')'
@@ -95,11 +117,11 @@ primary_expression
 
 postfix_expression
 	: primary_expression {
+		$$ = $1;
 		printf("postfix_expression -> primary_expression\n");
-
-		parent = newDotNode("postfix_expression");
-		child = nodeStackPop(); dotEdge(parent, child); // primary_expression
-		nodeStackPush(parent);
+		// parent = newDotNode("postfix_expression");
+		// child = nodeStackPop(); dotEdge(parent, child); // primary_expression
+		// nodeStackPush(parent);
 	}
 	| postfix_expression '[' expression ']'
 	| postfix_expression '(' ')'
@@ -118,10 +140,10 @@ argument_expression_list
 unary_expression
 	: postfix_expression {
 		printf("unary_expression -> postfix_expression\n");
-		
-		parent = newDotNode("unary_expression");
-		child = nodeStackPop(); dotEdge(parent, child); // postfix_expression
-		nodeStackPush(parent);
+		$$ = $1;
+		// parent = newDotNode("unary_expression");
+		// child = nodeStackPop(); dotEdge(parent, child); // postfix_expression
+		// nodeStackPush(parent);
 	}
 	| INC_OP unary_expression
 	| DEC_OP unary_expression
@@ -141,22 +163,22 @@ unary_operator
 
 cast_expression
 	: unary_expression {
+		$$ = $1;
 		printf("cast_expression -> unary_expression\n");
-		
-		parent = newDotNode("cast_expression");
-		child = nodeStackPop(); dotEdge(parent, child); // unary_expression
-		nodeStackPush(parent);
+		// parent = newDotNode("cast_expression");
+		// child = nodeStackPop(); dotEdge(parent, child); // unary_expression
+		// nodeStackPush(parent);
 	}
 	| '(' type_name ')' cast_expression
 	;
 
 multiplicative_expression
 	: cast_expression {
+		$$ = $1;
 		printf("multiplicative_expression -> cast_expression\n");
-		
-		parent = newDotNode("multiplicative_expression");
-		child = nodeStackPop(); dotEdge(parent, child); // cast_expression
-		nodeStackPush(parent);
+		// parent = newDotNode("multiplicative_expression");
+		// child = nodeStackPop(); dotEdge(parent, child); // cast_expression
+		// nodeStackPush(parent);
 	}
 	| multiplicative_expression '*' cast_expression
 	| multiplicative_expression '/' cast_expression
@@ -166,13 +188,18 @@ multiplicative_expression
 additive_expression
 	: multiplicative_expression
 	| additive_expression '+' multiplicative_expression {
-		printf("additive_expression -> multiplicative_expression\n");
+		ull_t node = newNode();
+		dotNode(node, "+");
+		dotEdge(node, $1);
+		dotEdge(node, $3);
+        $$ = node;
+		printf("additive_expression -> additive_expression '+' multiplicative_expression\n");
 		
-		parent = newDotNode("additive_expression");
-		child = nodeStackPop(); dotEdge(parent, child); // multiplicative_expression
-		child = newDotNode("+"); dotEdge(parent, child); // '+'
-		child = nodeStackPop(); dotEdge(parent, child); // additive_expression
-		nodeStackPush(parent);
+		// parent = newDotNode("additive_expression");
+		// child = nodeStackPop(); dotEdge(parent, child); // multiplicative_expression
+		// child = newDotNode("+"); dotEdge(parent, child); // '+'
+		// child = nodeStackPop(); dotEdge(parent, child); // additive_expression
+		// nodeStackPush(parent);
 	}
 	| additive_expression '-' multiplicative_expression
 	;
@@ -233,7 +260,7 @@ assignment_expression
 	;
 
 assignment_operator
-	: '='
+	: '=' 
 	| MUL_ASSIGN
 	| DIV_ASSIGN
 	| MOD_ASSIGN
@@ -520,10 +547,6 @@ function_definition
 	;
 
 %%
-#include <stdio.h>
-
-extern char yytext[];
-extern int column;
 
 int yyerror(char *s) {
 	fflush(stdout);
