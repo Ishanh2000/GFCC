@@ -7,8 +7,8 @@ project(GFCC VERSION 0.1)
 # set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # add executable
-add_executable(gfcc ${CMAKE_CURRENT_SOURCE_DIR}/src/generated/lex.yy.c ${CMAKE_CURRENT_SOURCE_DIR}/src/generated/parser.tab.c)
-target_link_libraries(gfcc PUBLIC fl)
+add_executable(parser ${CMAKE_CURRENT_SOURCE_DIR}/src/generated/lex.yy.c ${CMAKE_CURRENT_SOURCE_DIR}/src/generated/parser.tab.c)
+target_link_libraries(parser PUBLIC fl)
 
 # generate lexical analyser using flex
 add_custom_command(
@@ -28,12 +28,12 @@ add_custom_command(
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/parser.y
   )
 
-target_include_directories(gfcc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/include)
-target_include_directories(gfcc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/include/generated)
+target_include_directories(parser PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/include)
+target_include_directories(parser PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/include/generated)
 
 # get headers
 file(GLOB DEFAULT_HEARDERS "${CMAKE_CURRENT_SOURCE_DIR}/src/include/*.h")
 
 #install
-install(TARGETS gfcc DESTINATION bin)
+install(TARGETS parser DESTINATION bin)
 # install(FILES ${DEFAULT_HEARDERS} DESTINATION include)

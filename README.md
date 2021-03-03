@@ -14,9 +14,13 @@ Target (T): MIPS (mat change, if backend can be better implemented on another ta
 Building Project:
 ```bash
   # will generate lexer binary in bin/
-  ./runme.sh  
+  ./runme.sh build
 ```
-
+Cleaning Project;
+```bash
+  # Will clean all the generated files
+  ./runme clean
+```
 Running lexer:
 ```bash
   ./bin/lexer ./tests/*.c # test cases
