@@ -1,3 +1,4 @@
+// AUM SHREEGANESHAAYA NAMAH|| // DIETY INVOCATION
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
@@ -5,113 +6,18 @@
 #include <parser.tab.h>
 #include <gfcc_lexer.h>
 
+// INITIALIZE ALL GLOBAL VARIABLES IN THIS FILE ONLY. DO NOT CHANGE
+// THEIR NAMES. SINCE THEY ARE SHARE ACROSS MULTIPLE FILES.
 
-// Please do not change their names.
 int column = 1, token_column = 1, token_line = 1;
 int colorize = 0; // [BOOLEAN ONLY] to colorize output (supported by modern terminals)
 FILE* temp_out = NULL; // if this is NULL, use stdout
 int tab_len = TAB_LEN;
 int bad_char_seen = 0; // to notify parser
+ull_t currNumNodes = 0; // invariant: currNumNodes > 0 for all existing nodes.
+ull_t nodeStack[MAX_PARSE_TREE_HEIGHT];
+ull_t nodeStackSize = 0;
 
-int isEqual(char* option, char* a, char* b) { // return 1 iff option matched a OR b
-	if (!option || !(a || b)) return 0;
-	if (!a) return !strcmp(option, b); // compare with b if a not given
-	if (!b) return !strcmp(option, a);
-	return !strcmp(option, a) || !strcmp(option, b);
-}
-
-void gfcc_lexer_version() {
-	printf("GFCC Lexer Version: v%s (%s)\n", GFCC_LEXER_VERSION, VERSION_DATE);
-}
-
-void gfcc_lexer_help() {
-	printf("%s", lexer_help);
-}
-
-char* getTokenName(int tok_num, char* lexeme) {
-	return (tok_num < IDENTIFIER || tok_num > RETURN) ? lexeme : TOKEN_NAME_ARRAY[tok_num - IDENTIFIER];
-}
-
-void lex_warn(const char* format, ...) {
-	va_list args;
-	va_start(args, format);
-	if (colorize && !temp_out) printf(_FORE_YELLOW_);
-	fprintf(temp_out ? temp_out : stdout, "WARNING: ");
-	vfprintf(temp_out ? temp_out : stdout, format, args);
-	if (colorize && !temp_out) printf(_C_NONE_);
-	va_end(args);
-}
-
-void lex_err(const char* format, ...) {
-	va_list args;
-	va_start(args, format);
-	if (colorize && !temp_out) printf(_FORE_RED_);
-	fprintf(temp_out ? temp_out : stdout, "ERROR: ");
-	vfprintf(temp_out ? temp_out : stdout, format, args);
-	if (colorize && !temp_out) printf(_C_NONE_);
-	va_end(args);
-}
-
-void handle_bad_char() {
-	bad_char_seen = 1;
-	lex_err("Bad character (%s) seen at line %d, column %d.\n", yytext, token_line, token_column);
-}
-
-int check_type() {
-	/* pseudo code --- this is what it should check
-	*
-	*	if (yytext == type_name) return (TYPE_NAME);
-	*	return (IDENTIFIER);
-	*/
-
-	return (IDENTIFIER); // it actually will only return IDENTIFIER
-}
-
-void count() {
-	token_column = column;
-	for (int i = 0; yytext[i] != '\0'; i++) update_location(yytext[i]);
-
-	// ECHO;
-}
-
-void comment() { // multi line comment (MLC)
-	column += 2; /* since '/*' start was never counted */
-	char c, c_next;
-
-    mlc_loop:
-	while ((c = lexInput()) != '*' && c != 0) { // normal characters in an MLC
-		token_column = column;
-		update_location(c);
-	}
-
-	if ((c_next = lexInput()) != '/' && c != 0) { // (Lookahead) '*' is not followed by '/'
-		lexUnput(c_next);
-		goto mlc_loop;
-	}
-
-	if (c != 0) { // End of an MLC (but not due to EOF)
-		column++; // because we need to take ending '/' into account
-		token_column = column;
-		update_location(c);
-	}
-}
-
-void update_location (char c) {
-	if (c == '\n') { column = 1; token_line++; }
-	else if (c == '\t') column += tab_len - ((column - 1) % tab_len);
-	else column++;
-}
-
-void fprintTokens(FILE *f, token_t* tok_str, unsigned long int size, int brief) {
-	if (!(f && tok_str)) return;
-	for (unsigned long int i = 0; i < size; i++) {
-		int _id = tok_str[i].id, _line = tok_str[i].line, _column = tok_str[i].column;
-		char *_lexeme = tok_str[i].lexeme, *_name = getTokenName(_id, _lexeme);
-
-		if (brief)	fprintf(f, "%-18s %-30s %d:%d\n", _name, _lexeme, _line, _column);
-		else		fprintf(f, "%-8d %-18s %-30s %-8d %-8d\n", _id, _name, _lexeme, _line, _column);
-	}
-}
 
 int main (int argc , char *argv[]) {
 	// ARGC TOO FEW
@@ -283,6 +189,95 @@ int main (int argc , char *argv[]) {
 	}
 
 	return file_failures;
+}
+
+char* getTokenName(int tok_num, char* lexeme) {
+	return (tok_num < IDENTIFIER || tok_num > RETURN) ? lexeme : TOKEN_NAME_ARRAY[tok_num - IDENTIFIER];
+}
+
+int check_type() {
+	// PSEUDO-CODE: This is what it should check.
+	// if (yytext == type_name) return (TYPE_NAME);
+	// return (IDENTIFIER);
+
+	return (IDENTIFIER); // it actually will only return IDENTIFIER
+}
+
+void comment() { // multi line comment (MLC)
+	column += 2; /* since '/*' start was never counted */
+	char c, c_next;
+
+    mlc_loop:
+	while ((c = lexInput()) != '*' && c != 0) { // normal characters in an MLC
+		token_column = column;
+		update_location(c);
+	}
+
+	if ((c_next = lexInput()) != '/' && c != 0) { // (Lookahead) '*' is not followed by '/'
+		lexUnput(c_next);
+		goto mlc_loop;
+	}
+
+	if (c != 0) { // End of an MLC (but not due to EOF)
+		column++; // because we need to take ending '/' into account
+		token_column = column;
+		update_location(c);
+	}
+}
+
+void count() {
+	token_column = column;
+	for (int i = 0; yytext[i] != '\0'; i++) update_location(yytext[i]);
+	// ECHO;
+}
+
+void handle_bad_char() {
+	bad_char_seen = 1;
+	lex_err("Bad character (%s) seen at line %d, column %d.\n", yytext, token_line, token_column);
+}
+
+int isEqual(char* option, char* a, char* b) { // return 1 iff option matched a OR b
+	if (!option || !(a || b)) return 0;
+	if (!a) return !strcmp(option, b); // compare with b if a not given
+	if (!b) return !strcmp(option, a);
+	return !strcmp(option, a) || !strcmp(option, b);
+}
+
+void lex_err(const char* format, ...) {
+	va_list args;
+	va_start(args, format);
+	if (colorize && !temp_out) printf(_FORE_RED_);
+	fprintf(temp_out ? temp_out : stdout, "ERROR: ");
+	vfprintf(temp_out ? temp_out : stdout, format, args);
+	if (colorize && !temp_out) printf(_C_NONE_);
+	va_end(args);
+}
+
+void lex_warn(const char* format, ...) {
+	va_list args;
+	va_start(args, format);
+	if (colorize && !temp_out) printf(_FORE_YELLOW_);
+	fprintf(temp_out ? temp_out : stdout, "WARNING: ");
+	vfprintf(temp_out ? temp_out : stdout, format, args);
+	if (colorize && !temp_out) printf(_C_NONE_);
+	va_end(args);
+}
+
+void update_location (char c) {
+	if (c == '\n') { column = 1; token_line++; }
+	else if (c == '\t') column += tab_len - ((column - 1) % tab_len);
+	else column++;
+}
+
+void fprintTokens(FILE *f, token_t* tok_str, unsigned long int size, int brief) {
+	if (!(f && tok_str)) return;
+	for (unsigned long int i = 0; i < size; i++) {
+		int _id = tok_str[i].id, _line = tok_str[i].line, _column = tok_str[i].column;
+		char *_lexeme = tok_str[i].lexeme, *_name = getTokenName(_id, _lexeme);
+
+		if (brief)	fprintf(f, "%-18s %-30s %d:%d\n", _name, _lexeme, _line, _column);
+		else		fprintf(f, "%-8d %-18s %-30s %-8d %-8d\n", _id, _name, _lexeme, _line, _column);
+	}
 }
 
 /* yywrap() { return 1; } */

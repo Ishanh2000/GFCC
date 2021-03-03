@@ -17,6 +17,10 @@
 #define E_NO_FILES			(-5)
 #define E_TAB_LEN			(-6)
 
+#define MAX_PARSE_TREE_HEIGHT 10000
+
+typedef unsigned long long ull_t;
+
 typedef struct _token_t {
 	int id; // type
 	char* lexeme; // keep this NULL terminated (as usual)
@@ -24,11 +28,18 @@ typedef struct _token_t {
 	int column;
 } token_t;
 
-// make this const
-extern char* TOKEN_NAME_ARRAY[];
+extern char* TOKEN_NAME_ARRAY[]; // make this const
+
 int column, token_column, token_line, tab_len, colorize, bad_char_seen;
+
 FILE *yyin, *yyout, *temp_out;
+
 char* yytext;
+
+ull_t currNumNodes, nodeStackSize;
+
+extern ull_t nodeStack[];
+
 
 void lexUnput(char);
 
@@ -57,6 +68,20 @@ void update_location(char);
 // int yyarse();
 
 // int yywrap();
+
+int yylex();
+
+int yyerror(char*);
+
+void dotStmt(const char*, ...);
+
+void dotNode(ull_t, char*);
+
+void dotEdge(ull_t, ull_t);
+
+void takeAction(const char*);
+
+ull_t newNode();
 
 #endif
 

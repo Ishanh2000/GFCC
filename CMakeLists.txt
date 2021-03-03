@@ -8,8 +8,10 @@ project(GFCC VERSION 0.1)
 
 # add executable
 add_executable(parser
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/main.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/consts.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/main.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/meta.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/tree.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/generated/lex.yy.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/generated/parser.tab.c
 )

@@ -124,3 +124,5 @@ char lexInput() { return input(); } // #define to function
 void lexUnput(char c) { unput(c); } // #define to function
 
 /* yywrap() { return 1; } */
+
+// See main.c for this part
