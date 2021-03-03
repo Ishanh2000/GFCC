@@ -122,7 +122,9 @@ int main (int argc , char *argv[]) {
 		}
 
 		fprintf(temp_out, "digraph {\n");
-		fprintf(temp_out, "\tsize=\"8.25,11.75!\" ratio = \"fit\";\n");
+        
+        // PostScript OK. Try to adjust for actual PDF (although not required).
+		fprintf(temp_out, "\tsize=\"8.25,11.75!\" ratio = \"fit\";\n\n");
 
 		printf("yyparse() = %d\n", yyparse());
 		

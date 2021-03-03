@@ -128,14 +128,52 @@ ull_t makeOpNode(char* label, char* attr, ...) { // attr may be NULL
 
     va_list args;
     ull_t child;
+    // Assume maximum children = 10, and each is not more than 30 chars long.
+    char enforceOrder[300];
+    int enforceLen = 0; int numChild = 0;
 
 	va_start(args, attr);
     child = va_arg(args, ull_t);
     while (child) {
         fprintf(temp_out, "\t%lld -> %lld;\n", id, child);
+        numChild++;
+        
+        char arr[30]; int l = 0; ull_t copy = child;
+        while (copy) { arr[l++] = (copy % 10) + '0'; copy /= 10; } // length found, arr[0 ... l-1] = rev(child)
+        for (int i = l-1; i >= 0; i--) enforceOrder[enforceLen++] = arr[i];
+        enforceOrder[enforceLen++] = ' '; enforceOrder[enforceLen++] = '-';
+        enforceOrder[enforceLen++] = '>'; enforceOrder[enforceLen++] = ' ';
+
         child = va_arg(args, ull_t);
     }
 	va_end(args);
 
+    if (numChild > 1) { // at least two children required for enforcing "order".
+        // enforceOrder = "... xyz -> " : Now use NULL just after "xyz"
+        enforceOrder[enforceLen - 4] = '\0';
+        fprintf(temp_out, "\t{\n");
+		fprintf(temp_out, "\t\trank = same;\n");
+		fprintf(temp_out, "\t\t%s [style = \"invis\"];\n", enforceOrder);
+		fprintf(temp_out, "\t\trankdir = LR;\n"); // right to left (adjusted experimentally)
+		fprintf(temp_out, "\t}\n");
+    }
+
     return id;
 }
+
+// char* gfcc_strcat(char* a, ...) { // NULL OR 0 terminated
+//     if (!a) return a;
+
+//     int len_a = 0; while(a[len_a] != '\0') len_a++; // a[len_a] = '\0' now
+
+//     va_list args;
+//     va_start(args, a);
+//     char* b = va_arg(args, char*);
+//     while (b) {
+//         int len_b = 0; while(b[len_b] != '\0') a[len_a++] = b[len_b++];
+//         b = va_arg(args, char*);
+//     }
+//     va_end(args);
+//     a[len_a] = '\0';
+//     return a;
+// }

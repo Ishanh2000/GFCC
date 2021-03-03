@@ -27,7 +27,7 @@
 %type <node> primary_expression postfix_expression argument_expression_list
 unary_expression unary_operator cast_expression multiplicative_expression
 additive_expression shift_expression relational_expression equality_expression
-and_expression  // ! add rest
+and_expression  type_name // ! add rest
 
 %start translation_unit
 
@@ -76,7 +76,7 @@ unary_operator
 
 cast_expression
 	: unary_expression
-	| '(' type_name ')' cast_expression
+	| '(' type_name ')' cast_expression { $$ = makeOpNode("cast_expression", NULL, $2, $4, 0); }
 	;
 
 multiplicative_expression

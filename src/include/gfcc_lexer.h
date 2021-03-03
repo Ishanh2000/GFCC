@@ -85,7 +85,11 @@ ull_t newNode();
 
 ull_t makeLeaf(char*, char*);
 
-ull_t makeOpNode(char* label, char* attr, ...); // make this var_args for children
+ull_t makeOpNode(char*, char*, ...); // make this var_args for children
+
+// char* gfcc_strcat(char* a, ...); // NULL OR 0 terminated
+
+ull_t makeOpNode2(char*, ...); // make this var_args for children
 
 #endif
 
