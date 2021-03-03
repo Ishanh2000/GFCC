@@ -14,8 +14,8 @@
 #define E_INV_OPTION		(-2)
 #define E_O_FLAG_TWICE		(-3)
 #define E_NUM_IO_UNEQUAL	(-4)
-#define E_NO_FILES		(-5)
-#define E_TAB_LEN		(-6)
+#define E_NO_FILES			(-5)
+#define E_TAB_LEN			(-6)
 
 typedef struct _token_t {
 	int id; // type
@@ -25,66 +25,14 @@ typedef struct _token_t {
 } token_t;
 
 // make this const
-char* TOKEN_NAME_ARRAY[] = {
-	"IDENTIFIER",
-	"CONSTANT",
-	"STRING_LITERAL",
-	"SIZEOF",
-	"PTR_OP",
-	"INC_OP",
-	"DEC_OP",
-	"LEFT_OP",
-	"RIGHT_OP",
-	"LE_OP",
-	"GE_OP",
-	"EQ_OP",
-	"NE_OP",
-	"AND_OP",
-	"OR_OP",
-	"MUL_ASSIGN",
-	"DIV_ASSIGN",
-	"MOD_ASSIGN",
-	"ADD_ASSIGN",
-	"SUB_ASSIGN",
-	"LEFT_ASSIGN",
-	"RIGHT_ASSIGN",
-	"AND_ASSIGN",
-	"XOR_ASSIGN",
-	"OR_ASSIGN",
-	"TYPE_NAME",
-	"TYPEDEF",
-	"EXTERN",
-	"STATIC",
-	"AUTO",
-	"REGISTER",
-	"CHAR",
-	"SHORT",
-	"INT",
-	"LONG",
-	"SIGNED",
-	"UNSIGNED",
-	"FLOAT",
-	"DOUBLE",
-	"CONST",
-	"VOLATILE",
-	"VOID",
-	"STRUCT",
-	"UNION",
-	"ENUM",
-	"ELLIPSIS",
-	"CASE",
-	"DEFAULT",
-	"IF",
-	"ELSE",
-	"SWITCH",
-	"WHILE",
-	"DO",
-	"FOR",
-	"GOTO",
-	"CONTINUE",
-	"BREAK",
-	"RETURN",
-};
+extern char* TOKEN_NAME_ARRAY[];
+int column, token_column, token_line, tab_len, colorize, bad_char_seen;
+FILE *yyin, *yyout, *temp_out;
+char* yytext;
+
+void lexUnput(char);
+
+char lexInput(void);
 
 void count(); // count characters for every token encountered
 
@@ -102,8 +50,13 @@ void handle_bad_char(); // to handle errors
 
 char* getTokenName(int, char*); // get token name (type) using TOKEN_NAME_ARRAY
 
-// TRY USING THIS FOR SCANNING (LEXICAL ANALYSIS)
-void fprintTokens(FILE*, token_t*, unsigned long int, int);
+void fprintTokens(FILE*, token_t*, unsigned long int, int); // TRY USING THIS FOR SCANNING (LEXICAL ANALYSIS)
+
+void update_location(char);
+
+// int yyarse();
+
+// int yywrap();
 
 #endif
 

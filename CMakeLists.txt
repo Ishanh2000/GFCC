@@ -7,7 +7,12 @@ project(GFCC VERSION 0.1)
 # set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # add executable
-add_executable(parser ${CMAKE_CURRENT_SOURCE_DIR}/src/generated/lex.yy.c ${CMAKE_CURRENT_SOURCE_DIR}/src/generated/parser.tab.c)
+add_executable(parser
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/main.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/consts.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/generated/lex.yy.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/generated/parser.tab.c
+)
 target_link_libraries(parser PUBLIC fl)
 
 # generate lexical analyser using flex
@@ -17,7 +22,7 @@ add_custom_command(
           ${CMAKE_CURRENT_SOURCE_DIR}/src/lexer.l
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/lexer.l
           ${CMAKE_CURRENT_SOURCE_DIR}/src/include/generated/parser.tab.h
-  )
+)
 
 # generate parser using bison
 add_custom_command(
@@ -26,7 +31,7 @@ add_custom_command(
                 --output=${CMAKE_CURRENT_SOURCE_DIR}/src/generated/parser.tab.c
                 ${CMAKE_CURRENT_SOURCE_DIR}/src/parser.y
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/parser.y
-  )
+)
 
 target_include_directories(parser PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/include)
 target_include_directories(parser PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/include/generated)
