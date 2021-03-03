@@ -3,8 +3,6 @@
 // NON-TERMINALS START WITH SMALL ALPHABETS.
 
 #include <stdio.h>
-#include <string.h>
-#include <stdarg.h>
 #include <gfcc_lexer.h>
 
 %}
@@ -36,9 +34,9 @@ and_expression  // ! add rest
 %%
 
 primary_expression
-	: IDENTIFIER { makeLeaf($$ = newNode(), $1, NULL); }
-	| CONSTANT { makeLeaf($$ = newNode(), $1, NULL); }
-	| STRING_LITERAL { makeLeaf($$ = newNode(), $1, NULL); }
+	: IDENTIFIER { $$ = makeLeaf($1, NULL); }
+	| CONSTANT { $$ = makeLeaf($1, NULL); }
+	| STRING_LITERAL { $$ = makeLeaf($1, NULL); }
 	| '(' expression ')'
 	;
 
@@ -90,20 +88,7 @@ multiplicative_expression
 
 additive_expression
 	: multiplicative_expression
-	| additive_expression '+' multiplicative_expression {
-		// c1 = $1
-		// c2 = $3
-
-		makeOpNode($$ = newNode(), "+", NULL, $1, $3);
-
-		// ull_t node = newNode();
-		// dotNode(node, "+");
-		// dotEdge(node, $1);
-		// dotEdge(node, $3);
-		// $$ = node;
-		// printf("additive_expression -> additive_expression '+' multiplicative_expression\n");
-		// takeAction("additive_expression multiplicative_expression + additive_expression");
-	}
+	| additive_expression '+' multiplicative_expression { $$ = makeOpNode("+", NULL, $1, $3, 0); }
 	| additive_expression '-' multiplicative_expression
 	;
 

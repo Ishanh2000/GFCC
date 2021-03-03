@@ -83,9 +83,9 @@ void takeAction(const char*);
 
 ull_t newNode();
 
-void makeLeaf(ull_t, char*, char*);
+ull_t makeLeaf(char*, char*);
 
-void makeOpNode(ull_t id, char* label, char* attr, ull_t c1, ull_t c2);
+ull_t makeOpNode(char* label, char* attr, ...); // make this var_args for children
 
 #endif
 
