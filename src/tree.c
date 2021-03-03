@@ -113,3 +113,18 @@ void takeAction(const char* str) { // input: parent{attr}|child_N{attr}| ... |ch
 		fprintf(temp_out, "\t}\n");
 	}
 }
+
+void makeLeaf(ull_t id, char* label, char* attr) { // attr may be NULL
+    printf("makeLf: id = %lld, label = %s, attr = %s\n", id, label, attr);
+    fprintf(temp_out, "\t%lld [label=\"%s\"%s", id, label, attr ? "," : "];\n");
+    if (attr) fprintf(temp_out, "%s];\n", attr);
+}
+
+void makeOpNode(ull_t id, char* label, char* attr, ull_t c1, ull_t c2) { // attr may be NULL
+    printf("makeOpNode: id = %lld, label = %s, attr = %s, c1 = %lld, c2 = %lld\n", id, label, attr, c1, c2);
+    fprintf(temp_out, "\t%lld [label=\"%s\"%s", id, label, attr ? "," : "];\n");
+    if (attr) fprintf(temp_out, "%s];\n", attr);
+
+    fprintf(temp_out, "\t%lld -> %lld;\n", id, c1);
+    fprintf(temp_out, "\t%lld -> %lld;\n", id, c2);
+}

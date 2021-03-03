@@ -36,30 +36,14 @@ and_expression  // ! add rest
 %%
 
 primary_expression
-	: IDENTIFIER {
-		ull_t parent = newNode();
-		dotNode(parent, $1);
-		$$ = parent;
-		printf("primary_expression -> IDENTIFIER\n");
-	}
-	| CONSTANT {
-		ull_t parent = newNode();
-		dotNode(parent, $1);
-		$$ = parent;
-
-		// printf("primary_expression -> CONSTANT\n");
-		// takeAction("primary_expression CONSTANT");
-	}
-	| STRING_LITERAL
+	: IDENTIFIER { makeLeaf($$ = newNode(), $1, NULL); }
+	| CONSTANT { makeLeaf($$ = newNode(), $1, NULL); }
+	| STRING_LITERAL { makeLeaf($$ = newNode(), $1, NULL); }
 	| '(' expression ')'
 	;
 
 postfix_expression
-	: primary_expression {
-		$$ = $1;
-		printf("postfix_expression -> primary_expression\n");
-		// takeAction("postfix_expression primary_expression");
-	}
+	: primary_expression
 	| postfix_expression '[' expression ']'
 	| postfix_expression '(' ')'
 	| postfix_expression '(' argument_expression_list ')'
@@ -75,11 +59,7 @@ argument_expression_list
 	;
 
 unary_expression
-	: postfix_expression {
-		printf("unary_expression -> postfix_expression\n");
-		$$ = $1;
-		// takeAction("unary_expression postfix_expression");
-	}
+	: postfix_expression
 	| INC_OP unary_expression
 	| DEC_OP unary_expression
 	| unary_operator cast_expression
@@ -97,20 +77,12 @@ unary_operator
 	;
 
 cast_expression
-	: unary_expression {
-		$$ = $1;
-		printf("cast_expression -> unary_expression\n");
-		// takeAction("cast_expression unary_expression");
-	}
+	: unary_expression
 	| '(' type_name ')' cast_expression
 	;
 
 multiplicative_expression
-	: cast_expression {
-		$$ = $1;
-		printf("multiplicative_expression -> cast_expression\n");
-		// takeAction("multiplicative_expression cast_expression");
-	}
+	: cast_expression
 	| multiplicative_expression '*' cast_expression
 	| multiplicative_expression '/' cast_expression
 	| multiplicative_expression '%' cast_expression
@@ -119,11 +91,16 @@ multiplicative_expression
 additive_expression
 	: multiplicative_expression
 	| additive_expression '+' multiplicative_expression {
-		ull_t node = newNode();
-		dotNode(node, "+");
-		dotEdge(node, $1);
-		dotEdge(node, $3);
-		$$ = node;
+		// c1 = $1
+		// c2 = $3
+
+		makeOpNode($$ = newNode(), "+", NULL, $1, $3);
+
+		// ull_t node = newNode();
+		// dotNode(node, "+");
+		// dotEdge(node, $1);
+		// dotEdge(node, $3);
+		// $$ = node;
 		// printf("additive_expression -> additive_expression '+' multiplicative_expression\n");
 		// takeAction("additive_expression multiplicative_expression + additive_expression");
 	}
