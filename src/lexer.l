@@ -308,9 +308,9 @@ int main (int argc , char *argv[]) {
 				continue;
 			}
 		}
-
+	/* page="8.5,11";ratio=auto; */
 		fprintf(temp_out, "digraph {\n");
-		fprintf(temp_out, "\tsize=\"8.25,11.75!\" ratio = \"fit\";\n");
+		fprintf(temp_out, "\tsize=\"8.5,11\"; ratio=auto; center=true;\n");
 
 		printf("yyparse() = %d\n", yyparse());
 		

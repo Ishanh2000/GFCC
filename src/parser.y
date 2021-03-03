@@ -29,7 +29,7 @@ ull_t nodeStackSize = 0;
 %}
 
 %union {
-    // for some reason ull_t isn't working
+  // for some reason ull_t isn't working
 	unsigned long long node;         // if non-terminal
 	char *terminal;     // if terminal
 }
