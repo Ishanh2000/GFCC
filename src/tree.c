@@ -119,11 +119,10 @@ void takeAction(const char* str) { // input: parent{attr}|child_N{attr}| ... |ch
 }
 
 void* makeLeaf(int tok_type, char* label, char* attr) { // label is lexeme. attr may be NULL.
-	printf("makeLeaf: Received label = %s\n", label);
 	node_t *leaf = (node_t*) malloc(sizeof(node_t));
 	leaf->id = newNode(); leaf->tok_type = tok_type;
-	// copying, since label == yytext, and contents of yytext change later.
-	leaf->label = (char*) malloc(strlen(label) + 1); strcpy(leaf->label, label);
+	// not copying, since label == strdup(yytext), and has already been copied (via malloc) to heap.
+	leaf->label = label;
 	leaf->parent = NULL; leaf->child = NULL;
 
 	// A STRING_LITERAL label will have "" included

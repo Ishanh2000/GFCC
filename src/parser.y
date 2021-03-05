@@ -57,7 +57,7 @@
 %%
 
 primary_expression
-	: IDENTIFIER { printf("%s\n", (char*) $1); $$ = makeLeaf(IDENTIFIER, $1, NULL); }
+	: IDENTIFIER { $$ = makeLeaf(IDENTIFIER, $1, NULL); }
 	| CONSTANT { $$ = makeLeaf(CONSTANT, $1, NULL); }
 	| STRING_LITERAL { $$ = makeLeaf(STRING_LITERAL, $1, NULL); }
 	| '(' expression ')' { $$ = $2; }
@@ -65,14 +65,13 @@ primary_expression
 
 postfix_expression
 	: primary_expression { $$ = $1; }
-	| postfix_expression '[' expression ']'
-		{ $$ = makeOpNode("[]", NULL, $1, NULL, $3, NULL, 0); }
+	| postfix_expression '[' expression ']' { $$ = makeOpNode("[]", NULL, $1, NULL, $3, NULL, 0); }
 	| postfix_expression '(' ')'
 	| postfix_expression '(' argument_expression_list ')'
-	| postfix_expression '.' IDENTIFIER
-	| postfix_expression PTR_OP IDENTIFIER
-	| postfix_expression INC_OP
-	| postfix_expression DEC_OP
+	| postfix_expression '.' IDENTIFIER { $$ = makeOpNode(".", NULL, $1, NULL, makeLeaf(IDENTIFIER, $3, NULL), NULL, 0); }
+	| postfix_expression PTR_OP IDENTIFIER { $$ = makeOpNode("->", NULL, $1, NULL, makeLeaf(IDENTIFIER, $3, NULL), NULL, 0); }
+	| postfix_expression INC_OP	{ $$ = makeOpNode("++", NULL, $1, NULL, 0); }
+	| postfix_expression DEC_OP { $$ = makeOpNode("++", NULL, $1, NULL, 0); }
 	;
 
 argument_expression_list
@@ -82,8 +81,8 @@ argument_expression_list
 
 unary_expression
 	: postfix_expression
-	| INC_OP unary_expression
-	| DEC_OP unary_expression
+	| INC_OP unary_expression { $$ = makeOpNode("++", NULL, $2, NULL, 0); }
+	| DEC_OP unary_expression { $$ = makeOpNode("--", NULL, $2, NULL, 0); }
 	| unary_operator cast_expression
 	| SIZEOF unary_expression
 	| SIZEOF '(' type_name ')'
@@ -100,26 +99,20 @@ unary_operator
 
 cast_expression
 	: unary_expression
-	| '(' type_name ')' cast_expression
-		{ $$ = makeOpNode("cast_expression", NULL, $2, "label=type", $4, "label=expression", 0); }
+	| '(' type_name ')' cast_expression { $$ = makeOpNode("cast_expression", NULL, $2, "label=type", $4, "label=expression", 0); }
 	;
 
 multiplicative_expression
 	: cast_expression
-	| multiplicative_expression '*' cast_expression
-		{ $$ = makeOpNode("*", NULL, $1, NULL, $3, NULL, 0); }
-	| multiplicative_expression '/' cast_expression
-		{ $$ = makeOpNode("/", NULL, $1, NULL, $3, NULL, 0); }
-	| multiplicative_expression '%' cast_expression
-		{ $$ = makeOpNode("%", NULL, $1, NULL, $3, NULL, 0); }
+	| multiplicative_expression '*' cast_expression { $$ = makeOpNode("*", NULL, $1, NULL, $3, NULL, 0); }
+	| multiplicative_expression '/' cast_expression { $$ = makeOpNode("/", NULL, $1, NULL, $3, NULL, 0); }
+	| multiplicative_expression '%' cast_expression { $$ = makeOpNode("%", NULL, $1, NULL, $3, NULL, 0); }
 	;
 
 additive_expression
 	: multiplicative_expression
-	| additive_expression '+' multiplicative_expression
-		{ $$ = makeOpNode("+", NULL, $1, NULL, $3, NULL, 0); }
-	| additive_expression '-' multiplicative_expression
-		{ $$ = makeOpNode("-", NULL, $1, NULL, $3, NULL, 0); }
+	| additive_expression '+' multiplicative_expression { $$ = makeOpNode("+", NULL, $1, NULL, $3, NULL, 0); }
+	| additive_expression '-' multiplicative_expression{ $$ = makeOpNode("-", NULL, $1, NULL, $3, NULL, 0); }
 	;
 
 shift_expression
@@ -178,7 +171,7 @@ assignment_expression
 	;
 
 assignment_operator
-	: '=' 
+	: '='
 	| MUL_ASSIGN
 	| DIV_ASSIGN
 	| MOD_ASSIGN
@@ -233,15 +226,15 @@ storage_class_specifier
 	;
 
 type_specifier
-	: VOID
-	| CHAR
-	| SHORT
-	| INT { $$ = makeLeaf(INT, $1, NULL); /* or use "int" directly */ }
-	| LONG
-	| FLOAT
-	| DOUBLE
-	| SIGNED
-	| UNSIGNED
+	: VOID			{ $$ = makeLeaf(VOID, $1, NULL); }
+	| CHAR			{ $$ = makeLeaf(CHAR, $1, NULL); }
+	| SHORT			{ $$ = makeLeaf(SHORT, $1, NULL); }
+	| INT			{ $$ = makeLeaf(INT, $1, NULL); }
+	| LONG			{ $$ = makeLeaf(LONG, $1, NULL); }
+	| FLOAT			{ $$ = makeLeaf(FLOAT, $1, NULL); }
+	| DOUBLE		{ $$ = makeLeaf(DOUBLE, $1, NULL); }
+	| SIGNED		{ $$ = makeLeaf(SIGNED, $1, NULL); }
+	| UNSIGNED		{ $$ = makeLeaf(UNSIGNED, $1, NULL); }
 	| struct_or_union_specifier
 	| enum_specifier
 	| TYPE_NAME
@@ -254,8 +247,8 @@ struct_or_union_specifier
 	;
 
 struct_or_union
-	: STRUCT
-	| UNION
+	: STRUCT { $$ = makeLeaf(STRUCT, $1, NULL); }
+	| UNION { $$ = makeLeaf(UNION, $1, NULL); }
 	;
 
 struct_declaration_list
