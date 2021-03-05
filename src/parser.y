@@ -57,15 +57,16 @@
 %%
 
 primary_expression
-	: IDENTIFIER { $$ = makeLeaf(IDENTIFIER, $1, NULL); }
+	: IDENTIFIER { printf("%s\n", (char*) $1); $$ = makeLeaf(IDENTIFIER, $1, NULL); }
 	| CONSTANT { $$ = makeLeaf(CONSTANT, $1, NULL); }
 	| STRING_LITERAL { $$ = makeLeaf(STRING_LITERAL, $1, NULL); }
-	| '(' expression ')'
+	| '(' expression ')' { $$ = $2; }
 	;
 
 postfix_expression
-	: primary_expression
+	: primary_expression { $$ = $1; }
 	| postfix_expression '[' expression ']'
+		{ $$ = makeOpNode("[]", NULL, $1, NULL, $3, NULL, 0); }
 	| postfix_expression '(' ')'
 	| postfix_expression '(' argument_expression_list ')'
 	| postfix_expression '.' IDENTIFIER
@@ -108,13 +109,17 @@ multiplicative_expression
 	| multiplicative_expression '*' cast_expression
 		{ $$ = makeOpNode("*", NULL, $1, NULL, $3, NULL, 0); }
 	| multiplicative_expression '/' cast_expression
+		{ $$ = makeOpNode("/", NULL, $1, NULL, $3, NULL, 0); }
 	| multiplicative_expression '%' cast_expression
+		{ $$ = makeOpNode("%", NULL, $1, NULL, $3, NULL, 0); }
 	;
 
 additive_expression
 	: multiplicative_expression
-	| additive_expression '+' multiplicative_expression { $$ = makeOpNode("+", NULL, $1, NULL, $3, NULL, 0); }
+	| additive_expression '+' multiplicative_expression
+		{ $$ = makeOpNode("+", NULL, $1, NULL, $3, NULL, 0); }
 	| additive_expression '-' multiplicative_expression
+		{ $$ = makeOpNode("-", NULL, $1, NULL, $3, NULL, 0); }
 	;
 
 shift_expression

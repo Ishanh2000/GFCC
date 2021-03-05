@@ -40,3 +40,7 @@ generated/
 
 # Unix Swap Files
 *.swp
+
+# Dot / PostScript Files (for "parser" stage)
+.dot
+.ps
