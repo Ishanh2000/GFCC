@@ -53,7 +53,7 @@ IS			(u|U|l|L)*
 "volatile"		{ yylval.terminal = yytext; count(); return (VOLATILE); }
 "while"			{ yylval.terminal = yytext; count(); return (WHILE); }
 
-{L}({L}|{D})*				{ yylval.terminal = yytext; printf("LEXER: %s\n", yytext); count(); return (check_type()); /* returns IDENTIFIER */ }
+{L}({L}|{D})*				{ yylval.terminal = strdup(yytext); printf("LEXER: %s\n", yytext); count(); return (check_type()); /* returns IDENTIFIER */ }
 
 0[xX]{H}+{IS}?				{ yylval.terminal = yytext; count(); return (CONSTANT); }
 0{D}+{IS}?					{ yylval.terminal = yytext; count(); return (CONSTANT); }
