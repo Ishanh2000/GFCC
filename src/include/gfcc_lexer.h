@@ -28,6 +28,14 @@ typedef struct _token_t {
 	int column;
 } token_t;
 
+typedef struct _node_t {
+	ull_t id;
+	int tok_type; // [ IDENTIFIER | CONSTANT | STRING_LITERAL ] (else -1)
+	char* label; // keep this NULL terminated (as usual)
+	struct _node_t *parent;
+	struct _node_t **child;
+} node_t;
+
 extern char* TOKEN_NAME_ARRAY[]; // make this const
 
 int column, token_column, token_line, tab_len, colorize, bad_char_seen;
@@ -83,13 +91,15 @@ void takeAction(const char*);
 
 ull_t newNode();
 
-ull_t makeLeaf(char*, char*);
+// makeLeaf(label, attr);
+void* makeLeaf(int, char*, char*); // attr may be NULL
 
-ull_t makeOpNode(char*, char*, ...); // make this var_args for children
+// makeLeaf(opLabel, opAttr, child_1, attr_1, child_2, attr_2, . . . , child_n, attr_n, 0);
+void* makeOpNode(char*, char*, ...); // attr may be NULL
 
 // char* gfcc_strcat(char* a, ...); // NULL OR 0 terminated
 
-ull_t makeOpNode2(char*, ...); // make this var_args for children
+ull_t makeOpNode2(char*, ...);
 
 #endif
 

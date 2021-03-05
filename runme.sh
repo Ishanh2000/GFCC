@@ -1,7 +1,7 @@
 #! /bin/bash
 
 function build {
-    echo "building and installing..."
+    echo "Building and installing..."
     
     if [[ !(-d "build") ]]; then
     mkdir build
@@ -24,7 +24,7 @@ function build {
 }
 
 function clean {
-    echo "cleaning..."
+    echo "Cleaning..."
     
     if [[ -d "build" ]]; then
         rm -r build
@@ -39,6 +39,11 @@ function clean {
     fi
 }
 
+function rebuild {
+    clean
+    build
+}
+
 #  main
 
 # *please run in root directory only
@@ -49,11 +54,11 @@ cmd="$(tr [A-Z] [a-z] <<< $1)"
 
 case $cmd in
 
-    build | clean)
+    build | clean | rebuild)
         $cmd
         ;;
 
     *)
-        echo "Usage: $0 [build|clean]"
+        echo "Usage: $0 [build|clean|rebuild]"
         ;;
 esac

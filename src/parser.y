@@ -2,41 +2,64 @@
 // TERMINALS ARE SPECIAL CHARACTERS OR START WITH CAPTIAL ALPHABETS.
 // NON-TERMINALS START WITH SMALL ALPHABETS.
 
+// See include files for usage/syntax of "makeLeaf", "makeOpNode".
+
 #include <stdio.h>
 #include <gfcc_lexer.h>
 
 %}
 
 %union {
-  // for some reason ull_t isn't working
-	unsigned long long node;         // if non-terminal
-	char *terminal;     // if terminal
+	void *node;		// pointer (if non-terminal)
+	char *terminal;	// lexeme (if terminal)
 }
 
-/* Terminals */
-%token <terminal> IDENTIFIER CONSTANT STRING_LITERAL SIZEOF
-%token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
-%token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
-%token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN
-%token XOR_ASSIGN OR_ASSIGN TYPE_NAME
-%token TYPEDEF EXTERN STATIC AUTO REGISTER
-%token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE CONST VOLATILE VOID
-%token STRUCT UNION ENUM ELLIPSIS
-%token CASE DEFAULT IF ELSE SWITCH WHILE DO FOR GOTO CONTINUE BREAK RETURN
-/* Non-Terminals */
-%type <node> primary_expression postfix_expression argument_expression_list
-unary_expression unary_operator cast_expression multiplicative_expression
-additive_expression shift_expression relational_expression equality_expression
-and_expression  type_name // ! add rest
+/* Terminals: Don't change this order. */
+%token <node> IDENTIFIER CONSTANT STRING_LITERAL // only these three types shall be terminals
+%token <node> SIZEOF
+%token <node> PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
+%token <node> AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
+%token <node> SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN
+%token <node> XOR_ASSIGN OR_ASSIGN TYPE_NAME
+%token <node> TYPEDEF EXTERN STATIC AUTO REGISTER
+%token <node> CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE CONST VOLATILE VOID
+%token <node> STRUCT UNION ENUM ELLIPSIS
+%token <node> CASE DEFAULT IF ELSE SWITCH WHILE DO FOR GOTO CONTINUE BREAK RETURN
 
+// Non-Terminals (Add rest, and try in alphabetical order)
+%type <node> abstract_declarator additive_expression and_expression argument_expression_list
+%type <node> assignment_expression assignment_operator cast_expression compound_statement
+%type <node> conditional_expression constant_expression declaration declaration_list
+%type <node> declaration_specifiers declarator direct_abstract_declarator direct_declarator
+%type <node> enumerator enumerator_list enum_specifier equality_expression exclusive_or_expression
+%type <node> expression expression_statement external_declaration function_definition
+%type <node> identifier_list inclusive_or_expression init_declarator init_declarator_list
+%type <node> initializer initializer_list iteration_statement jump_statement labeled_statement
+%type <node> logical_and_expression logical_or_expression multiplicative_expression parameter_declaration
+%type <node> parameter_list parameter_type_list pointer postfix_expression primary_expression
+%type <node> relational_expression selection_statement shift_expression specifier_qualifier_list
+%type <node> statement statement_list storage_class_specifier struct_declaration struct_declaration_list
+%type <node> struct_declarator struct_declarator_list struct_or_union struct_or_union_specifier
+%type <node> translation_unit type_name type_qualifier type_qualifier_list type_specifier
+%type <node> unary_expression unary_operator
+
+
+// Provide types to fixed literals (to avoid warnings)
+%type <node> '(' ')' '[' ']' '{' '}'
+%type <node> '+' '-' '=' '*'
+%type <node> '&' '~' '!'
+%type <node> ',' ';' ':'
+
+
+// Start symbol
 %start translation_unit
 
 %%
 
 primary_expression
-	: IDENTIFIER { $$ = makeLeaf($1, NULL); }
-	| CONSTANT { $$ = makeLeaf($1, NULL); }
-	| STRING_LITERAL { $$ = makeLeaf($1, NULL); }
+	: IDENTIFIER { $$ = makeLeaf(IDENTIFIER, $1, NULL); }
+	| CONSTANT { $$ = makeLeaf(CONSTANT, $1, NULL); }
+	| STRING_LITERAL { $$ = makeLeaf(STRING_LITERAL, $1, NULL); }
 	| '(' expression ')'
 	;
 
@@ -76,19 +99,21 @@ unary_operator
 
 cast_expression
 	: unary_expression
-	| '(' type_name ')' cast_expression { $$ = makeOpNode("cast_expression", NULL, $2, $4, 0); }
+	| '(' type_name ')' cast_expression
+		{ $$ = makeOpNode("cast_expression", NULL, $2, "label=type", $4, "label=expression", 0); }
 	;
 
 multiplicative_expression
 	: cast_expression
 	| multiplicative_expression '*' cast_expression
+		{ $$ = makeOpNode("*", NULL, $1, NULL, $3, NULL, 0); }
 	| multiplicative_expression '/' cast_expression
 	| multiplicative_expression '%' cast_expression
 	;
 
 additive_expression
 	: multiplicative_expression
-	| additive_expression '+' multiplicative_expression { $$ = makeOpNode("+", NULL, $1, $3, 0); }
+	| additive_expression '+' multiplicative_expression { $$ = makeOpNode("+", NULL, $1, NULL, $3, NULL, 0); }
 	| additive_expression '-' multiplicative_expression
 	;
 
@@ -206,7 +231,7 @@ type_specifier
 	: VOID
 	| CHAR
 	| SHORT
-	| INT
+	| INT { $$ = makeLeaf(INT, $1, NULL); /* or use "int" directly */ }
 	| LONG
 	| FLOAT
 	| DOUBLE

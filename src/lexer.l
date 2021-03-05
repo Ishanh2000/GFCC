@@ -7,6 +7,7 @@ IS			(u|U|l|L)*
 
 %{
 
+#include <stdio.h>
 #include <parser.tab.h>
 #include <gfcc_lexer.h>
 
@@ -19,97 +20,97 @@ IS			(u|U|l|L)*
 "#"([^\n\0])*		{ count(); }
 
 
-"auto"			{ count(); return (AUTO); }
-"break"			{ count(); return (BREAK); }
-"case"			{ count(); return (CASE); }
-"char"			{ count(); return (CHAR); }
-"const"			{ count(); return (CONST); }
-"continue"		{ count(); return (CONTINUE); }
-"default"		{ count(); return (DEFAULT); }
-"do"			{ count(); return (DO); }
-"double"		{ count(); return (DOUBLE); }
-"else"			{ count(); return (ELSE); }
-"enum"			{ count(); return (ENUM); }
-"extern"		{ count(); return (EXTERN); }
-"float"			{ count(); return (FLOAT); }
-"for"			{ count(); return (FOR); }
-"goto"			{ count(); return (GOTO); }
-"if"			{ count(); return (IF); }
-"int"			{ count(); return (INT); }
-"long"			{ count(); return (LONG); }
-"register"		{ count(); return (REGISTER); }
-"return"		{ count(); return (RETURN); }
-"short"			{ count(); return (SHORT); }
-"signed"		{ count(); return (SIGNED); }
-"sizeof"		{ count(); return (SIZEOF); }
-"static"		{ count(); return (STATIC); }
-"struct"		{ count(); return (STRUCT); }
-"switch"		{ count(); return (SWITCH); }
-"typedef"		{ count(); return (TYPEDEF); }
-"union"			{ count(); return (UNION); }
-"unsigned"		{ count(); return (UNSIGNED); }
-"void"			{ count(); return (VOID); }
-"volatile"		{ count(); return (VOLATILE); }
-"while"			{ count(); return (WHILE); }
+"auto"			{ yylval.terminal = yytext; count(); return (AUTO); }
+"break"			{ yylval.terminal = yytext; count(); return (BREAK); }
+"case"			{ yylval.terminal = yytext; count(); return (CASE); }
+"char"			{ yylval.terminal = yytext; count(); return (CHAR); }
+"const"			{ yylval.terminal = yytext; count(); return (CONST); }
+"continue"		{ yylval.terminal = yytext; count(); return (CONTINUE); }
+"default"		{ yylval.terminal = yytext; count(); return (DEFAULT); }
+"do"			{ yylval.terminal = yytext; count(); return (DO); }
+"double"		{ yylval.terminal = yytext; count(); return (DOUBLE); }
+"else"			{ yylval.terminal = yytext; count(); return (ELSE); }
+"enum"			{ yylval.terminal = yytext; count(); return (ENUM); }
+"extern"		{ yylval.terminal = yytext; count(); return (EXTERN); }
+"float"			{ yylval.terminal = yytext; count(); return (FLOAT); }
+"for"			{ yylval.terminal = yytext; count(); return (FOR); }
+"goto"			{ yylval.terminal = yytext; count(); return (GOTO); }
+"if"			{ yylval.terminal = yytext; count(); return (IF); }
+"int"			{ yylval.terminal = yytext; count(); return (INT); }
+"long"			{ yylval.terminal = yytext; count(); return (LONG); }
+"register"		{ yylval.terminal = yytext; count(); return (REGISTER); }
+"return"		{ yylval.terminal = yytext; count(); return (RETURN); }
+"short"			{ yylval.terminal = yytext; count(); return (SHORT); }
+"signed"		{ yylval.terminal = yytext; count(); return (SIGNED); }
+"sizeof"		{ yylval.terminal = yytext; count(); return (SIZEOF); }
+"static"		{ yylval.terminal = yytext; count(); return (STATIC); }
+"struct"		{ yylval.terminal = yytext; count(); return (STRUCT); }
+"switch"		{ yylval.terminal = yytext; count(); return (SWITCH); }
+"typedef"		{ yylval.terminal = yytext; count(); return (TYPEDEF); }
+"union"			{ yylval.terminal = yytext; count(); return (UNION); }
+"unsigned"		{ yylval.terminal = yytext; count(); return (UNSIGNED); }
+"void"			{ yylval.terminal = yytext; count(); return (VOID); }
+"volatile"		{ yylval.terminal = yytext; count(); return (VOLATILE); }
+"while"			{ yylval.terminal = yytext; count(); return (WHILE); }
 
-{L}({L}|{D})*				{ yylval.terminal = yytext; count(); return (check_type()); }
+{L}({L}|{D})*				{ yylval.terminal = yytext; count(); return (check_type()); /* return IDENTIFIER */ }
 
 0[xX]{H}+{IS}?				{ yylval.terminal = yytext; count(); return (CONSTANT); }
 0{D}+{IS}?					{ yylval.terminal = yytext; count(); return (CONSTANT); }
 {D}+{IS}?					{ yylval.terminal = yytext; count(); return (CONSTANT); }
-L?'(\\.|[^\\'])+'			{ count(); return (CONSTANT); }
+L?'(\\.|[^\\'])+'			{ yylval.terminal = yytext; count(); return (CONSTANT); /* Why not? */ }
 {D}+{E}{FS}?				{ yylval.terminal = yytext; count(); return (CONSTANT); }
 {D}*"."{D}+({E})?{FS}?		{ yylval.terminal = yytext; count(); return (CONSTANT); }
 {D}+"."{D}*({E})?{FS}?		{ yylval.terminal = yytext; count(); return (CONSTANT); }
 
 L?\"(\\.|[^\\"])*\"			{ yylval.terminal = yytext; count(); return (STRING_LITERAL); }
 
-"..."			{ count(); return (ELLIPSIS); }
-">>="			{ count(); return (RIGHT_ASSIGN); }
-"<<="			{ count(); return (LEFT_ASSIGN); }
-"+="			{ count(); return (ADD_ASSIGN); }
-"-="			{ count(); return (SUB_ASSIGN); }
-"*="			{ count(); return (MUL_ASSIGN); }
-"/="			{ count(); return (DIV_ASSIGN); }
-"%="			{ count(); return (MOD_ASSIGN); }
-"&="			{ count(); return (AND_ASSIGN); }
-"^="			{ count(); return (XOR_ASSIGN); }
-"|="			{ count(); return (OR_ASSIGN); }
-">>"			{ count(); return (RIGHT_OP); }
-"<<"			{ count(); return (LEFT_OP); }
-"++"			{ count(); return (INC_OP); }
-"--"			{ count(); return (DEC_OP); }
-"->"			{ count(); return (PTR_OP); }
-"&&"			{ count(); return (AND_OP); }
-"||"			{ count(); return (OR_OP); }
-"<="			{ count(); return (LE_OP); }
-">="			{ count(); return (GE_OP); }
-"=="			{ count(); return (EQ_OP); }
-"!="			{ count(); return (NE_OP); }
-";"				{ count(); return (';'); }
-("{"|"<%")		{ count(); return ('{'); }
-("}"|"%>")		{ count(); return ('}'); }
-","				{ count(); return (','); }
-":"				{ count(); return (':'); }
-"="				{ count(); return ('='); }
-"("				{ count(); return ('('); }
-")"				{ count(); return (')'); }
-("["|"<:")		{ count(); return ('['); }
-("]"|":>")		{ count(); return (']'); }
-"."				{ count(); return ('.'); }
-"&"				{ count(); return ('&'); }
-"!"				{ count(); return ('!'); }
-"~"				{ count(); return ('~'); }
-"-"				{ count(); return ('-'); }
-"+"				{ count(); return ('+'); }
-"*"				{ count(); return ('*'); }
-"/"				{ count(); return ('/'); }
-"%"				{ count(); return ('%'); }
-"<"				{ count(); return ('<'); }
-">"				{ count(); return ('>'); }
-"^"				{ count(); return ('^'); }
-"|"				{ count(); return ('|'); }
-"?"				{ count(); return ('?'); }
+"..."			{ yylval.terminal = yytext; count(); return (ELLIPSIS); }
+">>="			{ yylval.terminal = yytext; count(); return (RIGHT_ASSIGN); }
+"<<="			{ yylval.terminal = yytext; count(); return (LEFT_ASSIGN); }
+"+="			{ yylval.terminal = yytext; count(); return (ADD_ASSIGN); }
+"-="			{ yylval.terminal = yytext; count(); return (SUB_ASSIGN); }
+"*="			{ yylval.terminal = yytext; count(); return (MUL_ASSIGN); }
+"/="			{ yylval.terminal = yytext; count(); return (DIV_ASSIGN); }
+"%="			{ yylval.terminal = yytext; count(); return (MOD_ASSIGN); }
+"&="			{ yylval.terminal = yytext; count(); return (AND_ASSIGN); }
+"^="			{ yylval.terminal = yytext; count(); return (XOR_ASSIGN); }
+"|="			{ yylval.terminal = yytext; count(); return (OR_ASSIGN); }
+">>"			{ yylval.terminal = yytext; count(); return (RIGHT_OP); }
+"<<"			{ yylval.terminal = yytext; count(); return (LEFT_OP); }
+"++"			{ yylval.terminal = yytext; count(); return (INC_OP); }
+"--"			{ yylval.terminal = yytext; count(); return (DEC_OP); }
+"->"			{ yylval.terminal = yytext; count(); return (PTR_OP); }
+"&&"			{ yylval.terminal = yytext; count(); return (AND_OP); }
+"||"			{ yylval.terminal = yytext; count(); return (OR_OP); }
+"<="			{ yylval.terminal = yytext; count(); return (LE_OP); }
+">="			{ yylval.terminal = yytext; count(); return (GE_OP); }
+"=="			{ yylval.terminal = yytext; count(); return (EQ_OP); }
+"!="			{ yylval.terminal = yytext; count(); return (NE_OP); }
+";"				{ yylval.terminal = yytext; count(); return (';'); }
+("{"|"<%")		{ yylval.terminal = yytext; count(); return ('{'); }
+("}"|"%>")		{ yylval.terminal = yytext; count(); return ('}'); }
+","				{ yylval.terminal = yytext; count(); return (','); }
+":"				{ yylval.terminal = yytext; count(); return (':'); }
+"="				{ yylval.terminal = yytext; count(); return ('='); }
+"("				{ yylval.terminal = yytext; count(); return ('('); }
+")"				{ yylval.terminal = yytext; count(); return (')'); }
+("["|"<:")		{ yylval.terminal = yytext; count(); return ('['); }
+("]"|":>")		{ yylval.terminal = yytext; count(); return (']'); }
+"."				{ yylval.terminal = yytext; count(); return ('.'); }
+"&"				{ yylval.terminal = yytext; count(); return ('&'); }
+"!"				{ yylval.terminal = yytext; count(); return ('!'); }
+"~"				{ yylval.terminal = yytext; count(); return ('~'); }
+"-"				{ yylval.terminal = yytext; count(); return ('-'); }
+"+"				{ yylval.terminal = yytext; count(); return ('+'); }
+"*"				{ yylval.terminal = yytext; count(); return ('*'); }
+"/"				{ yylval.terminal = yytext; count(); return ('/'); }
+"%"				{ yylval.terminal = yytext; count(); return ('%'); }
+"<"				{ yylval.terminal = yytext; count(); return ('<'); }
+">"				{ yylval.terminal = yytext; count(); return ('>'); }
+"^"				{ yylval.terminal = yytext; count(); return ('^'); }
+"|"				{ yylval.terminal = yytext; count(); return ('|'); }
+"?"				{ yylval.terminal = yytext; count(); return ('?'); }
 
 [ \t\v\n\f]		{ count(); }
 .				{ count(); handle_bad_char(); }

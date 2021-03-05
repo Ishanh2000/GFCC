@@ -1,7 +1,11 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
 #include <gfcc_lexer.h>
+#include <parser.tab.h>
+
+// Find "ASSUMPTION" to see all assumptions made.
 
 int yyerror(char *s) {
 	fflush(stdout);
@@ -114,39 +118,69 @@ void takeAction(const char* str) { // input: parent{attr}|child_N{attr}| ... |ch
 	}
 }
 
-ull_t makeLeaf(char* label, char* attr) { // attr may be NULL
-    ull_t id = newNode();
-    fprintf(temp_out, "\t%lld [label=\"%s\"%s", id, label, attr ? "," : "];\n");
-    if (attr) fprintf(temp_out, "%s];\n", attr);
-    return id;
+void* makeLeaf(int tok_type, char* label, char* attr) { // label is lexeme. attr may be NULL.
+	node_t *leaf = (node_t*) malloc(sizeof(node_t));
+	leaf->id = newNode(); leaf->tok_type = tok_type;
+	// copying, since label == yytext, and contents of yytext change later.
+	leaf->label = malloc(strlen(label) + 1); strcpy(leaf->label, label);
+	leaf->parent = NULL; leaf->child = NULL;
+
+	// A STRING_LITERAL label will have "" included
+	if (tok_type == STRING_LITERAL) {
+		int end = 0; while(label[end]) end++; label[end - 1] = '\0'; // latter "
+		label += 1; // former "
+	}
+
+	fprintf(temp_out, "\t%lld [label=\"", leaf->id);
+	if (tok_type == STRING_LITERAL) fprintf(temp_out, "\\\"%s\\\"", label); else fprintf(temp_out, "%s", label);
+	if (attr) fprintf(temp_out, ",%s];\n", attr); else fprintf(temp_out, "\"];\n");
+
+	return (void*) leaf;
 }
 
-ull_t makeOpNode(char* label, char* attr, ...) { // attr may be NULL
-    ull_t id = newNode();
-    fprintf(temp_out, "\t%lld [label=\"%s\"%s", id, label, attr ? "," : "];\n");
+void* makeOpNode(char* label, char* attr, ...) { // attr may be NULL
+	node_t *opNode = (node_t*) malloc(sizeof(node_t));
+    opNode->id = newNode(); opNode->parent = NULL; opNode->tok_type = -1;
+	// not copying, since label is read-only area of memory [ASSUMPTION]
+	opNode->label = label;
+
+    fprintf(temp_out, "\t%lld [label=\"%s\"%s", opNode->id, label, attr ? "," : "];\n");
     if (attr) fprintf(temp_out, "%s];\n", attr);
 
     va_list args;
-    ull_t child;
-    // Assume maximum children = 10, and each is not more than 30 chars long.
+    node_t* child;
+    // [ASSUMPTION] maximum children = 10, and each is not more than 30 chars long.
     char enforceOrder[300];
     int enforceLen = 0; int numChild = 0;
+	node_t* children[10];
 
 	va_start(args, attr);
-    child = va_arg(args, ull_t);
-    while (child) {
-        fprintf(temp_out, "\t%lld -> %lld;\n", id, child);
-        numChild++;
+    child = (node_t*) va_arg(args, void*);
+    
+	while (child) {
+        children[numChild++] = child;
+
+        fprintf(temp_out, "\t%lld -> %lld", opNode->id, child->id);
+		
+		char* edge_attr = va_arg(args, char*);
+		if (edge_attr && edge_attr[0]) fprintf(temp_out, " [%s]", edge_attr);
+		fprintf(temp_out, ";\n");
         
-        char arr[30]; int l = 0; ull_t copy = child;
+        char arr[30]; int l = 0; ull_t copy = child->id;
         while (copy) { arr[l++] = (copy % 10) + '0'; copy /= 10; } // length found, arr[0 ... l-1] = rev(child)
         for (int i = l-1; i >= 0; i--) enforceOrder[enforceLen++] = arr[i];
         enforceOrder[enforceLen++] = ' '; enforceOrder[enforceLen++] = '-';
         enforceOrder[enforceLen++] = '>'; enforceOrder[enforceLen++] = ' ';
 
-        child = va_arg(args, ull_t);
+        child = (node_t*) va_arg(args, void*);
     }
+
 	va_end(args);
+
+	if (numChild) {
+		opNode->child = malloc(numChild * sizeof(node_t*));
+		for (int i = 0; i < numChild; i++) opNode->child[i] = children[i];
+	} else opNode->child = NULL;
 
     if (numChild > 1) { // at least two children required for enforcing "order".
         // enforceOrder = "... xyz -> " : Now use NULL just after "xyz"
@@ -158,7 +192,7 @@ ull_t makeOpNode(char* label, char* attr, ...) { // attr may be NULL
 		fprintf(temp_out, "\t}\n");
     }
 
-    return id;
+    return (void*) opNode;
 }
 
 // char* gfcc_strcat(char* a, ...) { // NULL OR 0 terminated
