@@ -23,19 +23,26 @@ typedef unsigned long long ull_t;
 
 typedef struct _token_t {
 	int id; // type
-	char* lexeme; // keep this NULL terminated (as usual)
+	char* lexeme;
 	int line;
 	int column;
 } token_t;
 
 typedef struct _node_t {
 	ull_t id;
-	int tok_type; // [ IDENTIFIER | CONSTANT | STRING_LITERAL | some other ] (else -1, usually for internal nodes)
-	char* label; // keep this NULL terminated (as usual)
+	int tok_type; // [ IDENTIFIER | CONSTANT | STRING_LITERAL | some other | -1 ] (else -1, usually for internal nodes)
+	char* label;
+	char* attr;
 	struct _node_t *parent;
-	struct _node_t **child;
 	int numChild;
+	struct _edge_t **edges;
 } node_t;
+
+typedef struct _edge_t {
+	struct _node_t *node;
+	char *label;
+	char *attr;
+} edge_t;
 
 extern char* TOKEN_NAME_ARRAY[]; // make this const
 
@@ -45,10 +52,7 @@ FILE *yyin, *yyout, *temp_out;
 
 char* yytext;
 
-ull_t currNumNodes, nodeStackSize;
-
-extern ull_t nodeStack[];
-
+ull_t currNumNodes;
 
 void lexUnput(char);
 
@@ -84,23 +88,34 @@ int yyerror(char*);
 
 void dotStmt(const char*, ...);
 
-void dotNode(ull_t, char*);
+void dotNode(node_t*);
 
-void dotEdge(ull_t, ull_t);
-
-void takeAction(const char*);
+void dotEdge(node_t*, edge_t*);
 
 ull_t newNode();
 
-// makeLeaf(label, attr);
-void* makeLeaf(int, char*, char*); // attr may be NULL
+// token_type, label, attr
+node_t* mkGenNode(int, char*, char*); // attr may be NULL
 
-// makeLeaf(opLabel, opAttr, child_1, attr_1, child_2, attr_2, . . . , child_n, attr_n, 0);
-void* makeOpNode(char*, char*, ...); // attr may be NULL
+// token_type, label
+node_t* mkNode(int, char*); // attr will be passed to mkGenNode as NULL
 
-// char* gfcc_strcat(char* a, ...); // NULL OR 0 terminated
+extern node_t* (*nd)(int, char*); // short form
 
-ull_t makeOpNode2(char*, ...);
+// child, label, attr
+edge_t* mkGenEdge(node_t*, char*, char*); // label, attr may be NULL
+
+// child
+edge_t* mkEdge(node_t*); // label, attr will be passed to mkGenEdge as NULL
+
+extern edge_t* (*ej)(node_t*); // short form
+
+// parent, numLeft, numRight, edge_1, edge_2, ...
+node_t* mkOpNode(node_t*, int, int, ...);
+
+extern node_t* (*op)(node_t*, int, int, ...); // short form
+
+// void ASTToDot(FILE*, node_t*); // temp_out, root
 
 #endif
 

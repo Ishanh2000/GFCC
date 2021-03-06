@@ -2,7 +2,7 @@
 // TERMINALS ARE SPECIAL CHARACTERS OR START WITH CAPTIAL ALPHABETS.
 // NON-TERMINALS START WITH SMALL ALPHABETS.
 
-// See include files for usage/syntax of "makeLeaf", "makeOpNode".
+// See include files for usage/syntax of "nd", "ej" and "op".
 
 #include <stdio.h>
 #include <gfcc_lexer.h>
@@ -10,8 +10,8 @@
 %}
 
 %union {
-	void *node;		// pointer (if non-terminal)
-	char *terminal;	// lexeme (if terminal)
+	void *node;	// pointer (if node, using void* to avoid warning - implicit type conversion supported for void*)
+	char *terminal;			// lexeme (if terminal)
 }
 
 /* Terminals: Don't change this order. */
@@ -57,21 +57,21 @@
 %%
 
 primary_expression
-	: IDENTIFIER { $$ = makeLeaf(IDENTIFIER, $1, NULL); }
-	| CONSTANT { $$ = makeLeaf(CONSTANT, $1, NULL); }
-	| STRING_LITERAL { $$ = makeLeaf(STRING_LITERAL, $1, NULL); }
-	| '(' expression ')' { $$ = $2; }
+	: IDENTIFIER			{ $$ = nd(IDENTIFIER, $1); }
+	| CONSTANT				{ $$ = nd(CONSTANT, $1); }
+	| STRING_LITERAL		{ $$ = nd(STRING_LITERAL, $1); }
+	| '(' expression ')'	{ $$ = $2; }
 	;
 
 postfix_expression
 	: primary_expression { $$ = $1; }
-	| postfix_expression '[' expression ']' { $$ = makeOpNode("[]", NULL, $1, NULL, $3, NULL, 0); }
+	| postfix_expression '[' expression ']' { $$ = op( nd(-1, "[]"), 0, 2, ej($1), ej($3) ); }
 	| postfix_expression '(' ')'
 	| postfix_expression '(' argument_expression_list ')'
-	| postfix_expression '.' IDENTIFIER { $$ = makeOpNode($2, NULL, $1, NULL, makeLeaf(IDENTIFIER, $3, NULL), NULL, 0); }
-	| postfix_expression PTR_OP IDENTIFIER { $$ = makeOpNode($2, NULL, $1, NULL, makeLeaf(IDENTIFIER, $3, NULL), NULL, 0); }
-	| postfix_expression INC_OP	{ $$ = makeOpNode($2, NULL, $1, NULL, 0); }
-	| postfix_expression DEC_OP { $$ = makeOpNode($2, NULL, $1, NULL, 0); }
+	| postfix_expression '.' IDENTIFIER { $$ = op( nd('.', $2), 0, 2, ej($1), ej(nd(IDENTIFIER, $3)) ); }
+	| postfix_expression PTR_OP IDENTIFIER { $$ = op( nd(PTR_OP, $2), 0, 2, ej($1), ej(nd(IDENTIFIER, $3)) ); }
+	| postfix_expression INC_OP	{ $$ = op( nd(INC_OP, $2), 0, 1, ej($1) ); }
+	| postfix_expression DEC_OP	{ $$ = op( nd(DEC_OP, $2), 0, 1, ej($1) ); }
 	;
 
 argument_expression_list
@@ -80,118 +80,119 @@ argument_expression_list
 	;
 
 unary_expression
-	: postfix_expression { $$ = $1; }
-	| INC_OP unary_expression { $$ = makeOpNode($1, NULL, $2, NULL, 0); }
-	| DEC_OP unary_expression { $$ = makeOpNode($1, NULL, $2, NULL, 0); }
-	| unary_operator cast_expression { $$ = makeOpNode(NULL, (char*)$1, $2, NULL, 0); }
-	| SIZEOF unary_expression { $$ = makeOpNode($1, NULL, $2, NULL, 0); }
-	| SIZEOF '(' type_name ')' { $$ = makeOpNode($1, NULL, $3, NULL, 0); }
+	: postfix_expression				{ $$ = $1; }
+	| INC_OP unary_expression			{ $$ = op( nd(INC_OP, $1), 0, 1, ej($2) ); }
+	| DEC_OP unary_expression			{ $$ = op( nd(DEC_OP, $1), 0, 1, ej($2) ); }
+	| unary_operator cast_expression	{ $$ = op( $1, 0, 1, ej($2) ); }
+	| SIZEOF unary_expression			{ $$ = op( nd(SIZEOF, $1), 0, 1, ej($2) ); }
+	| SIZEOF '(' type_name ')'			{ $$ = op( nd(SIZEOF, $1), 0, 1, ej($3) ); }
 	;
 
 unary_operator
-	: '&' { $$ = makeLeaf('&', $1, NULL); }
-	| '*' { $$ = makeLeaf('*', $1, NULL); }
-	| '+' { $$ = makeLeaf('+', $1, NULL); }
-	| '-' { $$ = makeLeaf('-', $1, NULL); }
-	| '~' { $$ = makeLeaf('~', $1, NULL); }
-	| '!' { $$ = makeLeaf('!', $1, NULL); }
+	: '&' { $$ = nd('&', $1); }
+	| '*' { $$ = nd('*', $1); }
+	| '+' { $$ = nd('+', $1); }
+	| '-' { $$ = nd('-', $1); }
+	| '~' { $$ = nd('~', $1); }
+	| '!' { $$ = nd('!', $1); }
 	;
 
 cast_expression
-	: unary_expression
-	| '(' type_name ')' cast_expression { $$ = makeOpNode("cast_expression", NULL, $2, "label=type", $4, "label=expression", 0); }
+	: unary_expression { $$ = $1; }
+	| '(' type_name ')' cast_expression
+		{ $$ = op( nd(-1, "cast_expression"), 0, 2, mkGenEdge($2, "type", NULL), mkGenEdge($4, "expression", NULL) ); }
 	;
 
 multiplicative_expression
-	: cast_expression
-	| multiplicative_expression '*' cast_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
-	| multiplicative_expression '/' cast_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
-	| multiplicative_expression '%' cast_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
+	: cast_expression { $$ = $1; }
+	| multiplicative_expression '*' cast_expression { $$ = op( nd('*', $2), 0, 2, ej($1), ej($3) ); }
+	| multiplicative_expression '/' cast_expression { $$ = op( nd('/', $2), 0, 2, ej($1), ej($3) ); }
+	| multiplicative_expression '%' cast_expression { $$ = op( nd('%', $2), 0, 2, ej($1), ej($3) ); }
 	;
 
 additive_expression
-	: multiplicative_expression
-	| additive_expression '+' multiplicative_expression { $$ = makeOpNode("+", NULL, $1, NULL, $3, NULL, 0); }
-	| additive_expression '-' multiplicative_expression { $$ = makeOpNode("-", NULL, $1, NULL, $3, NULL, 0); }
+	: multiplicative_expression { $$ = $1; }
+	| additive_expression '+' multiplicative_expression { $$ = op( nd('+', $2), 0, 2, ej($1), ej($3) ); }
+	| additive_expression '-' multiplicative_expression { $$ = op( nd('-', $2), 0, 2, ej($1), ej($3) ); }
 	;
 
 shift_expression
 	: additive_expression { $$ = $1; }
-	| shift_expression LEFT_OP additive_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
-	| shift_expression RIGHT_OP additive_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
+	| shift_expression LEFT_OP additive_expression	{ $$ = op( nd(LEFT_OP, $2), 0, 2, ej($1), ej($3) ); }
+	| shift_expression RIGHT_OP additive_expression	{ $$ = op( nd(RIGHT_OP, $2), 0, 2, ej($1), ej($3) ); }
 	;
 
 relational_expression
 	: shift_expression { $$ = $1; }
-	| relational_expression '<' shift_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
-	| relational_expression '>' shift_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
-	| relational_expression LE_OP shift_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
-	| relational_expression GE_OP shift_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
+	| relational_expression '<' shift_expression	{ $$ = op( nd('<', $2), 0, 2, ej($1), ej($3) ); }
+	| relational_expression '>' shift_expression	{ $$ = op( nd('>', $2), 0, 2, ej($1), ej($3) ); }
+	| relational_expression LE_OP shift_expression	{ $$ = op( nd(LE_OP, $2), 0, 2, ej($1), ej($3) ); }
+	| relational_expression GE_OP shift_expression	{ $$ = op( nd(GE_OP, $2), 0, 2, ej($1), ej($3) ); }
 	;
 
 equality_expression
 	: relational_expression { $$ = $1; }
-	| equality_expression EQ_OP relational_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
-	| equality_expression NE_OP relational_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
+	| equality_expression EQ_OP relational_expression	{ $$ = op( nd(EQ_OP, $2), 0, 2, ej($1), ej($3) ); }
+	| equality_expression NE_OP relational_expression	{ $$ = op( nd(NE_OP, $2), 0, 2, ej($1), ej($3) ); }
 	;
 
 and_expression
 	: equality_expression { $$ = $1; }
-	| and_expression '&' equality_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
+	| and_expression '&' equality_expression { $$ = op( nd('&', $2), 0, 2, ej($1), ej($3) ); }
 	;
 
 exclusive_or_expression
 	: and_expression { $$ = $1; }
-	| exclusive_or_expression '^' and_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
+	| exclusive_or_expression '^' and_expression { $$ = op( nd('^', $2), 0, 2, ej($1), ej($3) ); }
 	;
 
 inclusive_or_expression
 	: exclusive_or_expression { $$ = $1; }
-	| inclusive_or_expression '|' exclusive_or_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
+	| inclusive_or_expression '|' exclusive_or_expression { $$ = op( nd('|', $2), 0, 2, ej($1), ej($3) ); }
 	;
 
 logical_and_expression
 	: inclusive_or_expression { $$ = $1; }
-	| logical_and_expression AND_OP inclusive_or_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
+	| logical_and_expression AND_OP inclusive_or_expression { $$ = op( nd(AND_OP, $2), 0, 2, ej($1), ej($3) ); }
 	;
 
 logical_or_expression
 	: logical_and_expression { $$ = $1; }
-	| logical_or_expression OR_OP logical_and_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
+	| logical_or_expression OR_OP logical_and_expression { $$ = op( nd(OR_OP, $2), 0, 2, ej($1), ej($3) ); }
 	;
 
 conditional_expression
 	: logical_or_expression { $$ = $1; }
-	| logical_or_expression '?' expression ':' conditional_expression { $$ = makeOpNode(
-		"ternary expr (? :)", NULL,
-		$1, "label=\"condition\"",
-		$3, "label=\"expr (if TRUE)\"",
-		$5, "label=\"expr (if FALSE)\"",
-	0); }
+	| logical_or_expression '?' expression ':' conditional_expression { $$ = op(
+		mkGenNode(-1, "ternary expr (? :)", NULL), 0, 3,
+		mkGenEdge($1, "condition", NULL),
+		mkGenEdge($3, "expr (if TRUE)", NULL),
+		mkGenEdge($5, "expr (if FALSE)", NULL)
+	); }
 	;
 
 assignment_expression
 	: conditional_expression { $$ = $1; }
-	| unary_expression assignment_operator assignment_expression { $$ = makeOpNode(NULL, (char*)$2, $1, NULL, $3, NULL, 0); }
+	| unary_expression assignment_operator assignment_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); }
 	;
 
 assignment_operator
-	: '=' { $$ = makeLeaf('=', $1, NULL); }
-	| MUL_ASSIGN { $$ = makeLeaf(MUL_ASSIGN, $1, NULL); }
-	| DIV_ASSIGN { $$ = makeLeaf(DIV_ASSIGN, $1, NULL); }
-	| MOD_ASSIGN { $$ = makeLeaf(MOD_ASSIGN, $1, NULL); }
-	| ADD_ASSIGN { $$ = makeLeaf(ADD_ASSIGN, $1, NULL); }
-	| SUB_ASSIGN { $$ = makeLeaf(SUB_ASSIGN, $1, NULL); }
-	| LEFT_ASSIGN { $$ = makeLeaf(LEFT_ASSIGN, $1, NULL); }
-	| RIGHT_ASSIGN { $$ = makeLeaf(RIGHT_ASSIGN, $1, NULL); }
-	| AND_ASSIGN { $$ = makeLeaf(AND_ASSIGN, $1, NULL); }
-	| XOR_ASSIGN { $$ = makeLeaf(XOR_ASSIGN, $1, NULL); }
-	| OR_ASSIGN { $$ = makeLeaf(OR_ASSIGN, $1, NULL); }
+	: '='			{ $$ = nd('=', $1); }
+	| MUL_ASSIGN	{ $$ = nd(MUL_ASSIGN, $1); }
+	| DIV_ASSIGN	{ $$ = nd(DIV_ASSIGN, $1); }
+	| MOD_ASSIGN	{ $$ = nd(MOD_ASSIGN, $1); }
+	| ADD_ASSIGN	{ $$ = nd(ADD_ASSIGN, $1); }
+	| SUB_ASSIGN	{ $$ = nd(SUB_ASSIGN, $1); }
+	| LEFT_ASSIGN	{ $$ = nd(LEFT_ASSIGN, $1); }
+	| RIGHT_ASSIGN	{ $$ = nd(RIGHT_ASSIGN, $1); }
+	| AND_ASSIGN	{ $$ = nd(AND_ASSIGN, $1); }
+	| XOR_ASSIGN	{ $$ = nd(XOR_ASSIGN, $1); }
+	| OR_ASSIGN		{ $$ = nd(OR_ASSIGN, $1); }
 	;
 
 expression
 	: assignment_expression { $$ = $1; }
-	| expression ',' assignment_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
+	| expression ',' assignment_expression { $$ = op( nd(',', $2), 0, 2, ej($1), ej($3) ); }
 	;
 
 constant_expression
@@ -231,15 +232,15 @@ storage_class_specifier
 	;
 
 type_specifier
-	: VOID			{ $$ = makeLeaf(VOID, $1, NULL); }
-	| CHAR			{ $$ = makeLeaf(CHAR, $1, NULL); }
-	| SHORT			{ $$ = makeLeaf(SHORT, $1, NULL); }
-	| INT			{ $$ = makeLeaf(INT, $1, NULL); }
-	| LONG			{ $$ = makeLeaf(LONG, $1, NULL); }
-	| FLOAT			{ $$ = makeLeaf(FLOAT, $1, NULL); }
-	| DOUBLE		{ $$ = makeLeaf(DOUBLE, $1, NULL); }
-	| SIGNED		{ $$ = makeLeaf(SIGNED, $1, NULL); }
-	| UNSIGNED		{ $$ = makeLeaf(UNSIGNED, $1, NULL); }
+	: VOID							{ $$ = nd(VOID, $1); }
+	| CHAR							{ $$ = nd(CHAR, $1); }
+	| SHORT							{ $$ = nd(SHORT, $1); }
+	| INT							{ $$ = nd(INT, $1); }
+	| LONG							{ $$ = nd(LONG, $1); }
+	| FLOAT							{ $$ = nd(FLOAT, $1); }
+	| DOUBLE						{ $$ = nd(DOUBLE, $1); }
+	| SIGNED						{ $$ = nd(SIGNED, $1); }
+	| UNSIGNED						{ $$ = nd(UNSIGNED, $1); }
 	| struct_or_union_specifier
 	| enum_specifier
 	| TYPE_NAME
@@ -252,8 +253,8 @@ struct_or_union_specifier
 	;
 
 struct_or_union
-	: STRUCT { $$ = makeLeaf(STRUCT, $1, NULL); }
-	| UNION { $$ = makeLeaf(UNION, $1, NULL); }
+	: STRUCT	{ $$ = nd(STRUCT, $1); }
+	| UNION		{ $$ = nd(UNION, $1); }
 	;
 
 struct_declaration_list

@@ -21,33 +21,31 @@ void dotStmt(const char* format, ...) { // just a wrapper function
 	va_end(args);
 }
 
-void dotNode(ull_t id, char* label) { // just a wrapper function
-	fprintf(temp_out, "\t%lld [label = \"%s\"];\n", id, label);
+void dotNode(node_t* node) {
+	fprintf(temp_out, "\t%lld [label=\"", node->id);
+	if (node->tok_type == STRING_LITERAL) fprintf(temp_out, "\\\"%s\\\"", node->label);
+	else fprintf(temp_out, "%s", node->label);
+	if (node->attr) fprintf(temp_out, ",%s];\n", node->attr);
+	else fprintf(temp_out, "\"];\n");
 }
 
-void dotEdge(ull_t parent, ull_t child) { // just a wrapper function
-	printf("HERE2 %lld, %lld\n", parent, child);
-	fprintf(temp_out, "\t%lld -> %lld;\n", parent, child);
+void dotEdge(node_t* parent, edge_t* e) { // just a wrapper function
+	fprintf(temp_out, "\t%lld -> %lld", parent->id, e->node->id);
+	char *label = e->label, *attr = e->attr;
+	
+	if (label || attr) {
+		fprintf(temp_out, " [");
+		if (label) fprintf(temp_out, "label=\"%s\"", label);
+		if (label && attr) fprintf(temp_out, ",");
+		if (attr) fprintf(temp_out, "%s", attr);
+		fprintf(temp_out, "]");
+	}
+
+	fprintf(temp_out, ";\n");
 }
 
 ull_t newNode() {
 	return ++currNumNodes;
-}
-
-int nodeStackPush(ull_t nodeId) {
-	if (nodeStackSize == MAX_PARSE_TREE_HEIGHT) return -1;
-	nodeStack[nodeStackSize++] = nodeId;
-	return 0;
-}
-
-ull_t nodeStackPop() {
-	if (nodeStackSize) return nodeStack[--nodeStackSize];
-	return 0; // 0 is not id for any node
-}
-
-ull_t nodeStackTop() {
-	if (nodeStackSize) return nodeStack[nodeStackSize-1];
-	return 0; // 0 is not id for any node
 }
 
 /** ACTION UPON SEEING A RULE (PSEUDO-CODE)
@@ -57,173 +55,114 @@ ull_t nodeStackTop() {
 * 	add edge (parent, child)
 * nodeStackPush(parent)
 */
-void takeAction(const char* str) { // input: parent{attr}|child_N{attr}| ... |child_2{attr}|child_1{attr}
-    // use of strtok avoided - vanilla string manipulation is faster.
-    int n = strlen(str);
-    int start = 0, end = 0;
-    int parent_seen = 0; ull_t parentId;
-	char enforceOrder[2*n]; // to enforce order by introducing invisible edges (and maybe ranks later on).
-	int enforceLen = 0;
-	int numChild = 0;
 
-    while (start < n) {
-        while (str[end] && (str[end] != ' ')) end++;
-        end--;
-        
-        // now concerned with str[start ... end] (both indices included)
-		int sep = start; // index of separator
-		while ((sep <= end) && str[sep] != '@') sep++;
-
-		ull_t nodeId;
-		// [THE FOLLOWING IF-THEN-ELSE STATEMENT ASSUMES THAT A NON-TERMINAL BEGINS WITH A SMALL ALPHABET]
-		if (parent_seen && 'a' <= str[start] && str[start] <= 'z') nodeId = nodeStackPop(); // non-terminal symbol
-		else nodeId = ++currNumNodes; // parent OR terminal child
-        
-		fprintf(temp_out, "\t%lld [label=\"", nodeId);
-        for (int i = start; i <= sep - 1; i++) fputc(str[i], temp_out); // str[start ... (sep - 1)] is label (keep inside "")
-		fprintf(temp_out, (sep > end) ? "\"" : "\",");
-        for (int i = sep + 1; i <= end; i++) fputc(str[i], temp_out); // str[(sep + 1) ... end] are label and attributes
-		fprintf(temp_out, "];\n");
-        
-		if (parent_seen) {
-			char arr[25]; int l = 0;
-			ull_t num = nodeId;
-			while (num) { arr[l++] = (num % 10) + '0'; num /= 10; }
-			for (int i = l-1; i >= 0; i--) enforceOrder[enforceLen++] = arr[i];
-			enforceOrder[enforceLen++] = ' '; enforceOrder[enforceLen++] = '-';
-			enforceOrder[enforceLen++] = '>'; enforceOrder[enforceLen++] = ' ';
-			// add "nodeId -> " to enforceOrder
-		}
-
-		if (parent_seen) numChild++;
-
-        if (!parent_seen) { parentId = nodeId; parent_seen = 1; }
-		else fprintf(temp_out, "\t%lld -> %lld;\n", parentId, nodeId); // add edge from parent (parentId) to child (nodeId)
-
-        end = start = end + 2;
-    }
-
-	nodeStackPush(parentId);
-
-	// Assume that at least one child exists.
-	// So, enforceOrder = "... xyz -> "
-	// So, you can go back 3-4 indices successfully.
-	if (numChild > 1) {
-		enforceOrder[enforceLen - 4] = '\0';
-		fprintf(temp_out, "\t{\n");
-		fprintf(temp_out, "\t\trank = same;\n");
-		fprintf(temp_out, "\t\t%s [style = \"invis\"];\n", enforceOrder);
-		fprintf(temp_out, "\t\trankdir = RL;\n"); // right to left (adjusted experimentally)
-		fprintf(temp_out, "\t}\n");
-	}
-}
-
-void* makeLeaf(int tok_type, char* label, char* attr) { // label is lexeme. attr may be NULL.
-	node_t *leaf = (node_t*) malloc(sizeof(node_t));
-	leaf->id = newNode(); leaf->tok_type = tok_type;
-	// not copying, since label == strdup(yytext), and has already been copied (via malloc) to heap.
-	leaf->label = label;
-	leaf->parent = NULL; leaf->child = NULL; leaf->numChild = 0;
+node_t* mkGenNode(int tok_type, char* label, char* attr) { // label is lexeme. attr may be NULL.
+	node_t *node = (node_t*) malloc(sizeof(node_t)); if (!node) return NULL;
+	
+	node->id = newNode(); node->tok_type = tok_type;
+	node->attr = attr; // no need to copy since not mutating (Heap | Read-Only)
+	node->parent = NULL;
+	node->edges = NULL;
+	node->numChild = 0;
 
 	// A STRING_LITERAL label will have "" included
-	if (tok_type == STRING_LITERAL) {
+	if (tok_type == STRING_LITERAL) { // assured that label lies in HEAP
 		int end = 0; while(label[end]) end++; label[end - 1] = '\0'; // latter "
 		label += 1; // former "
 	}
+	node->label = label; // no need to copy since not mutating (Heap | Read-Only)
 
-	fprintf(temp_out, "\t%lld [label=\"", leaf->id);
-	if (tok_type == STRING_LITERAL) fprintf(temp_out, "\\\"%s\\\"", label); else fprintf(temp_out, "%s", label);
-	if (attr) fprintf(temp_out, ",%s];\n", attr); else fprintf(temp_out, "\"];\n");
+	dotNode(node);
 
-	return (void*) leaf;
+	return node;
 }
 
-void* makeOpNode(char* label, char* attr, ...) { // attr may be NULL
-	node_t* opNode;
+node_t* mkNode(int tok_type, char* label) {
+	return mkGenNode(tok_type, label, NULL);
+}
 
-	if (label) { // create a new parent.
-		if ( !(opNode = (node_t*) malloc(sizeof(node_t))) ) return NULL; // unsuccessful operation
-		opNode->id = newNode(); opNode->parent = NULL; opNode->tok_type = -1;
-		opNode->label = label; // not copying, since label is read-only area of memory [ASSUMPTION]
-		opNode->numChild = 0; opNode->child = NULL; // DO NOT REMOVE (PROPER INITIALIZATION NECESSARY)
+node_t* (*nd)(int, char*) = mkNode; // short form
 
-		fprintf(temp_out, "\t%lld [label=\"%s\"%s", opNode->id, label, attr ? "," : "];\n");
-		if (attr) fprintf(temp_out, "%s];\n", attr);
+edge_t* mkGenEdge(node_t* node, char* label, char* attr) {
+	edge_t* e = (edge_t*) malloc(sizeof(edge_t));
+	if (!e) return NULL;
+	e->node = node; e->label = label; e->attr = attr;
+	return e;
+}
+
+edge_t* mkEdge(node_t* child) {
+	return mkGenEdge(child, NULL, NULL);
+}
+
+edge_t* (*ej)(node_t*) = mkEdge;
+
+node_t* mkOpNode(node_t *parent, int l, int r, ...) { // attr may be NULL
+	if (!parent) return NULL;
+	if (!(l || r)) return parent; // nothing to do
+	int curr = parent->numChild;
+	edge_t **tmp = (edge_t**) malloc((curr + l + r) * sizeof(edge_t*));
+	if (!tmp) return NULL; // is this bad? Should we print on STDOUT/STDERR? Or should we return (-1)?
+
+	char enforceOrder[300] = ""; int enforceLen = 0;
+
+	va_list args;
+	va_start(args, r);
+	for (int i = 0; i < l; i++) {
+		edge_t *e = (edge_t*) va_arg(args, edge_t*); tmp[i] = e;
+		if (e) e->node->parent = parent;
+
+		dotEdge(parent, e);
 		
-	} else {
-		// attr is an existing node. Make attr the parent of following newChildren.
-		// If attr has newChildren, append incoming newChildren (overwriting difficult,
-		// since already wrote contents to temp_out)
-		if ( !(opNode = (node_t*) attr) ) return NULL;
-	}
-
-    va_list args;
-    node_t* child;
-    // [ASSUMPTION] maximum new children = 10, and each is not more than 30 chars long.
-    char enforceOrder[300];
-    int enforceLen = 0; int numNewChild = 0;
-	node_t* newChildren[10];
-
-	va_start(args, attr);
-    child = (node_t*) va_arg(args, void*);
-    
-	while (child) {
-        newChildren[numNewChild++] = child;
-
-        fprintf(temp_out, "\t%lld -> %lld", opNode->id, child->id);
-		
-		char* edge_attr = va_arg(args, char*);
-		if (edge_attr && edge_attr[0]) fprintf(temp_out, " [%s]", edge_attr);
-		fprintf(temp_out, ";\n");
-        
-        char arr[30]; int l = 0; ull_t copy = child->id;
-        while (copy) { arr[l++] = (copy % 10) + '0'; copy /= 10; } // length found, arr[0 ... l-1] = reverse(child)
-        for (int i = l-1; i >= 0; i--) enforceOrder[enforceLen++] = arr[i];
+		char arr[30]; int len = 0; ull_t copy = e->node->id;
+        while (copy) { arr[len++] = (copy % 10) + '0'; copy /= 10; } // length found, arr[0 ... len-1] = reverse(child)
+        for (int j = len - 1; j >= 0; j--) enforceOrder[enforceLen++] = arr[j];
         enforceOrder[enforceLen++] = ' '; enforceOrder[enforceLen++] = '-';
         enforceOrder[enforceLen++] = '>'; enforceOrder[enforceLen++] = ' ';
-
-        child = (node_t*) va_arg(args, void*);
-    }
-
-	va_end(args);
-
-	if (numNewChild) {
-		node_t **tmp = (node_t**) realloc(opNode->child, (opNode->numChild + numNewChild) * sizeof(node_t*));
-		if (!tmp) return NULL; // operation failure
-		opNode->child = tmp;
-		for (int i = opNode->numChild; i < (opNode->numChild + numNewChild); i++) opNode->child[i] = newChildren[i];
-
-		if (opNode->numChild) fprintf(temp_out,
-			"\t{ rank = same; %lld -> %lld [style = \"invis\"]; rankdir = LR; }\n",
-			opNode->child[opNode->numChild]->id, opNode->child[opNode->numChild + 1]->id
-		); // enforce order between last old child and first new child
-
 	}
 
-    if (numNewChild > 1) { // at least two new children required for enforcing "order" between new children
-        // enforceOrder = "... xyz -> " : Now use NULL just after "xyz"
-        enforceOrder[enforceLen - 4] = '\0';
-        fprintf(temp_out, "\t{ rank = same; %s [style = \"invis\"]; rankdir = LR; }\n", enforceOrder);
-		// right to left (adjusted experimentally)
-    }
+	if (l > 1) { // enforce order among left new children
+		enforceOrder[enforceLen - 4] = '\0';
+		fprintf(temp_out, "\t{ rank = same; %s [style = \"invis\"]; rankdir = LR; }\n", enforceOrder);
+	}
 
-	opNode->numChild += numNewChild;
-    return (void*) opNode;
+	if (l && curr) fprintf(temp_out,
+		"\t{ rank = same; %lld -> %lld [style = \"invis\"]; rankdir = LR; }\n",
+		tmp[l-1]->node->id, parent->edges[0]->node->id
+	); // enforce order between rightmost left new child and leftmost current child
+	
+	for (int i = 0; i < curr; i++) tmp[l + i] = parent->edges[i]; // copy current edges
+
+	enforceOrder[0] = '\0'; enforceLen = 0;
+	for (int i = l + curr; i < curr + l + r; i++) {
+		edge_t *e = (edge_t*) va_arg(args, edge_t*); tmp[i] = e;
+		if (e) e->node->parent = parent;
+
+		dotEdge(parent, e);
+
+		char arr[30]; int len = 0; ull_t copy = e->node->id;
+        while (copy) { arr[len++] = (copy % 10) + '0'; copy /= 10; } // length found, arr[0 ... len-1] = reverse(child)
+        for (int j = len - 1; j >= 0; j--) enforceOrder[enforceLen++] = arr[j];
+        enforceOrder[enforceLen++] = ' '; enforceOrder[enforceLen++] = '-';
+        enforceOrder[enforceLen++] = '>'; enforceOrder[enforceLen++] = ' ';
+	}
+
+	if (r > 1) { // enforce order among right new children
+		enforceOrder[enforceLen - 4] = '\0';
+		fprintf(temp_out, "\t{ rank = same; %s [style = \"invis\"]; rankdir = LR; }\n", enforceOrder);
+	}
+
+	if (curr && r) fprintf(temp_out,
+		"\t{ rank = same; %lld -> %lld [style = \"invis\"]; rankdir = LR; }\n",
+		tmp[l+curr]->node->id, parent->edges[curr-1]->node->id
+	); // enforce order between leftmost right new child and rightmost current child
+	
+	va_end(args);
+	
+	free(parent->edges);
+	parent->edges = tmp;
+	parent->numChild += (l + r);
+
+	return parent;
 }
 
-// char* gfcc_strcat(char* a, ...) { // NULL OR 0 terminated
-//     if (!a) return a;
-
-//     int len_a = 0; while(a[len_a] != '\0') len_a++; // a[len_a] = '\0' now
-
-//     va_list args;
-//     va_start(args, a);
-//     char* b = va_arg(args, char*);
-//     while (b) {
-//         int len_b = 0; while(b[len_b] != '\0') a[len_a++] = b[len_b++];
-//         b = va_arg(args, char*);
-//     }
-//     va_end(args);
-//     a[len_a] = '\0';
-//     return a;
-// }
+node_t* (*op)(node_t*, int, int, ...) = mkOpNode;
