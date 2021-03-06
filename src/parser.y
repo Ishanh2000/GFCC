@@ -10,8 +10,8 @@
 %}
 
 %union {
-	void *node;	// pointer (if node, using void* to avoid warning - implicit type conversion supported for void*)
-	char *terminal;			// lexeme (if terminal)
+	void *node;		// pointer (if node) [use void* to avoid warning - implicit type conversion supported]
+	char *terminal;	// lexeme (if terminal)
 }
 
 /* Terminals: Don't change this order. */
@@ -224,11 +224,11 @@ init_declarator
 	;
 
 storage_class_specifier
-	: TYPEDEF
-	| EXTERN
-	| STATIC
-	| AUTO
-	| REGISTER
+	: TYPEDEF	{ $$ = nd(TYPEDEF, $1); }
+	| EXTERN	{ $$ = nd(EXTERN, $1); }
+	| STATIC	{ $$ = nd(STATIC, $1); }
+	| AUTO		{ $$ = nd(AUTO, $1); }
+	| REGISTER	{ $$ = nd(REGISTER, $1); }
 	;
 
 type_specifier
@@ -285,24 +285,24 @@ struct_declarator
 	;
 
 enum_specifier
-	: ENUM '{' enumerator_list '}'
-	| ENUM IDENTIFIER '{' enumerator_list '}'
-	| ENUM IDENTIFIER
+	: ENUM '{' enumerator_list '}' { $$ = op( nd(ENUM, $1), 0, 1, ej($3) ); }
+	| ENUM IDENTIFIER '{' enumerator_list '}' { $$ = op( nd(ENUM, $1), 0, 2, ej(nd(IDENTIFIER, $2)), ej($4) ); }
+	| ENUM IDENTIFIER { $$ = op( nd(ENUM, $1), 0, 1, ej(nd(IDENTIFIER, $2)) ); }
 	;
 
 enumerator_list
-	: enumerator
-	| enumerator_list ',' enumerator
+	: enumerator { $$ = op( nd(-1, "enum_list"), 0, 1, ej($1) ); }
+	| enumerator_list ',' enumerator { $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
 enumerator
-	: IDENTIFIER
-	| IDENTIFIER '=' constant_expression
+	: IDENTIFIER { $$ = nd(IDENTIFIER, $1); }
+	| IDENTIFIER '=' constant_expression { $$ = op( nd('=', $2), 0, 2, ej(nd(IDENTIFIER, $1)), $3 ); }
 	;
 
 type_qualifier
-	: CONST
-	| VOLATILE
+	: CONST		{ $$ = nd(CONST, $1); }
+	| VOLATILE	{ $$ = nd(VOLATILE, $1); }
 	;
 
 declarator
@@ -331,7 +331,6 @@ type_qualifier_list
 	: type_qualifier
 	| type_qualifier_list type_qualifier
 	;
-
 
 parameter_type_list
 	: parameter_list
@@ -389,12 +388,12 @@ initializer_list
 	;
 
 statement
-	: labeled_statement
-	| compound_statement
-	| expression_statement
-	| selection_statement
-	| iteration_statement
-	| jump_statement
+	: labeled_statement		{ $$ = $1; }
+	| compound_statement	{ $$ = $1; }
+	| expression_statement	{ $$ = $1; }
+	| selection_statement	{ $$ = $1; }
+	| iteration_statement	{ $$ = $1; }
+	| jump_statement		{ $$ = $1; }
 	;
 
 labeled_statement
@@ -404,9 +403,9 @@ labeled_statement
 	;
 
 compound_statement
-	: '{' '}'
-	| '{' statement_list '}'
-	| '{' declaration_list '}'
+	: '{' '}'											{ $$ = nd(-1, "{}"); }
+	| '{' statement_list '}'							{ $$ = $2; }
+	| '{' declaration_list '}'							{ $$ = $2; }
 	| '{' declaration_list statement_list '}'
 	;
 
@@ -416,44 +415,48 @@ declaration_list
 	;
 
 statement_list
-	: statement
-	| statement_list statement
+	: statement { $$ = op( nd(-1, "stmt-list"), 0, 1, ej($1) ); }
+	| statement_list statement { $$ = op( $1, 0, 1, ej($2) ); }
 	;
 
 expression_statement
-	: ';'
-	| expression ';'
+	: ';' { $$ = mkGenNode(';', $1, "style=filled,fillcolor=gray"); }
+	| expression ';' { $$ = $1; }
 	;
 
 selection_statement
-	: IF '(' expression ')' statement
-	| IF '(' expression ')' statement ELSE statement
-	| SWITCH '(' expression ')' statement
+	: IF '(' expression ')' statement { $$ = op( nd(-1, "if-stmt"), 0, 2, mkGenEdge($3, "cond", NULL), mkGenEdge($5, "stmts", NULL) ); }
+	| IF '(' expression ')' statement ELSE statement { $$ = op( nd(-1, "if-else-stmt"), 0, 3,
+		mkGenEdge($3, "cond", NULL), mkGenEdge($5, "stmts (if TRUE)", NULL), mkGenEdge($7, "stmts (if FALSE)", NULL) ); }
+	| SWITCH '(' expression ')' statement { $$ = op( nd(SWITCH, $1), 0, 2,
+		mkGenEdge($3, "expr", NULL), mkGenEdge($5, "stmts", NULL) ); }
 	;
 
 iteration_statement
-	: WHILE '(' expression ')' statement
+	: WHILE '(' expression ')' statement { $$ = op( nd(WHILE, $1), 0, 2,
+		mkGenEdge($3, "expr", NULL), mkGenEdge($5, "stmts", NULL) ); }
 	| DO statement WHILE '(' expression ')' ';'
-	| FOR '(' expression_statement expression_statement ')' statement
-	| FOR '(' expression_statement expression_statement expression ')' statement
+	| FOR '(' expression_statement expression_statement ')' statement { $$ = op( nd(FOR, $1), 0, 3, ej($3), ej($4), ej($6) ); }
+	| FOR '(' expression_statement expression_statement expression ')' statement  { $$ = op( nd(FOR, $1), 0, 4,
+		ej($3), ej($4), ej($5), ej($7) ); }
 	;
 
 jump_statement
-	: GOTO IDENTIFIER ';'
-	| CONTINUE ';'
-	| BREAK ';'
-	| RETURN ';'
-	| RETURN expression ';'
+	: GOTO IDENTIFIER ';' { $$ = op( nd(GOTO, $1), 0, 1, ej(nd(IDENTIFIER, $2)) ); }
+	| CONTINUE ';' { $$ = nd(CONTINUE, $1); }
+	| BREAK ';' { $$ = nd(BREAK, $1); }
+	| RETURN ';' { $$ = nd(RETURN, $1); }
+	| RETURN expression ';' { $$ = op( nd(RETURN, $1), 0, 1, ej($2) ); }
 	;
 
 translation_unit
-	: external_declaration
-	| translation_unit external_declaration
+	: external_declaration { $$ = op( nd(-1, fileName), 0, 1, ej($1) ); }
+	| translation_unit external_declaration { $$ = op( $1, 0, 1, ej($2) ); }
 	;
 
 external_declaration
-	: function_definition
-	| declaration
+	: function_definition { $$ = $1; }
+	| declaration { $$ = $1; }
 	;
 
 function_definition

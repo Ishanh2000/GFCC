@@ -50,6 +50,8 @@ int column, token_column, token_line, tab_len, colorize, bad_char_seen;
 
 FILE *yyin, *yyout, *temp_out;
 
+char* fileName;
+
 char* yytext;
 
 ull_t currNumNodes;

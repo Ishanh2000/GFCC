@@ -119,6 +119,9 @@ int main (int argc , char *argv[]) {
 				file_failures++;
 				continue;
 			}
+			
+			free(fileName);
+			fileName = strdup(argv[start + i]);
 		}
 
 		fprintf(temp_out, "digraph {\n");

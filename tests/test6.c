@@ -21,4 +21,28 @@ short int main() {
     a ? "k" : 90;
     a *= "90"; a /= "90"; a %= "90"; a += "90"; a -= "90";
     a <<= "90"; a >>= "90"; a &= "90"; a |= "90"; a ^= "90";
+    a = 90;
+    a, v, b,c = 0-9;
+    typedef; auto; static; register; extern;
+    enum {a, b, c}; enum _m_ {a, b, c}; enum _n_;
+    goto label;
+  label:
+    while (1) { continue; break; }
+    return; return a*8;
+
+    if (x) {tt;}
+    if (x) {tt;} else {y;}
+    switch(x) {pp;}
+    ;
+    for (i = 0; i < 89; i++) {
+        "Hello";
+        "WORLD";
+        89;
+    }
+    for (i = 0; i < 89; ) main();
+    while (NULL) {
+        continue;
+        break;
+    }
+
 }

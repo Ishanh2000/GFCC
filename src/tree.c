@@ -25,7 +25,7 @@ void dotNode(node_t* node) {
 	fprintf(temp_out, "\t%lld [label=\"", node->id);
 	if (node->tok_type == STRING_LITERAL) fprintf(temp_out, "\\\"%s\\\"", node->label);
 	else fprintf(temp_out, "%s", node->label);
-	if (node->attr) fprintf(temp_out, ",%s];\n", node->attr);
+	if (node->attr) fprintf(temp_out, "\",%s];\n", node->attr);
 	else fprintf(temp_out, "\"];\n");
 }
 
@@ -107,6 +107,7 @@ node_t* mkOpNode(node_t *parent, int l, int r, ...) { // attr may be NULL
 
 	va_list args;
 	va_start(args, r);
+	printf("mkOpNode: l = %d, r = %d\n", l, r);
 	for (int i = 0; i < l; i++) {
 		edge_t *e = (edge_t*) va_arg(args, edge_t*); tmp[i] = e;
 		if (e) e->node->parent = parent;
@@ -153,7 +154,7 @@ node_t* mkOpNode(node_t *parent, int l, int r, ...) { // attr may be NULL
 
 	if (curr && r) fprintf(temp_out,
 		"\t{ rank = same; %lld -> %lld [style = \"invis\"]; rankdir = LR; }\n",
-		tmp[l+curr]->node->id, parent->edges[curr-1]->node->id
+		parent->edges[curr-1]->node->id, tmp[l+curr]->node->id
 	); // enforce order between leftmost right new child and rightmost current child
 	
 	va_end(args);
