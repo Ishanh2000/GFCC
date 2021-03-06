@@ -30,7 +30,7 @@ typedef struct _token_t {
 
 typedef struct _node_t {
 	ull_t id;
-	int tok_type; // [ IDENTIFIER | CONSTANT | STRING_LITERAL ] (else -1)
+	int tok_type; // [ IDENTIFIER | CONSTANT | STRING_LITERAL | some other ] (else -1, usually for internal nodes)
 	char* label; // keep this NULL terminated (as usual)
 	struct _node_t *parent;
 	struct _node_t **child;

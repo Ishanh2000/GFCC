@@ -44,6 +44,14 @@ function rebuild {
     build
 }
 
+function dpdf {
+    dot -Tpdf tests/$1.dot -o tests/$1.pdf && xdg-open tests/$1.pdf
+}
+
+function dps {
+    dot -Tps tests/$1.dot -o tests/$1.ps && xdg-open tests/$1.ps
+}
+
 #  main
 
 # *please run in root directory only
@@ -58,7 +66,12 @@ case $cmd in
         $cmd
         ;;
 
+
+    pdf | ps)
+        d$1 $2
+        ;;
+
     *)
-        echo "Usage: $0 [build|clean|rebuild]"
+        echo "Usage: $0 [build|clean|rebuild|ps <test#>|pdf <test#>]"
         ;;
 esac

@@ -46,9 +46,9 @@
 
 // Provide types to fixed literals (to avoid warnings)
 %type <node> '(' ')' '[' ']' '{' '}'
-%type <node> '+' '-' '=' '*'
-%type <node> '&' '~' '!'
-%type <node> ',' ';' ':'
+%type <node> '+' '-' '=' '*' '/' '%'
+%type <node> '&' '~' '!' '>' '<' '|' '^'
+%type <node> ',' ';' ':' '.'
 
 
 // Start symbol
@@ -68,19 +68,19 @@ postfix_expression
 	| postfix_expression '[' expression ']' { $$ = makeOpNode("[]", NULL, $1, NULL, $3, NULL, 0); }
 	| postfix_expression '(' ')'
 	| postfix_expression '(' argument_expression_list ')'
-	| postfix_expression '.' IDENTIFIER { $$ = makeOpNode(".", NULL, $1, NULL, makeLeaf(IDENTIFIER, $3, NULL), NULL, 0); }
-	| postfix_expression PTR_OP IDENTIFIER { $$ = makeOpNode("->", NULL, $1, NULL, makeLeaf(IDENTIFIER, $3, NULL), NULL, 0); }
-	| postfix_expression INC_OP	{ $$ = makeOpNode("++", NULL, $1, NULL, 0); }
-	| postfix_expression DEC_OP { $$ = makeOpNode("++", NULL, $1, NULL, 0); }
+	| postfix_expression '.' IDENTIFIER { $$ = makeOpNode($2, NULL, $1, NULL, makeLeaf(IDENTIFIER, $3, NULL), NULL, 0); }
+	| postfix_expression PTR_OP IDENTIFIER { $$ = makeOpNode($2, NULL, $1, NULL, makeLeaf(IDENTIFIER, $3, NULL), NULL, 0); }
+	| postfix_expression INC_OP	{ $$ = makeOpNode($2, NULL, $1, NULL, 0); }
+	| postfix_expression DEC_OP { $$ = makeOpNode($2, NULL, $1, NULL, 0); }
 	;
 
 argument_expression_list
-	: assignment_expression
+	: assignment_expression { $$ = $1; }
 	| argument_expression_list ',' assignment_expression
 	;
 
 unary_expression
-	: postfix_expression
+	: postfix_expression { $$ = $1; }
 	| INC_OP unary_expression { $$ = makeOpNode($1, NULL, $2, NULL, 0); }
 	| DEC_OP unary_expression { $$ = makeOpNode($1, NULL, $2, NULL, 0); }
 	| unary_operator cast_expression { $$ = makeOpNode(NULL, (char*)$1, $2, NULL, 0); }
@@ -104,9 +104,9 @@ cast_expression
 
 multiplicative_expression
 	: cast_expression
-	| multiplicative_expression '*' cast_expression { $$ = makeOpNode("*", NULL, $1, NULL, $3, NULL, 0); }
-	| multiplicative_expression '/' cast_expression { $$ = makeOpNode("/", NULL, $1, NULL, $3, NULL, 0); }
-	| multiplicative_expression '%' cast_expression { $$ = makeOpNode("%", NULL, $1, NULL, $3, NULL, 0); }
+	| multiplicative_expression '*' cast_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
+	| multiplicative_expression '/' cast_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
+	| multiplicative_expression '%' cast_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
 	;
 
 additive_expression
@@ -116,81 +116,86 @@ additive_expression
 	;
 
 shift_expression
-	: additive_expression
-	| shift_expression LEFT_OP additive_expression
-	| shift_expression RIGHT_OP additive_expression
+	: additive_expression { $$ = $1; }
+	| shift_expression LEFT_OP additive_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
+	| shift_expression RIGHT_OP additive_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
 	;
 
 relational_expression
-	: shift_expression
-	| relational_expression '<' shift_expression
-	| relational_expression '>' shift_expression
-	| relational_expression LE_OP shift_expression
-	| relational_expression GE_OP shift_expression
+	: shift_expression { $$ = $1; }
+	| relational_expression '<' shift_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
+	| relational_expression '>' shift_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
+	| relational_expression LE_OP shift_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
+	| relational_expression GE_OP shift_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
 	;
 
 equality_expression
-	: relational_expression
-	| equality_expression EQ_OP relational_expression
-	| equality_expression NE_OP relational_expression
+	: relational_expression { $$ = $1; }
+	| equality_expression EQ_OP relational_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
+	| equality_expression NE_OP relational_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
 	;
 
 and_expression
-	: equality_expression
-	| and_expression '&' equality_expression
+	: equality_expression { $$ = $1; }
+	| and_expression '&' equality_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
 	;
 
 exclusive_or_expression
-	: and_expression
-	| exclusive_or_expression '^' and_expression
+	: and_expression { $$ = $1; }
+	| exclusive_or_expression '^' and_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
 	;
 
 inclusive_or_expression
-	: exclusive_or_expression
-	| inclusive_or_expression '|' exclusive_or_expression
+	: exclusive_or_expression { $$ = $1; }
+	| inclusive_or_expression '|' exclusive_or_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
 	;
 
 logical_and_expression
-	: inclusive_or_expression
-	| logical_and_expression AND_OP inclusive_or_expression
+	: inclusive_or_expression { $$ = $1; }
+	| logical_and_expression AND_OP inclusive_or_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
 	;
 
 logical_or_expression
-	: logical_and_expression
-	| logical_or_expression OR_OP logical_and_expression
+	: logical_and_expression { $$ = $1; }
+	| logical_or_expression OR_OP logical_and_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
 	;
 
 conditional_expression
-	: logical_or_expression
-	| logical_or_expression '?' expression ':' conditional_expression
+	: logical_or_expression { $$ = $1; }
+	| logical_or_expression '?' expression ':' conditional_expression { $$ = makeOpNode(
+		"ternary expr (? :)", NULL,
+		$1, "label=\"condition\"",
+		$3, "label=\"expr (if TRUE)\"",
+		$5, "label=\"expr (if FALSE)\"",
+	0); }
 	;
 
 assignment_expression
-	: conditional_expression
-	| unary_expression assignment_operator assignment_expression
+	: conditional_expression { $$ = $1; }
+	| unary_expression assignment_operator assignment_expression { $$ = makeOpNode(NULL, (char*)$2, $1, NULL, $3, NULL, 0); }
 	;
 
 assignment_operator
-	: '='
-	| MUL_ASSIGN
-	| DIV_ASSIGN
-	| MOD_ASSIGN
-	| ADD_ASSIGN
-	| SUB_ASSIGN
-	| LEFT_ASSIGN
-	| RIGHT_ASSIGN
-	| AND_ASSIGN
-	| XOR_ASSIGN
-	| OR_ASSIGN
+	: '=' { $$ = makeLeaf('=', $1, NULL); }
+	| MUL_ASSIGN { $$ = makeLeaf(MUL_ASSIGN, $1, NULL); }
+	| DIV_ASSIGN { $$ = makeLeaf(DIV_ASSIGN, $1, NULL); }
+	| MOD_ASSIGN { $$ = makeLeaf(MOD_ASSIGN, $1, NULL); }
+	| ADD_ASSIGN { $$ = makeLeaf(ADD_ASSIGN, $1, NULL); }
+	| SUB_ASSIGN { $$ = makeLeaf(SUB_ASSIGN, $1, NULL); }
+	| LEFT_ASSIGN { $$ = makeLeaf(LEFT_ASSIGN, $1, NULL); }
+	| RIGHT_ASSIGN { $$ = makeLeaf(RIGHT_ASSIGN, $1, NULL); }
+	| AND_ASSIGN { $$ = makeLeaf(AND_ASSIGN, $1, NULL); }
+	| XOR_ASSIGN { $$ = makeLeaf(XOR_ASSIGN, $1, NULL); }
+	| OR_ASSIGN { $$ = makeLeaf(OR_ASSIGN, $1, NULL); }
 	;
 
 expression
-	: assignment_expression
-	| expression ',' assignment_expression
+	: assignment_expression { $$ = $1; }
+	| expression ',' assignment_expression { $$ = makeOpNode($2, NULL, $1, NULL, $3, NULL, 0); }
 	;
 
 constant_expression
-	: conditional_expression
+	: conditional_expression { $$ = $1; }
 	;
 
 declaration
