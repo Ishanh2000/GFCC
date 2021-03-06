@@ -42,5 +42,6 @@ generated/
 *.swp
 
 # Dot / PostScript Files (for "parser" stage)
-.dot
-.ps
+*.dot
+*.ps
+*.pdf
