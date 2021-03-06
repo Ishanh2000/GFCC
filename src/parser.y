@@ -81,20 +81,20 @@ argument_expression_list
 
 unary_expression
 	: postfix_expression
-	| INC_OP unary_expression { $$ = makeOpNode("++", NULL, $2, NULL, 0); }
-	| DEC_OP unary_expression { $$ = makeOpNode("--", NULL, $2, NULL, 0); }
-	| unary_operator cast_expression
-	| SIZEOF unary_expression
-	| SIZEOF '(' type_name ')'
+	| INC_OP unary_expression { $$ = makeOpNode($1, NULL, $2, NULL, 0); }
+	| DEC_OP unary_expression { $$ = makeOpNode($1, NULL, $2, NULL, 0); }
+	| unary_operator cast_expression { $$ = makeOpNode(NULL, (char*)$1, $2, NULL, 0); }
+	| SIZEOF unary_expression { $$ = makeOpNode($1, NULL, $2, NULL, 0); }
+	| SIZEOF '(' type_name ')' { $$ = makeOpNode($1, NULL, $3, NULL, 0); }
 	;
 
 unary_operator
-	: '&'
-	| '*'
-	| '+'
-	| '-'
-	| '~'
-	| '!'
+	: '&' { $$ = makeLeaf('&', $1, NULL); }
+	| '*' { $$ = makeLeaf('*', $1, NULL); }
+	| '+' { $$ = makeLeaf('+', $1, NULL); }
+	| '-' { $$ = makeLeaf('-', $1, NULL); }
+	| '~' { $$ = makeLeaf('~', $1, NULL); }
+	| '!' { $$ = makeLeaf('!', $1, NULL); }
 	;
 
 cast_expression
@@ -112,7 +112,7 @@ multiplicative_expression
 additive_expression
 	: multiplicative_expression
 	| additive_expression '+' multiplicative_expression { $$ = makeOpNode("+", NULL, $1, NULL, $3, NULL, 0); }
-	| additive_expression '-' multiplicative_expression{ $$ = makeOpNode("-", NULL, $1, NULL, $3, NULL, 0); }
+	| additive_expression '-' multiplicative_expression { $$ = makeOpNode("-", NULL, $1, NULL, $3, NULL, 0); }
 	;
 
 shift_expression

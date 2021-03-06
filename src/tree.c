@@ -123,7 +123,7 @@ void* makeLeaf(int tok_type, char* label, char* attr) { // label is lexeme. attr
 	leaf->id = newNode(); leaf->tok_type = tok_type;
 	// not copying, since label == strdup(yytext), and has already been copied (via malloc) to heap.
 	leaf->label = label;
-	leaf->parent = NULL; leaf->child = NULL;
+	leaf->parent = NULL; leaf->child = NULL; leaf->numChild = 0;
 
 	// A STRING_LITERAL label will have "" included
 	if (tok_type == STRING_LITERAL) {
@@ -139,26 +139,36 @@ void* makeLeaf(int tok_type, char* label, char* attr) { // label is lexeme. attr
 }
 
 void* makeOpNode(char* label, char* attr, ...) { // attr may be NULL
-	node_t *opNode = (node_t*) malloc(sizeof(node_t));
-    opNode->id = newNode(); opNode->parent = NULL; opNode->tok_type = -1;
-	// not copying, since label is read-only area of memory [ASSUMPTION]
-	opNode->label = label;
+	node_t* opNode;
 
-    fprintf(temp_out, "\t%lld [label=\"%s\"%s", opNode->id, label, attr ? "," : "];\n");
-    if (attr) fprintf(temp_out, "%s];\n", attr);
+	if (label) { // create a new parent.
+		if ( !(opNode = (node_t*) malloc(sizeof(node_t))) ) return NULL; // unsuccessful operation
+		opNode->id = newNode(); opNode->parent = NULL; opNode->tok_type = -1;
+		opNode->label = label; // not copying, since label is read-only area of memory [ASSUMPTION]
+		opNode->numChild = 0; opNode->child = NULL; // DO NOT REMOVE (PROPER INITIALIZATION NECESSARY)
+
+		fprintf(temp_out, "\t%lld [label=\"%s\"%s", opNode->id, label, attr ? "," : "];\n");
+		if (attr) fprintf(temp_out, "%s];\n", attr);
+		
+	} else {
+		// attr is an existing node. Make attr the parent of following newChildren.
+		// If attr has newChildren, append incoming newChildren (overwriting difficult,
+		// since already wrote contents to temp_out)
+		if ( !(opNode = (node_t*) attr) ) return NULL;
+	}
 
     va_list args;
     node_t* child;
-    // [ASSUMPTION] maximum children = 10, and each is not more than 30 chars long.
+    // [ASSUMPTION] maximum new children = 10, and each is not more than 30 chars long.
     char enforceOrder[300];
-    int enforceLen = 0; int numChild = 0;
-	node_t* children[10];
+    int enforceLen = 0; int numNewChild = 0;
+	node_t* newChildren[10];
 
 	va_start(args, attr);
     child = (node_t*) va_arg(args, void*);
     
 	while (child) {
-        children[numChild++] = child;
+        newChildren[numNewChild++] = child;
 
         fprintf(temp_out, "\t%lld -> %lld", opNode->id, child->id);
 		
@@ -167,7 +177,7 @@ void* makeOpNode(char* label, char* attr, ...) { // attr may be NULL
 		fprintf(temp_out, ";\n");
         
         char arr[30]; int l = 0; ull_t copy = child->id;
-        while (copy) { arr[l++] = (copy % 10) + '0'; copy /= 10; } // length found, arr[0 ... l-1] = rev(child)
+        while (copy) { arr[l++] = (copy % 10) + '0'; copy /= 10; } // length found, arr[0 ... l-1] = reverse(child)
         for (int i = l-1; i >= 0; i--) enforceOrder[enforceLen++] = arr[i];
         enforceOrder[enforceLen++] = ' '; enforceOrder[enforceLen++] = '-';
         enforceOrder[enforceLen++] = '>'; enforceOrder[enforceLen++] = ' ';
@@ -177,21 +187,27 @@ void* makeOpNode(char* label, char* attr, ...) { // attr may be NULL
 
 	va_end(args);
 
-	if (numChild) {
-		opNode->child = malloc(numChild * sizeof(node_t*));
-		for (int i = 0; i < numChild; i++) opNode->child[i] = children[i];
-	} else opNode->child = NULL;
+	if (numNewChild) {
+		node_t **tmp = (node_t**) realloc(opNode->child, (opNode->numChild + numNewChild) * sizeof(node_t*));
+		if (!tmp) return NULL; // operation failure
+		opNode->child = tmp;
+		for (int i = opNode->numChild; i < (opNode->numChild + numNewChild); i++) opNode->child[i] = newChildren[i];
 
-    if (numChild > 1) { // at least two children required for enforcing "order".
+		if (opNode->numChild) fprintf(temp_out,
+			"\t{ rank = same; %lld -> %lld [style = \"invis\"]; rankdir = LR; }\n",
+			opNode->child[opNode->numChild]->id, opNode->child[opNode->numChild + 1]->id
+		); // enforce order between last old child and first new child
+
+	}
+
+    if (numNewChild > 1) { // at least two new children required for enforcing "order" between new children
         // enforceOrder = "... xyz -> " : Now use NULL just after "xyz"
         enforceOrder[enforceLen - 4] = '\0';
-        fprintf(temp_out, "\t{\n");
-		fprintf(temp_out, "\t\trank = same;\n");
-		fprintf(temp_out, "\t\t%s [style = \"invis\"];\n", enforceOrder);
-		fprintf(temp_out, "\t\trankdir = LR;\n"); // right to left (adjusted experimentally)
-		fprintf(temp_out, "\t}\n");
+        fprintf(temp_out, "\t{ rank = same; %s [style = \"invis\"]; rankdir = LR; }\n", enforceOrder);
+		// right to left (adjusted experimentally)
     }
 
+	opNode->numChild += numNewChild;
     return (void*) opNode;
 }
 

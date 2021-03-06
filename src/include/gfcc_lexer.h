@@ -34,6 +34,7 @@ typedef struct _node_t {
 	char* label; // keep this NULL terminated (as usual)
 	struct _node_t *parent;
 	struct _node_t **child;
+	int numChild;
 } node_t;
 
 extern char* TOKEN_NAME_ARRAY[]; // make this const
