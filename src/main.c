@@ -15,8 +15,6 @@ FILE* temp_out = NULL; // if this is NULL, use stdout
 int tab_len = TAB_LEN;
 int bad_char_seen = 0; // to notify parser
 ull_t currNumNodes = 0; // invariant: currNumNodes > 0 for all existing nodes.
-ull_t nodeStack[MAX_PARSE_TREE_HEIGHT];
-ull_t nodeStackSize = 0;
 
 
 int main (int argc , char *argv[]) {

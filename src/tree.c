@@ -9,7 +9,7 @@
 
 int yyerror(char *s) {
 	fflush(stdout);
-	printf("\n%*s\n%*s\n", column, "^", column, s);
+	printf("\n%*s\n%d:%d:: %*s\n", column, "^", token_line, token_column, column, s);
 }
 
 void dotStmt(const char* format, ...) { // just a wrapper function
@@ -57,6 +57,7 @@ ull_t newNode() {
 */
 
 node_t* mkGenNode(int tok_type, char* label, char* attr) { // label is lexeme. attr may be NULL.
+	printf("Here: %s\n", label);
 	node_t *node = (node_t*) malloc(sizeof(node_t)); if (!node) return NULL;
 	
 	node->id = newNode(); node->tok_type = tok_type;
@@ -107,7 +108,7 @@ node_t* mkOpNode(node_t *parent, int l, int r, ...) { // attr may be NULL
 
 	va_list args;
 	va_start(args, r);
-	printf("mkOpNode: l = %d, r = %d\n", l, r);
+	// printf("mkOpNode: l = %d, r = %d\n", l, r);
 	for (int i = 0; i < l; i++) {
 		edge_t *e = (edge_t*) va_arg(args, edge_t*); tmp[i] = e;
 		if (e) e->node->parent = parent;
@@ -123,11 +124,11 @@ node_t* mkOpNode(node_t *parent, int l, int r, ...) { // attr may be NULL
 
 	if (l > 1) { // enforce order among left new children
 		enforceOrder[enforceLen - 4] = '\0';
-		fprintf(temp_out, "\t{ rank = same; %s [style = \"invis\"]; rankdir = LR; }\n", enforceOrder);
+		fprintf(temp_out, "\t{ rank = same; %s [style = \"invis\"]; rankdir = LR; }\n", enforceOrder); // rank = same;
 	}
 
 	if (l && curr) fprintf(temp_out,
-		"\t{ rank = same; %lld -> %lld [style = \"invis\"]; rankdir = LR; }\n",
+		"\t{ rank = same; %lld -> %lld [style = \"invis\"]; rankdir = LR; }\n", // rank = same;
 		tmp[l-1]->node->id, parent->edges[0]->node->id
 	); // enforce order between rightmost left new child and leftmost current child
 	
@@ -149,11 +150,11 @@ node_t* mkOpNode(node_t *parent, int l, int r, ...) { // attr may be NULL
 
 	if (r > 1) { // enforce order among right new children
 		enforceOrder[enforceLen - 4] = '\0';
-		fprintf(temp_out, "\t{ rank = same; %s [style = \"invis\"]; rankdir = LR; }\n", enforceOrder);
+		fprintf(temp_out, "\t{ rank = same; %s [style = \"invis\"]; rankdir = LR; }\n", enforceOrder); // rank = same;
 	}
 
 	if (curr && r) fprintf(temp_out,
-		"\t{ rank = same; %lld -> %lld [style = \"invis\"]; rankdir = LR; }\n",
+		"\t{ rank = same; %lld -> %lld [style = \"invis\"]; rankdir = LR; }\n", // rank = same;
 		parent->edges[curr-1]->node->id, tmp[l+curr]->node->id
 	); // enforce order between leftmost right new child and rightmost current child
 	
@@ -167,3 +168,14 @@ node_t* mkOpNode(node_t *parent, int l, int r, ...) { // attr may be NULL
 }
 
 node_t* (*op)(node_t*, int, int, ...) = mkOpNode;
+
+char *cat(char *s1, char *s2) { // ROUGHLY MADE FOR NOW - REVISE LATER
+	// [ASSUMPTION] (lift later): s1 != NULL != s2
+	int l1 = strlen(s1), l2 = strlen(s2);
+	char *new = (char *) malloc((l1 + l2 + 1) * sizeof(char));
+	for (int i = 0; i < l1; i++) new[i] = s1[i];
+	for (int i = 0; i < l2; i++) new[l1 + i] = s2[i];
+	new[l1 + l2] = '\0';
+	// free(s1); // [ASSUMPTION] assume heap area
+	return new;
+}

@@ -87,14 +87,14 @@ L?\"(\\.|[^\\"])*\"			{ yylval.terminal = strdup(yytext); count(); return (STRIN
 "=="			{ yylval.terminal = "=="; count(); return (EQ_OP); }
 "!="			{ yylval.terminal = "!="; count(); return (NE_OP); }
 ";"				{ yylval.terminal = ";"; count(); return (';'); }
-("{"|"<%")		{ yylval.terminal = NULL; count(); return ('{'); }
+("{"|"<%")		{ yylval.terminal = "{}"; count(); return ('{'); }
 ("}"|"%>")		{ yylval.terminal = NULL; count(); return ('}'); }
 ","				{ yylval.terminal = ","; count(); return (','); }
 ":"				{ yylval.terminal = ":"; count(); return (':'); }
 "="				{ yylval.terminal = "="; count(); return ('='); }
 "("				{ yylval.terminal = "("; count(); return ('('); }
 ")"				{ yylval.terminal = ")"; count(); return (')'); }
-("["|"<:")		{ yylval.terminal = NULL; count(); return ('['); }
+("["|"<:")		{ yylval.terminal = "[]"; count(); return ('['); }
 ("]"|":>")		{ yylval.terminal = NULL; count(); return (']'); }
 "."				{ yylval.terminal = "."; count(); return ('.'); }
 "&"				{ yylval.terminal = "&"; count(); return ('&'); }

@@ -17,7 +17,34 @@
 #define E_NO_FILES			(-5)
 #define E_TAB_LEN			(-6)
 
-#define MAX_PARSE_TREE_HEIGHT 10000
+#define UNINIT				(-10)
+#define INIT				(-11)
+#define FUNC_CALL			(-12) // () is function call
+#define SUBSCRIPT			(-13) // [] is subscript operator
+#define DEREF				(-14) //  * is dereference operator
+#define ARG_EXPR_LIST		(-15) // comma separated expression-arguments passed to a function call
+#define ENUM_LIST			(-16) // comma separated enum-values
+#define TYPE_QUAL_LIST		(-17) // whitespace separated type qualifiers (strings of [const,volatile])
+#define PARAM_TYPE_LIST		(-18) // comma separated parameter type list (for declaring function pointers)
+#define ID_LIST				(-19) // comma separated identifier list (for declaring function pointers)
+#define EMPTY_BLOCK			(-20) // { }
+#define GEN_BLOCK			(-21) // general block (first declarations, then statements)
+#define DECL_LIST			(-22) // comma separated declaration list (context??)
+#define STMT_LIST			(-23) // whitespace separated statement list
+#define IF_STMT				(-24) // if statement
+#define IF_ELSE_STMT		(-25) // if-else statement
+#define TR_UNIT				(-26) // whole translation unit (full file)
+#define CAST_EXPR			(-27) // cast expression
+#define DECL_SPEC_LIST		(-28) // whitespace separated declaration specifiers (not meaningful for execution/AST)
+#define INIT_DECL_LIST		(-29) // comma separated list of identifiers (that are being declared, maybe initialized)
+#define DECLARATION			(-30) // declaration (specifiers, then list of variables)
+#define SPEC_QUAL_LIST		(-31) // whitespace separated list of specifier qualifiers
+#define STRUCT_DECLN_LIST	(-32) // whitespace separated list of struct declarations
+#define STRUCT_DECL			(-33) // struct declaration (qualifier list and declarator list)
+#define STRUCT_DECL_LIST	(-34) // whitespace separated list of struct declarations
+
+#define FUNC_PTR			(-35) // function pointer
+#define DECLARATOR			(-36) // declarator (general variable, a, b[], c[90], *x, (*func)(), etc.)
 
 typedef unsigned long long ull_t;
 
@@ -118,6 +145,8 @@ node_t* mkOpNode(node_t*, int, int, ...);
 extern node_t* (*op)(node_t*, int, int, ...); // short form
 
 // void ASTToDot(FILE*, node_t*); // temp_out, root
+
+char* cat(char*, char*);
 
 #endif
 
