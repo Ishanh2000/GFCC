@@ -29,14 +29,14 @@
 #define ID_LIST				(-19) // comma separated identifier list (for declaring function pointers)
 #define EMPTY_BLOCK			(-20) // { }
 #define GEN_BLOCK			(-21) // general block (first declarations, then statements)
-#define DECL_LIST			(-22) // comma separated declaration list (context??)
+#define DECL_LIST			(-22) // comma separated declaration list (multiple declaration statements, only specified at a block's beginning)
 #define STMT_LIST			(-23) // whitespace separated statement list
 #define IF_STMT				(-24) // if statement
 #define IF_ELSE_STMT		(-25) // if-else statement
 #define TR_UNIT				(-26) // whole translation unit (full file)
 #define CAST_EXPR			(-27) // cast expression
 #define DECL_SPEC_LIST		(-28) // whitespace separated declaration specifiers (not meaningful for execution/AST)
-#define INIT_DECL_LIST		(-29) // comma separated list of identifiers (that are being declared, maybe initialized)
+#define INIT_DECL_LIST		(-29) // comma separated list of variables (that are being declared, maybe initialized)
 #define DECLARATION			(-30) // declaration (specifiers, then list of variables)
 #define SPEC_QUAL_LIST		(-31) // whitespace separated list of specifier qualifiers
 #define STRUCT_DECLN_LIST	(-32) // whitespace separated list of struct declarations
@@ -45,6 +45,8 @@
 
 #define FUNC_PTR			(-35) // function pointer
 #define DECLARATOR			(-36) // declarator (general variable, a, b[], c[90], *x, (*func)(), etc.)
+#define INIT_LIST			(-37) // Array initializer list
+#define DO_WHILE			(-38) // Do while iteration statement
 
 typedef unsigned long long ull_t;
 

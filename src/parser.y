@@ -211,28 +211,33 @@ constant_expression
 /************************************** DECLARATIONS BEGIN **************************************/
 /************************************************************************************************/
 
+// TESTED OK
 declaration
-	: declaration_specifiers ';'
-	| declaration_specifiers init_declarator_list ';'
+	: declaration_specifiers ';'						{ $$ = $1; }
+	| declaration_specifiers init_declarator_list ';'	{ $$ = op( nd(DECLARATION, "declaration"), 0, 2, ej($1), ej($2) ); }
 	;
 
+// TESTED OK
+// A list of three kinds of objects. Also, new child appends to the left.
 declaration_specifiers
-	: storage_class_specifier
-	| storage_class_specifier declaration_specifiers
-	| type_specifier
-	| type_specifier declaration_specifiers
-	| type_qualifier
-	| type_qualifier declaration_specifiers
+	: storage_class_specifier							{ $$ = op( nd(DECL_SPEC_LIST, "decl-specs"), 0, 1, ej($1) ); }
+	| storage_class_specifier declaration_specifiers	{ $$ = op( $2, 1, 0, ej($1) ); }
+	| type_specifier									{ $$ = op( nd(DECL_SPEC_LIST, "decl-specs"), 0, 1, ej($1) ); }
+	| type_specifier declaration_specifiers				{ $$ = op( $2, 1, 0, ej($1) ); }
+	| type_qualifier									{ $$ = op( nd(DECL_SPEC_LIST, "decl-specs"), 0, 1, ej($1) ); }
+	| type_qualifier declaration_specifiers				{ $$ = op( $2, 1, 0, ej($1) ); }
 	;
 
+// TESTED OK
 init_declarator_list
-	: init_declarator
-	| init_declarator_list ',' init_declarator
+	: init_declarator							{ $$ = op( nd(INIT_DECL_LIST, "var-list"), 0, 1, ej($1) ); }
+	| init_declarator_list ',' init_declarator	{ $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
+// TESTED OK
 init_declarator
-	: declarator
-	| declarator '=' initializer
+	: declarator					{ $$ = $1; }
+	| declarator '=' initializer	{ $$ = op( nd('=', $2), 0, 2, ej($1), ej($3) ); }
 	;
 
 // TESTED OK
@@ -254,9 +259,9 @@ type_specifier
 	| DOUBLE						{ $$ = nd(DOUBLE, $1); }
 	| SIGNED						{ $$ = nd(SIGNED, $1); }
 	| UNSIGNED						{ $$ = nd(UNSIGNED, $1); }
-	| struct_or_union_specifier
-	| enum_specifier
-	| TYPE_NAME
+	| struct_or_union_specifier		{ $$ = $1; }
+	| enum_specifier				{ $$ = $1; } // TESTED OK
+	| TYPE_NAME						{ $$ = nd(TYPE_NAME, $1); } // never encountered in ANSI C (just a user defined type)
 	;
 
 struct_or_union_specifier
@@ -265,6 +270,7 @@ struct_or_union_specifier
 	| struct_or_union IDENTIFIER
 	;
 
+// TESTED OK
 struct_or_union
 	: STRUCT	{ $$ = nd(STRUCT, $1); }
 	| UNION		{ $$ = nd(UNION, $1); }
@@ -297,20 +303,23 @@ struct_declarator
 	| declarator ':' constant_expression
 	;
 
+// TESTED OK
 enum_specifier
-	: ENUM '{' enumerator_list '}' { $$ = op( nd(ENUM, $1), 0, 1, ej($3) ); }
-	| ENUM IDENTIFIER '{' enumerator_list '}' { $$ = op( nd(ENUM, $1), 0, 2, ej(nd(IDENTIFIER, $2)), ej($4) ); }
-	| ENUM IDENTIFIER { $$ = op( nd(ENUM, $1), 0, 1, ej(nd(IDENTIFIER, $2)) ); }
+	: ENUM '{' enumerator_list '}'				{ $$ = op( nd(ENUM, $1), 0, 1, ej($3) ); }
+	| ENUM IDENTIFIER '{' enumerator_list '}'	{ $$ = op( nd(ENUM, $1), 0, 2, ej(nd(IDENTIFIER, $2)), ej($4) ); }
+	| ENUM IDENTIFIER							{ $$ = op( nd(ENUM, $1), 0, 1, ej(nd(IDENTIFIER, $2)) ); }
 	;
 
+// TESTED OK
 enumerator_list
-	: enumerator { $$ = op( nd(-1, "enum_list"), 0, 1, ej($1) ); }
-	| enumerator_list ',' enumerator { $$ = op( $1, 0, 1, ej($3) ); }
+	: enumerator						{ $$ = op( nd(ENUM_LIST, "enum-list"), 0, 1, ej($1) ); }
+	| enumerator_list ',' enumerator	{ $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
+// TESTED OK
 enumerator
-	: IDENTIFIER { $$ = nd(IDENTIFIER, $1); }
-	| IDENTIFIER '=' constant_expression { $$ = op( nd('=', $2), 0, 2, ej(nd(IDENTIFIER, $1)), $3 ); }
+	: IDENTIFIER							{ $$ = nd(IDENTIFIER, $1); }
+	| IDENTIFIER '=' constant_expression	{ $$ = op( nd('=', $2), 0, 2, ej(nd(IDENTIFIER, $1)), ej($3) ); }
 	;
 
 // TESTE OK
@@ -396,15 +405,32 @@ direct_abstract_declarator
 	| direct_abstract_declarator '(' parameter_type_list ')'
 	;
 
+// TESTED OK
 initializer
-	: assignment_expression
-	| '{' initializer_list '}'
-	| '{' initializer_list ',' '}'
+	: assignment_expression			{ $$ = $1; }
+	| '{' initializer_list '}'		{ $$ = $2; }
+	| '{' initializer_list ',' '}'	{ $$ = $2; }
 	;
 
+// TESTED OK
 initializer_list
-	: initializer
-	| initializer_list ',' initializer
+	: initializer						{ $$ = op( nd(INIT_LIST, "array"), 0, 1, ej($1) ); }
+	| initializer_list ',' initializer	{
+		/* THIS CODE WORKS, BUT USE ONLY WHEN SIMULTANEOUS PRINTING IS NOT GOING ON */
+		// if (((node_t*)$3)->tok_type == INIT_LIST) { // array within an array
+		// 	node_t* parent = (node_t*)$3, *tmp = (node_t*)$1;
+		// 	int n = parent->numChild;
+		// 	for (int i = 0; i < n; i++) {
+		// 		tmp = op( tmp, 0, 1, ej(parent->edges[i]->node) );
+		// 		// hide edge - ineffective (this code adds NEW invisible edges, but doesn't hide old ones)
+		// 		fprintf(temp_out, "\t%lld -> %lld [style = \"invis\"];\n", parent->id, parent->edges[i]->node->id);
+		// 	}
+		// 	fprintf(temp_out, "\t%lld [style = \"invis\"];\n", parent->id); // hide parent
+		// 	free(parent->edges); parent->edges = NULL;
+		// 	$$ = tmp;
+		// } else $$ = op( $1, 0, 1, ej($3) );
+		$$ = op( $1, 0, 1, ej($3) );
+	}
 	;
 
 statement
@@ -416,67 +442,93 @@ statement
 	| jump_statement		{ $$ = $1; }
 	;
 
+// TESTED OK
 labeled_statement
 	: IDENTIFIER ':' statement
+		{ $$ = op( mkGenNode(IDENTIFIER, $1, "style=filled,fillcolor=magenta"), 0, 1, ej($3) ); }
 	| CASE constant_expression ':' statement
+		{ $$ = op( mkGenNode(CASE, $1, "style=filled,fillcolor=magenta"), 0, 2, ej($2), ej($4) ); }
 	| DEFAULT ':' statement
+		{ $$ = op( mkGenNode(DEFAULT, $1, "style=filled,fillcolor=magenta"), 0, 1, ej($3) ); }
 	;
 
+// TESTED OK
 compound_statement
-	: '{' '}'											{ $$ = nd(-1, "{}"); }
+	: '{' '}'											{ $$ = nd(EMPTY_BLOCK, "{}"); }
 	| '{' statement_list '}'							{ $$ = $2; }
 	| '{' declaration_list '}'							{ $$ = $2; }
-	| '{' declaration_list statement_list '}'
+	| '{' declaration_list statement_list '}'			{ $$ = op( nd(GEN_BLOCK, "block"), 0, 2, ej($2), ej($3) ); }
 	;
 
+// TESTED OK
 declaration_list
-	: declaration
-	| declaration_list declaration
+	: declaration					{ $$ = op( nd(DECL_LIST, "declarations"), 0, 1, ej($1) ); }
+	| declaration_list declaration	{ $$ = op( $1, 0, 1, ej($2) ); }
 	;
 
+// TESTED OK
 statement_list
-	: statement { $$ = op( nd(-1, "stmt-list"), 0, 1, ej($1) ); }
-	| statement_list statement { $$ = op( $1, 0, 1, ej($2) ); }
+	: statement					{ $$ = op( nd(-1, "stmt-list"), 0, 1, ej($1) ); }
+	| statement_list statement	{ $$ = op( $1, 0, 1, ej($2) ); }
 	;
 
+// TESTED OK
 expression_statement
-	: ';' { $$ = mkGenNode(';', $1, "style=filled,fillcolor=gray"); }
-	| expression ';' { $$ = $1; }
+	: ';'				{ $$ = mkGenNode(';', "; [empty-stmt]", "style=filled,fillcolor=gray"); }
+	| expression ';'	{ $$ = $1; }
 	;
 
+// TESTED OK
 selection_statement
-	: IF '(' expression ')' statement { $$ = op( nd(-1, "if-stmt"), 0, 2, mkGenEdge($3, "cond", NULL), mkGenEdge($5, "stmts", NULL) ); }
-	| IF '(' expression ')' statement ELSE statement { $$ = op( nd(-1, "if-else-stmt"), 0, 3,
-		mkGenEdge($3, "cond", NULL), mkGenEdge($5, "stmts (if TRUE)", NULL), mkGenEdge($7, "stmts (if FALSE)", NULL) ); }
-	| SWITCH '(' expression ')' statement { $$ = op( nd(SWITCH, $1), 0, 2,
-		mkGenEdge($3, "expr", NULL), mkGenEdge($5, "stmts", NULL) ); }
+	: IF '(' expression ')' statement { $$ = op(
+		mkGenNode(IF_STMT, "if-stmt", "style=filled,fillcolor=yellow"), 0, 2,
+		mkGenEdge($3, "cond", NULL), mkGenEdge($5, "stmts", NULL)
+	); }
+	| IF '(' expression ')' statement ELSE statement { $$ = op(
+		mkGenNode(IF_ELSE_STMT, "if-else-stmt", "style=filled,fillcolor=yellow"), 0, 3,
+		mkGenEdge($3, "cond", NULL), mkGenEdge($5, "stmts (if TRUE)", NULL), mkGenEdge($7, "stmts (if FALSE)", NULL)
+	); }
+	| SWITCH '(' expression ')' statement { $$ = op(
+		mkGenNode(SWITCH, $1, "style=filled,fillcolor=yellow"), 0, 2,
+		mkGenEdge($3, "expr", NULL), mkGenEdge($5, "stmts", NULL)
+	); }
 	;
 
 iteration_statement
-	: WHILE '(' expression ')' statement { $$ = op( nd(WHILE, $1), 0, 2,
-		mkGenEdge($3, "expr", NULL), mkGenEdge($5, "stmts", NULL) ); }
-	| DO statement WHILE '(' expression ')' ';'
-	| FOR '(' expression_statement expression_statement ')' statement { $$ = op( nd(FOR, $1), 0, 3, ej($3), ej($4), ej($6) ); }
-	| FOR '(' expression_statement expression_statement expression ')' statement  { $$ = op( nd(FOR, $1), 0, 4,
-		ej($3), ej($4), ej($5), ej($7) ); }
+	: WHILE '(' expression ')' statement { $$ = op(
+		mkGenNode(WHILE, $1, "style=filled,fillcolor=lightblue"), 0, 2,
+		mkGenEdge($3, "expr", NULL), mkGenEdge($5, "stmts", NULL)
+	); }
+	| DO statement WHILE '(' expression ')' ';' { $$ = op(
+		mkGenNode(DO_WHILE, "do-while", "style=filled,fillcolor=lightblue"), 0, 2,
+		mkGenEdge($2, "stmts", NULL), mkGenEdge($5, "expr", NULL)
+	); }
+	| FOR '(' expression_statement expression_statement ')' statement { $$ = op(
+		mkGenNode(FOR, $1, "style=filled,fillcolor=lightblue"), 0, 3,
+		mkGenEdge($3, "expr", NULL), mkGenEdge($4, "expr", NULL), mkGenEdge($6, "stmts", NULL)
+	); }
+	| FOR '(' expression_statement expression_statement expression ')' statement  { $$ = op(
+		mkGenNode(FOR, $1, "style=filled,fillcolor=lightblue"), 0, 4,
+		mkGenEdge($3, "expr", NULL), mkGenEdge($4, "expr", NULL), mkGenEdge($5, "expr", NULL), mkGenEdge($7, "stmts", NULL)
+	); }
 	;
 
 jump_statement
-	: GOTO IDENTIFIER ';' { $$ = op( nd(GOTO, $1), 0, 1, ej(nd(IDENTIFIER, $2)) ); }
-	| CONTINUE ';' { $$ = nd(CONTINUE, $1); }
-	| BREAK ';' { $$ = nd(BREAK, $1); }
-	| RETURN ';' { $$ = nd(RETURN, $1); }
-	| RETURN expression ';' { $$ = op( nd(RETURN, $1), 0, 1, ej($2) ); }
+	: GOTO IDENTIFIER ';'	{ $$ = op( mkGenNode(GOTO, $1, "style=filled,fillcolor=orange"), 0, 1, ej(nd(IDENTIFIER, $2)) ); }
+	| CONTINUE ';'			{ $$ = mkGenNode(CONTINUE, $1, "style=filled,fillcolor=orange"); }
+	| BREAK ';'				{ $$ = mkGenNode(BREAK, $1, "style=filled,fillcolor=orange"); }
+	| RETURN ';'			{ $$ = mkGenNode(RETURN, $1, "style=filled,fillcolor=orange"); }
+	| RETURN expression ';'	{ $$ = op( mkGenNode(RETURN, $1, "style=filled,fillcolor=orange"), 0, 1, ej($2) ); }
 	;
 
 translation_unit
-	: external_declaration { $$ = op( nd(-1, fileName), 0, 1, ej($1) ); }
-	| translation_unit external_declaration { $$ = op( $1, 0, 1, ej($2) ); }
+	: external_declaration					{ $$ = op( mkGenNode(-1, fileName, "shape=box"), 0, 1, ej($1) ); }
+	| translation_unit external_declaration	{ $$ = op( $1, 0, 1, ej($2) ); }
 	;
 
 external_declaration
-	: function_definition { $$ = $1; }
-	| declaration { $$ = $1; }
+	: function_definition		{ $$ = $1; }
+	| declaration				{ $$ = $1; }
 	;
 
 function_definition
