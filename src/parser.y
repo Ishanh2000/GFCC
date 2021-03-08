@@ -280,7 +280,7 @@ struct_or_union
 	;
 
 struct_declaration_list 
-	: struct_declaration {$$ = $1;}
+	: struct_declaration {$$ = op(nd(ALL_MEMBERS,"member-list"),0,1,ej($1));}
 	| struct_declaration_list struct_declaration 
 	{$$=op($1,0,1,ej($2));}
 	;
@@ -291,14 +291,16 @@ struct_declaration
 	;
 
 specifier_qualifier_list
-	: type_specifier specifier_qualifier_list  {$$ = op($1,0,1,ej($2));}
-	| type_specifier                           {$$ = $1;}
-	| type_qualifier specifier_qualifier_list  {$$ = op($1,0,1,ej($2));}
-	| type_qualifier			   {$$ = $1;}
+	: type_specifier specifier_qualifier_list  {$$ = op($2,1,0,ej($1));}
+	| type_specifier                           
+	{$$ = op(nd(SPEC_QUAL_LIST,"spec-qual"),0,1,ej($1));}
+	| type_qualifier specifier_qualifier_list  {$$ = op($2,1,0,ej($1));}
+	| type_qualifier			   
+	{$$ = op(nd(SPEC_QUAL_LIST,"spec-qual"),0,1,ej($1));}
 	;
 
 struct_declarator_list
-	: struct_declarator  {$$ = $1;}
+	: struct_declarator  {$$ = op(nd(INIT_DECL_LIST,"var-list"),0,1,ej($1));}
 	| struct_declarator_list ',' struct_declarator {$$ = op($1,0,1,ej($3));}
 	;
 
