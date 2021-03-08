@@ -378,37 +378,37 @@ parameter_list
 	;
 
 parameter_declaration
-	: declaration_specifiers declarator
-	| declaration_specifiers abstract_declarator
-	| declaration_specifiers
+	: declaration_specifiers declarator            { $$ = op( nd(PARAM_DECL, "param-decl"), 0, 2, ej($1), ej($2) ); }
+	| declaration_specifiers abstract_declarator   { $$ = op( nd(PARAM_DECL, "param-decl"), 0, 2, ej($1), ej($2) ); }
+	| declaration_specifiers                       { $$ = $1; }
 	;
 
 identifier_list
-	: IDENTIFIER { printf("IL1\n"); $$ = op( nd(ID_LIST, "identifiers"), 0, 1, ej(nd(IDENTIFIER, $1)) ); }
-	| identifier_list ',' IDENTIFIER { printf("IL2\n"); $$ = op( $1, 0, 1, ej(nd(IDENTIFIER, $3)) );}
+	: IDENTIFIER                       { printf("IL1\n"); $$ = op( nd(ID_LIST, "identifiers"), 0, 1, ej(nd(IDENTIFIER, $1)) ); }
+	| identifier_list ',' IDENTIFIER   { printf("IL2\n"); $$ = op( $1, 0, 1, ej(nd(IDENTIFIER, $3)) );}
 	;
 
 type_name
-	: specifier_qualifier_list
-	| specifier_qualifier_list abstract_declarator
+	: specifier_qualifier_list                        { $$ = op( nd(TYPE_NAME, "type-name"), 0, 1, ej($1) ); }
+	| specifier_qualifier_list abstract_declarator    { $$ = op( $1, 0, 1, ej($2) ); }
 	;
 
 abstract_declarator
-	: pointer
-	| direct_abstract_declarator
-	| pointer direct_abstract_declarator
+	: pointer                              { $$ = $1; }
+	| direct_abstract_declarator           { $$ = $1; }
+	| pointer direct_abstract_declarator   { $$ = op( nd(ABSTRACT_DECLARATOR, "abst-decl"), 0, 2, ej($1), ej($2) ); }
 	;
 
 direct_abstract_declarator
-	: '(' abstract_declarator ')'
-	| '[' ']'
-	| '[' constant_expression ']'
-	| direct_abstract_declarator '[' ']'
-	| direct_abstract_declarator '[' constant_expression ']'
-	| '(' ')'
-	| '(' parameter_type_list ')'
-	| direct_abstract_declarator '(' ')'
-	| direct_abstract_declarator '(' parameter_type_list ')'
+	: '(' abstract_declarator ')'                                { $$ = $2; }
+	| '[' ']'                                                    { $$ = nd(SUBSCRIPT, "[]"); }
+	| '[' constant_expression ']'                                { $$ = op(nd(SUBSCRIPT, $1), 0, 1, ej($2)); }
+	| direct_abstract_declarator '[' ']'                         { $$ = op( nd(SUBSCRIPT, $2), 0, 1, ej($1) ); }
+	| direct_abstract_declarator '[' constant_expression ']'     { $$ = op( nd(SUBSCRIPT, $2), 0, 2, ej($1), ej($3) ); }
+	| '(' ')'                                                    { $$ = nd(ABSTRACT_DECLN, "() abst-declaration"); }
+	| '(' parameter_type_list ')'                                { $$ = op(nd(ABSTRACT_DECLN, "() abst-declaration"), 0 ,1, ej($2)); }
+	| direct_abstract_declarator '(' ')'                         { $$ = op(nd(ABSTRACT_DECLN, "() abst-declaration"), 0 ,1, ej($1)); }
+	| direct_abstract_declarator '(' parameter_type_list ')'     { $$ = op( nd(ABSTRACT_DECLN, "() abst-declaration"), 0, 2, ej($1), ej($3) ); }
 	;
 
 // TESTED OK

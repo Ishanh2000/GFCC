@@ -49,6 +49,9 @@
 #define DO_WHILE			(-38) // Do while iteration statement
 #define STRUCT_MEMBER			(-39) // Used to denote a member in struct/union	
 #define ALL_MEMBERS			(-40) // To denote all members of a struct/union as a parent node
+#define ABSTRACT_DECLARATOR (-41) //Denote the abstracgt declarations like int *, int [], etc.
+#define PARAM_DECL          (-42) //parameter declarations
+#define ABSTRACT_DECLN       (-43)//() used in abstract declratoins 
 typedef unsigned long long ull_t;
 
 typedef struct _token_t {
