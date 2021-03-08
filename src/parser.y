@@ -291,10 +291,12 @@ struct_declaration
 	;
 
 specifier_qualifier_list
-	: type_specifier specifier_qualifier_list  {$$ = op($1,0,1,ej($2));}
-	| type_specifier                           {$$ = $1;}
-	| type_qualifier specifier_qualifier_list  {$$ = op($1,0,1,ej($2));}
-	| type_qualifier			   {$$ = $1;}
+	: type_specifier specifier_qualifier_list  {$$ = op($2,1,0,ej($1));}
+	| type_specifier                           
+	{$$ = op(nd(SPEC_QUAL_LIST,"spec-qual"),0,1,ej($1));}
+	| type_qualifier specifier_qualifier_list  {$$ = op($2,1,0,ej($1));}
+	| type_qualifier			   
+	{$$ = op(nd(SPEC_QUAL_LIST,"spec-qual"),0,1,ej($1));}
 	;
 
 struct_declarator_list
