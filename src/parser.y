@@ -28,7 +28,7 @@
 
 // Non-Terminals (Add rest, and try in alphabetical order)
 %type <node> abstract_declarator additive_expression and_expression argument_expression_list
-%type <node> assignment_expression assignment_operator aux cast_expression compound_statement
+%type <node> assignment_expression assignment_operator cast_expression compound_statement
 %type <node> conditional_expression constant_expression declaration declaration_list
 %type <node> declaration_specifiers declarator direct_abstract_declarator direct_declarator
 %type <node> enumerator enumerator_list enum_specifier equality_expression exclusive_or_expression
