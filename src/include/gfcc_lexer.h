@@ -47,7 +47,8 @@
 #define DECLARATOR			(-36) // declarator (general variable, a, b[], c[90], *x, (*func)(), etc.)
 #define INIT_LIST			(-37) // Array initializer list
 #define DO_WHILE			(-38) // Do while iteration statement
-
+#define STRUCT_MEMBER			(-39) // Used to denote a member in struct/union	
+#define ALL_MEMBERS			(-40) // To denote all members of a struct/union as a parent node
 typedef unsigned long long ull_t;
 
 typedef struct _token_t {

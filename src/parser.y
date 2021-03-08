@@ -28,7 +28,7 @@
 
 // Non-Terminals (Add rest, and try in alphabetical order)
 %type <node> abstract_declarator additive_expression and_expression argument_expression_list
-%type <node> assignment_expression assignment_operator cast_expression compound_statement
+%type <node> assignment_expression assignment_operator aux cast_expression compound_statement
 %type <node> conditional_expression constant_expression declaration declaration_list
 %type <node> declaration_specifiers declarator direct_abstract_declarator direct_declarator
 %type <node> enumerator enumerator_list enum_specifier equality_expression exclusive_or_expression
@@ -266,8 +266,11 @@ type_specifier
 
 struct_or_union_specifier
 	: struct_or_union IDENTIFIER '{' struct_declaration_list '}'
+	{$$ = op($1,0,2,ej(nd(IDENTIFIER,$2)),ej($4));}
 	| struct_or_union '{' struct_declaration_list '}'
+	{$$ = op($1,0,1,ej($3));}
 	| struct_or_union IDENTIFIER
+	{$$ = op($1,0,1,ej(nd(IDENTIFIER,$2)));}
 	;
 
 // TESTED OK
@@ -276,31 +279,34 @@ struct_or_union
 	| UNION		{ $$ = nd(UNION, $1); }
 	;
 
-struct_declaration_list
-	: struct_declaration
-	| struct_declaration_list struct_declaration
+struct_declaration_list 
+	: struct_declaration {$$ = $1;}
+	| struct_declaration_list struct_declaration 
+	{$$=op($1,0,1,ej($2));}
 	;
 
 struct_declaration
-	: specifier_qualifier_list struct_declarator_list ';'
+	: specifier_qualifier_list struct_declarator_list ';' 
+	{$$ = op(nd(STRUCT_MEMBER,"member"),0,2,ej($1),ej($2));}
 	;
 
 specifier_qualifier_list
-	: type_specifier specifier_qualifier_list
-	| type_specifier
-	| type_qualifier specifier_qualifier_list
-	| type_qualifier
+	: type_specifier specifier_qualifier_list  {$$ = op($1,0,1,ej($2));}
+	| type_specifier                           {$$ = $1;}
+	| type_qualifier specifier_qualifier_list  {$$ = op($1,0,1,ej($2));}
+	| type_qualifier			   {$$ = $1;}
 	;
 
 struct_declarator_list
-	: struct_declarator
-	| struct_declarator_list ',' struct_declarator
+	: struct_declarator  {$$ = $1;}
+	| struct_declarator_list ',' struct_declarator {$$ = op($1,0,1,ej($3));}
 	;
 
 struct_declarator
-	: declarator
-	| ':' constant_expression
-	| declarator ':' constant_expression
+	: declarator {$$=$1;}
+	| ':' constant_expression  {$$ = $2;}
+	| declarator ':' constant_expression 
+	{$$ = op(nd(STRUCT_DECL,"declarator"),0,2,ej($1),ej($3));} 
 	;
 
 // TESTED OK
