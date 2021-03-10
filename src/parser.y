@@ -547,13 +547,19 @@ jump_statement
 	;
 
 translation_unit
-	: external_declaration	{ $$ = AstRoot = op( mkGenNode(-1, fileName, "shape=box"), 0, 1, ej($1) ); }
-	| translation_unit external_declaration	{ $$ = AstRoot = op( $1, 0, 1, ej($2) ); }
+	: external_declaration	{ AstRoot = $$ = ($1) ? op( mkGenNode(-1, fileName, "shape=box"), 0, 1, ej($1) ) : NULL; }
+	| translation_unit external_declaration	{
+		if ($1 && $2) { $$ = op( $1, 0, 1, ej($2) ); }
+		else if ($1) { $$ = $1; } // new child useless
+		else if ($2) { $$ = op( mkGenNode(-1, fileName, "shape=box"), 0, 1, ej($2) ); }
+		else { $$ = NULL; }
+		AstRoot = $$;
+	}
 	;
 
 external_declaration
 	: function_definition		{ $$ = $1; }
-	| declaration { $$ = ($1) ? ($1) : NULL; }
+	| declaration { printf("HERE2: %p\n", $1); $$ = ($1) ? ($1) : NULL; }
 	;
 
 function_definition

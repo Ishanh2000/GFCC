@@ -12,15 +12,6 @@ int yyerror(char *s) {
 	printf("\n%*s\n%d:%d:: %*s\n", column, "^", token_line, token_column, column, s);
 }
 
-void dotStmt(const char* format, ...) { // just a wrapper function
-	va_list args;
-	va_start(args, format);
-	fprintf(temp_out, "\t");
-	vfprintf(temp_out, format, args);
-	fprintf(temp_out, ";\n");
-	va_end(args);
-}
-
 void dotNode(FILE *f_out, node_t* node) {
 	fprintf(f_out, "\t%lld [label=\"", node->id);
 	if (node->tok_type == STRING_LITERAL) fprintf(f_out, "\\\"%s\\\"", node->label);
@@ -48,16 +39,8 @@ ull_t newNode() {
 	return ++currNumNodes;
 }
 
-/** ACTION UPON SEEING A RULE (PSEUDO-CODE)
-* parent = newNode()
-* for childSymbol in { Cn, ..., C2, C1 }: // reverse order
-*	child = newNode() IF child is ternminal, ELSE nodeStackPop()
-* 	add edge (parent, child)
-* nodeStackPush(parent)
-*/
-
 node_t* mkGenNode(int tok_type, char* label, char* attr) { // label is lexeme. attr may be NULL.
-	// printf("Here: %s\n", label);
+	printf("Here: %s\n", label);
 	node_t *node = (node_t*) malloc(sizeof(node_t)); if (!node) return NULL;
 
 	node->id = newNode(); node->tok_type = tok_type;
@@ -72,8 +55,6 @@ node_t* mkGenNode(int tok_type, char* label, char* attr) { // label is lexeme. a
 		label += 1; // former "
 	}
 	node->label = label; // no need to copy since not mutating (Heap | Read-Only)
-
-	// dotNode(temp_out, node);
 
 	return node;
 }
@@ -104,59 +85,23 @@ node_t* mkOpNode(node_t *parent, int l, int r, ...) { // attr may be NULL
 	edge_t **tmp = (edge_t**) malloc((curr + l + r) * sizeof(edge_t*));
 	if (!tmp) return NULL; // is this bad? Should we print on STDOUT/STDERR? Or should we return (-1)?
 
-	char enforceOrder[300] = ""; int enforceLen = 0;
-
 	va_list args;
 	va_start(args, r);
-	// printf("mkOpNode: l = %d, r = %d\n", l, r);
+
+	// LEFT CHILDREN (TO BE APPENDED BEFORE THE PARENT'S EXISTING CHILDREN)
 	for (int i = 0; i < l; i++) {
 		edge_t *e = (edge_t*) va_arg(args, edge_t*); tmp[i] = e;
 		if (e) e->node->parent = parent;
-
-		// dotEdge(temp_out, parent, e);
-
-		char arr[30]; int len = 0; ull_t copy = e->node->id;
-        while (copy) { arr[len++] = (copy % 10) + '0'; copy /= 10; } // length found, arr[0 ... len-1] = reverse(child)
-        for (int j = len - 1; j >= 0; j--) enforceOrder[enforceLen++] = arr[j];
-        enforceOrder[enforceLen++] = ' '; enforceOrder[enforceLen++] = '-';
-        enforceOrder[enforceLen++] = '>'; enforceOrder[enforceLen++] = ' ';
 	}
 
-	if (l > 1) { // enforce order among left new children
-		enforceOrder[enforceLen - 4] = '\0';
-		fprintf(temp_out, "\t{ rank = same; %s [style = \"invis\"]; rankdir = LR; }\n", enforceOrder); // rank = same;
-	}
-
-	if (l && curr) fprintf(temp_out,
-		"\t{ rank = same; %lld -> %lld [style = \"invis\"]; rankdir = LR; }\n", // rank = same;
-		tmp[l-1]->node->id, parent->edges[0]->node->id
-	); // enforce order between rightmost left new child and leftmost current child
-
+	// PARENT'S OWN CHILDREN (ORDER PRESERVED)
 	for (int i = 0; i < curr; i++) tmp[l + i] = parent->edges[i]; // copy current edges
 
-	enforceOrder[0] = '\0'; enforceLen = 0;
+	// RIGHT CHILDREN (TO BE APPENDED AFTER THE PARENT'S EXISTING CHILDREN)
 	for (int i = l + curr; i < curr + l + r; i++) {
 		edge_t *e = (edge_t*) va_arg(args, edge_t*); tmp[i] = e;
 		if (e) e->node->parent = parent;
-
-		// dotEdge(temp_out, parent, e);
-
-		char arr[30]; int len = 0; ull_t copy = e->node->id;
-        while (copy) { arr[len++] = (copy % 10) + '0'; copy /= 10; } // length found, arr[0 ... len-1] = reverse(child)
-        for (int j = len - 1; j >= 0; j--) enforceOrder[enforceLen++] = arr[j];
-        enforceOrder[enforceLen++] = ' '; enforceOrder[enforceLen++] = '-';
-        enforceOrder[enforceLen++] = '>'; enforceOrder[enforceLen++] = ' ';
 	}
-
-	if (r > 1) { // enforce order among right new children
-		enforceOrder[enforceLen - 4] = '\0';
-		fprintf(temp_out, "\t{ rank = same; %s [style = \"invis\"]; rankdir = LR; }\n", enforceOrder); // rank = same;
-	}
-
-	if (curr && r) fprintf(temp_out,
-		"\t{ rank = same; %lld -> %lld [style = \"invis\"]; rankdir = LR; }\n", // rank = same;
-		parent->edges[curr-1]->node->id, tmp[l+curr]->node->id
-	); // enforce order between leftmost right new child and rightmost current child
 
 	va_end(args);
 
@@ -169,18 +114,6 @@ node_t* mkOpNode(node_t *parent, int l, int r, ...) { // attr may be NULL
 
 node_t* (*op)(node_t*, int, int, ...) = mkOpNode;
 
-char *cat(char *s1, char *s2) { // ROUGHLY MADE FOR NOW - REVISE LATER
-	// [ASSUMPTION] (lift later): s1 != NULL != s2
-	int l1 = strlen(s1), l2 = strlen(s2);
-	char *new = (char *) malloc((l1 + l2 + 1) * sizeof(char));
-	for (int i = 0; i < l1; i++) new[i] = s1[i];
-	for (int i = 0; i < l2; i++) new[l1 + i] = s2[i];
-	new[l1 + l2] = '\0';
-	// free(s1); // [ASSUMPTION] assume heap area
-	return new;
-}
-
-// node_t* Q[MAX_QUEUE_LENGTH + 1];
 ull_t q_head = 0, q_tail = 0;
 
 int Enqueue(node_t* node) {
@@ -206,6 +139,10 @@ int accept(node_t *node) {
 }
 
 void AstToDot(FILE *f_out, node_t *root) { // Do a DFS/BFS (BFS being done here)
+	if (!root) {
+		fprintf(f_out, "digraph {\n\t0 [label=\"%s (nothing useful)\",shape=none];\n}\n", fileName);
+		return;
+	}
 	fprintf(f_out, "digraph {\n");
 	dotNode(f_out, root); // prints file name
 	Enqueue(root);

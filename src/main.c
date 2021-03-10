@@ -10,7 +10,7 @@
 // THEIR NAMES. SINCE THEY ARE SHARE ACROSS MULTIPLE FILES.
 
 int column = 1, token_column = 1, token_line = 1;
-int colorize = 0; // [BOOLEAN ONLY] to colorize output (supported by modern terminals)
+int colorize = 1; // [BOOLEAN ONLY] to colorize output (supported by modern terminals)
 FILE *temp_out = NULL; // if this is NULL, use stdout
 int tab_len = TAB_LEN;
 int bad_char_seen = 0; // to notify parser
