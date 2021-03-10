@@ -33,6 +33,7 @@ IS			(u|U|l|L)*
 "extern"		{ yylval.terminal = "extern"; count(); return (EXTERN); }
 "float"			{ yylval.terminal = "float"; count(); return (FLOAT); }
 "for"			{ yylval.terminal = "for"; count(); return (FOR); }
+"FILE"			{ yylval.terminal = "FILE"; count(); return (FILE_OBJ); }
 "goto"			{ yylval.terminal = "goto"; count(); return (GOTO); }
 "if"			{ yylval.terminal = "if"; count(); return (IF); }
 "int"			{ yylval.terminal = "int"; count(); return (INT); }

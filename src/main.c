@@ -11,11 +11,11 @@
 
 int column = 1, token_column = 1, token_line = 1;
 int colorize = 0; // [BOOLEAN ONLY] to colorize output (supported by modern terminals)
-FILE* temp_out = NULL; // if this is NULL, use stdout
+FILE *temp_out = NULL; // if this is NULL, use stdout
 int tab_len = TAB_LEN;
 int bad_char_seen = 0; // to notify parser
 ull_t currNumNodes = 0; // invariant: currNumNodes > 0 for all existing nodes.
-
+node_t *AstRoot = NULL;
 
 int main (int argc , char *argv[]) {
 	// ARGC TOO FEW
@@ -124,25 +124,26 @@ int main (int argc , char *argv[]) {
 				file_failures++;
 				continue;
 			}
-			
+
 			free(fileName);
 			fileName = strdup(argv[start + i]);
 		}
-		
-		fprintf(temp_out, "digraph {\n");
-        
-        // PostScript OK. Try to adjust for actual PDF (although not required).
-		fprintf(temp_out, "\tsize=\"8.25,11.75!\" ratio = \"fit\";\n\n");
 
-		printf("yyparse() = %d\n", yyparse());
-		
-		fprintf(temp_out, "}\n");
-		
+		fprintf(temp_out, "digraph {\n");
+
+		// PostScript OK. Try to adjust for actual PDF (although not required).
+		// fprintf(temp_out, "\tsize=\"8.25,11.75!\" ratio = \"fit\";\n\n");
+
+		int parse_return = yyparse();
+
+		printf("yyparse() = %d\n", parse_return);
+
+		// fprintf(temp_out, "}\n");
 		// if (!temp_out) {
 		// 	printf(i > 0 ? "\n" : "");
 		// 	printf("Token Stream for file \"%s\":\n", argv[start + i]);
 		// }
-		
+
 		// if (colorize && !temp_out) printf("%s%s", _C_BOLD_, _FORE_GREEN_);
 		// if (brief) {
 		// 	fprintf(temp_out ? temp_out : stdout, "%-18s %-30s %-10s\n", "TOKEN NAME", "LEXEME", "LOCATION");
@@ -194,6 +195,8 @@ int main (int argc , char *argv[]) {
 
 		// // TRY USING THIS FOR PRINTING IN LEXICAL ANALYSIS TOO
 		// fprintTokens(temp_out ? temp_out : stdout, tok_str, (unsigned long int) total_tokens, brief);
+
+		if (!parse_return) AstToDot(temp_out, AstRoot);
 
 		temp_out = NULL; // reset for next file
 	}
