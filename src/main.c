@@ -104,6 +104,8 @@ int main (int argc , char *argv[]) {
 			lex_warn("Problem writing to file \"%s\". Skipping it.\n", argv[o_flag_index + i + 1]);
 			file_failures++;
 			continue;}
+
+			fileName = argv[o_flag_index + i + 1];
 		} 
 		else 
 		{

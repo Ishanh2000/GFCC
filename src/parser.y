@@ -540,10 +540,10 @@ external_declaration
 	;
 
 function_definition
-	: declaration_specifiers declarator declaration_list compound_statement { $$ = op(nd(FUNC_DEF,"function_definition"), 0, 3, ej($2), ej($3), ej($4)); }
-	| declaration_specifiers declarator compound_statement { $$ = op(nd(FUNC_DEF,"function_definition"), 0, 2, ej($2), ej($3)); }
-	| declarator declaration_list compound_statement { $$ = op(nd(FUNC_DEF,"function_definition"), 0, 2, ej($2), ej($3)); }
-	| declarator compound_statement { $$ = op(nd(FUNC_DEF,"function_definition"), 0, 1, ej($2)); }
+	: declaration_specifiers declarator declaration_list compound_statement { $$ = op(nd(FUNC_DEF,"function_definition"), 0, 4,ej($1), ej($2), ej($3), ej($4)); }
+	| declaration_specifiers declarator compound_statement { $$ = op(nd(FUNC_DEF,"function_definition"), 0, 3,ej($1), ej($2), ej($3)); }
+	| declarator declaration_list compound_statement { $$ = op(nd(FUNC_DEF,"function_definition"), 0, 3, ej($1),ej($2), ej($3)); }
+	| declarator compound_statement { $$ = op(nd(FUNC_DEF,"function_definition"), 0, 2,ej($1), ej($2)); }
 	;
 
 %%
