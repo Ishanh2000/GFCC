@@ -28,10 +28,10 @@ Clean and Build;
 ```
 Running parser:
 ```bash
-  ./bin/lexer ./tests/*.c # Creates dot file for all test case files
-  ./bin/lexer -h # help
-  ./bin/lexer -v # version
-  ./bin/lexer ./tests/*.c -o out1.dot out2.dot out3.dot out4.dot out5.dot
+  ./bin/parser ./tests/*.c # Creates dot file for all test case files
+  ./bin/parser -h # help
+  ./bin/parser -v # version
+  ./bin/parser ./tests/*.c -o out1.dot out2.dot out3.dot out4.dot out5.dot
 ```
 
 Use help flag for more details.
