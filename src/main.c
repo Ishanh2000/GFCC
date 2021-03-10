@@ -96,12 +96,17 @@ int main (int argc , char *argv[]) {
 			continue;
 		}
 
-		if ( o_flag_index >= 0 && !(temp_out = fopen(argv[o_flag_index + i + 1], "w")) ) {
+		if ( o_flag_index >= 0 ) {
+
+			temp_out = fopen(argv[o_flag_index + i + 1], "w");
+			if(!temp_out){
 			printf(i > 0 ? "\n" : "");
 			lex_warn("Problem writing to file \"%s\". Skipping it.\n", argv[o_flag_index + i + 1]);
 			file_failures++;
-			continue;
-		} else {
+			continue;}
+		} 
+		else 
+		{
 			int len = strlen(argv[start + i]);
 			char out_file_name[len + 5]; strcpy(out_file_name, argv[start + i]);
 
@@ -121,7 +126,7 @@ int main (int argc , char *argv[]) {
 			free(fileName);
 			fileName = strdup(argv[start + i]);
 		}
-
+		
 		fprintf(temp_out, "digraph {\n");
         
         // PostScript OK. Try to adjust for actual PDF (although not required).

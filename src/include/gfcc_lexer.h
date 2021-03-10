@@ -82,7 +82,7 @@ extern char* TOKEN_NAME_ARRAY[]; // make this const
 
 int column, token_column, token_line, tab_len, colorize, bad_char_seen;
 
-FILE *yyin, *yyout, *temp_out;
+extern FILE *yyin, *yyout, *temp_out;
 
 char* fileName;
 
