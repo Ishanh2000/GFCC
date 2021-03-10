@@ -17,13 +17,7 @@ Options:\n\
 \n\
   --version	-v : Version and release date. Maybe author names/licenses. Must be first option. Other options not checked.\n\
 \n\
-  --brief	-b : Keep output brief. Default: disabled. Must specify before files.\n\
-\n\
-  --color	-c : Colorize output (does not work if writing to a file). Default: disabled. Must specify before files.\n\
-\n\
   --output	-o : Names of output files in the same order as inputs are specified.\n\
-\n\
-  --tab-len <tab-len> | -t <tab-len> : Specify tab length. Default = 8. Must be a positive integer.\n\
 \n\
 Notes:\n\
   1) Specify an option only once. Otherwise they may be treated invalid.\n\

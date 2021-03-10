@@ -1,7 +1,6 @@
 #include <stdio.h>
 
 char func(int,float*);
-
 int main()
 {
 	int ii;

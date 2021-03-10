@@ -8,33 +8,31 @@ Source (S): C.
 
 Implemetation (I): C (maybe C++ later on, if required, especially in case of object orientation).
 
-Target (T): MIPS (mat change, if backend can be better implemented on another target).
+Target (T): MIPS (might change, if backend can be better implemented on another target).
 
 ### Usage:
 Building Project:
 ```bash
-  # will generate lexer binary in bin/
+  # will generate parser binary in bin/
   ./runme.sh build
 ```
 Cleaning Project;
 ```bash
   # Will clean all the generated files
-  ./runme clean
+  ./runme.sh clean
 ```
-Running lexer:
+Clean and Build;
 ```bash
-  ./bin/lexer ./tests/*.c # test cases
+  # Will clean all the generated files and rebuild binary
+  ./runme.sh rebuild
+```
+Running parser:
+```bash
+  ./bin/lexer ./tests/*.c # Creates dot file for all test case files
   ./bin/lexer -h # help
   ./bin/lexer -v # version
-  ./bin/lexer ./tests/*.c -o out1.txt out2.txt out3.txt out4.txt out5.txt
-  ./bin/lexer -c ./tests/*.c	# colorized output (only on terminal)
-  ./bin/lexer -b ./tests/*.c	# brevity/conciseness
-  ./bin/lexer -t 9 ./tests/*.c	# change tab length (default = 8)
+  ./bin/lexer ./tests/*.c -o out1.dot out2.dot out3.dot out4.dot out5.dot
 ```
-
-Note: All files will not be jeopardized due to failure in opening a few files.
-Use "-h" flag for more knowing options. Bad characters are reported, but
-lexical analysis is carried on. Pre-processor directives / macros ignored.
 
 Use help flag for more details.
 
