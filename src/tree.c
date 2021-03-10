@@ -21,27 +21,27 @@ void dotStmt(const char* format, ...) { // just a wrapper function
 	va_end(args);
 }
 
-void dotNode(node_t* node) {
-	fprintf(temp_out, "\t%lld [label=\"", node->id);
-	if (node->tok_type == STRING_LITERAL) fprintf(temp_out, "\\\"%s\\\"", node->label);
-	else fprintf(temp_out, "%s", node->label);
-	if (node->attr) fprintf(temp_out, "\",%s];\n", node->attr);
-	else fprintf(temp_out, "\"];\n");
+void dotNode(FILE *f_out, node_t* node) {
+	fprintf(f_out, "\t%lld [label=\"", node->id);
+	if (node->tok_type == STRING_LITERAL) fprintf(f_out, "\\\"%s\\\"", node->label);
+	else fprintf(f_out, "%s", node->label);
+	if (node->attr) fprintf(f_out, "\",%s];\n", node->attr);
+	else fprintf(f_out, "\"];\n");
 }
 
-void dotEdge(node_t* parent, edge_t* e) { // just a wrapper function
-	fprintf(temp_out, "\t%lld -> %lld", parent->id, e->node->id);
+void dotEdge(FILE *f_out, node_t* parent, edge_t* e) { // just a wrapper function
+	fprintf(f_out, "\t%lld -> %lld", parent->id, e->node->id);
 	char *label = e->label, *attr = e->attr;
-	
+
 	if (label || attr) {
-		fprintf(temp_out, " [");
-		if (label) fprintf(temp_out, "label=\"%s\"", label);
-		if (label && attr) fprintf(temp_out, ",");
-		if (attr) fprintf(temp_out, "%s", attr);
-		fprintf(temp_out, "]");
+		fprintf(f_out, " [");
+		if (label) fprintf(f_out, "label=\"%s\"", label);
+		if (label && attr) fprintf(f_out, ",");
+		if (attr) fprintf(f_out, "%s", attr);
+		fprintf(f_out, "]");
 	}
 
-	fprintf(temp_out, ";\n");
+	fprintf(f_out, ";\n");
 }
 
 ull_t newNode() {
@@ -57,9 +57,9 @@ ull_t newNode() {
 */
 
 node_t* mkGenNode(int tok_type, char* label, char* attr) { // label is lexeme. attr may be NULL.
-	printf("Here: %s\n", label);
+	// printf("Here: %s\n", label);
 	node_t *node = (node_t*) malloc(sizeof(node_t)); if (!node) return NULL;
-	
+
 	node->id = newNode(); node->tok_type = tok_type;
 	node->attr = attr; // no need to copy since not mutating (Heap | Read-Only)
 	node->parent = NULL;
@@ -73,7 +73,7 @@ node_t* mkGenNode(int tok_type, char* label, char* attr) { // label is lexeme. a
 	}
 	node->label = label; // no need to copy since not mutating (Heap | Read-Only)
 
-	dotNode(node);
+	// dotNode(temp_out, node);
 
 	return node;
 }
@@ -113,8 +113,8 @@ node_t* mkOpNode(node_t *parent, int l, int r, ...) { // attr may be NULL
 		edge_t *e = (edge_t*) va_arg(args, edge_t*); tmp[i] = e;
 		if (e) e->node->parent = parent;
 
-		dotEdge(parent, e);
-		
+		// dotEdge(temp_out, parent, e);
+
 		char arr[30]; int len = 0; ull_t copy = e->node->id;
         while (copy) { arr[len++] = (copy % 10) + '0'; copy /= 10; } // length found, arr[0 ... len-1] = reverse(child)
         for (int j = len - 1; j >= 0; j--) enforceOrder[enforceLen++] = arr[j];
@@ -131,7 +131,7 @@ node_t* mkOpNode(node_t *parent, int l, int r, ...) { // attr may be NULL
 		"\t{ rank = same; %lld -> %lld [style = \"invis\"]; rankdir = LR; }\n", // rank = same;
 		tmp[l-1]->node->id, parent->edges[0]->node->id
 	); // enforce order between rightmost left new child and leftmost current child
-	
+
 	for (int i = 0; i < curr; i++) tmp[l + i] = parent->edges[i]; // copy current edges
 
 	enforceOrder[0] = '\0'; enforceLen = 0;
@@ -139,7 +139,7 @@ node_t* mkOpNode(node_t *parent, int l, int r, ...) { // attr may be NULL
 		edge_t *e = (edge_t*) va_arg(args, edge_t*); tmp[i] = e;
 		if (e) e->node->parent = parent;
 
-		dotEdge(parent, e);
+		// dotEdge(temp_out, parent, e);
 
 		char arr[30]; int len = 0; ull_t copy = e->node->id;
         while (copy) { arr[len++] = (copy % 10) + '0'; copy /= 10; } // length found, arr[0 ... len-1] = reverse(child)
@@ -157,9 +157,9 @@ node_t* mkOpNode(node_t *parent, int l, int r, ...) { // attr may be NULL
 		"\t{ rank = same; %lld -> %lld [style = \"invis\"]; rankdir = LR; }\n", // rank = same;
 		parent->edges[curr-1]->node->id, tmp[l+curr]->node->id
 	); // enforce order between leftmost right new child and rightmost current child
-	
+
 	va_end(args);
-	
+
 	free(parent->edges);
 	parent->edges = tmp;
 	parent->numChild += (l + r);
@@ -178,4 +178,62 @@ char *cat(char *s1, char *s2) { // ROUGHLY MADE FOR NOW - REVISE LATER
 	new[l1 + l2] = '\0';
 	// free(s1); // [ASSUMPTION] assume heap area
 	return new;
+}
+
+// node_t* Q[MAX_QUEUE_LENGTH + 1];
+ull_t q_head = 0, q_tail = 0;
+
+int Enqueue(node_t* node) {
+	if ( ((q_tail + 1) % (MAX_QUEUE_LENGTH + 1)) == q_head ) return -1;
+	Q[q_tail++] = node;
+	return 0;
+}
+
+node_t* Dequeue() {
+	if (q_head == q_tail) return NULL; // empty queue
+	node_t* tmp = Q[q_head];
+	q_head = (q_head + 1) % (MAX_QUEUE_LENGTH + 1);
+	return tmp;
+}
+
+int IsEmpty() {
+	return (q_tail == q_head);
+}
+
+int accept(node_t *node) {
+	if (node->tok_type == DECL_SPEC_LIST) return 0;
+	return 1;
+}
+
+void AstToDot(FILE *f_out, node_t *root) { // Do a DFS/BFS (BFS being done here)
+	fprintf(f_out, "digraph {\n");
+	dotNode(f_out, root); // prints file name
+	Enqueue(root);
+
+	while (!IsEmpty()) {
+		node_t* curr = Dequeue(); // assume success
+		char enforceOrder[300] = ""; int enforceLen = 0;
+
+		for (int i = 0; i < curr->numChild; i++) {
+			node_t* tmp_child = curr->edges[i]->node;
+			if (accept(tmp_child)) {
+				dotNode(f_out, tmp_child);
+				dotEdge(f_out, curr, curr->edges[i]);
+				Enqueue(tmp_child); // assume success
+
+				char arr[30]; int len = 0; ull_t copy = tmp_child->id;
+			        while (copy) { arr[len++] = (copy % 10) + '0'; copy /= 10; } // length found, arr[0 ... len-1] = reverse(child)
+			        for (int j = len - 1; j >= 0; j--) enforceOrder[enforceLen++] = arr[j];
+        			enforceOrder[enforceLen++] = ' '; enforceOrder[enforceLen++] = '-';
+        			enforceOrder[enforceLen++] = '>'; enforceOrder[enforceLen++] = ' ';
+			}
+		}
+
+		if (curr->numChild > 1) {
+			enforceOrder[enforceLen - 4] = '\0';
+			fprintf(f_out, "\t{ rank = same; %s [style = \"invis\"]; rankdir = LR; }\n", enforceOrder); // rank = same;
+		}
+	}
+
+	fprintf(f_out, "}\n");
 }

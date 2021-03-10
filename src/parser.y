@@ -16,7 +16,7 @@
 
 /* Terminals: Don't change this order. */
 %token <node> IDENTIFIER CONSTANT STRING_LITERAL // only these three types shall be terminals
-%token <node> SIZEOF
+%token <node> SIZEOF FILE_OBJ
 %token <node> PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token <node> AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
 %token <node> SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN
@@ -212,32 +212,38 @@ constant_expression
 /************************************************************************************************/
 
 // TESTED OK
+// useless iff NULL
 declaration
-	: declaration_specifiers ';'						{ $$ = $1; }
-	| declaration_specifiers init_declarator_list ';'	{ $$ = op( nd(DECLARATION, "declaration"), 0, 2, ej($1), ej($2) ); }
+	: declaration_specifiers ';' { $$ = NULL; } // { $$ = $1; }
+	| declaration_specifiers init_declarator_list ';' { $$ = ($2) ? ($2) : NULL; }
 	;
 
-// TESTED OK
+// TESTED OK - useless iff NULL
 // A list of three kinds of objects. Also, new child appends to the left.
 declaration_specifiers
-	: storage_class_specifier							{ $$ = op( nd(DECL_SPEC_LIST, "decl-specs"), 0, 1, ej($1) ); }
-	| storage_class_specifier declaration_specifiers	{ $$ = op( $2, 1, 0, ej($1) ); }
-	| type_specifier									{ $$ = op( nd(DECL_SPEC_LIST, "decl-specs"), 0, 1, ej($1) ); }
-	| type_specifier declaration_specifiers				{ $$ = op( $2, 1, 0, ej($1) ); }
-	| type_qualifier									{ $$ = op( nd(DECL_SPEC_LIST, "decl-specs"), 0, 1, ej($1) ); }
-	| type_qualifier declaration_specifiers				{ $$ = op( $2, 1, 0, ej($1) ); }
+	: storage_class_specifier                        { $$ = op( nd(DECL_SPEC_LIST, "decl-specs"), 0, 1, ej($1) ); }
+	| storage_class_specifier declaration_specifiers { $$ = op( $2, 1, 0, ej($1) ); }
+	| type_specifier                                 { $$ = op( nd(DECL_SPEC_LIST, "decl-specs"), 0, 1, ej($1) ); }
+	| type_specifier declaration_specifiers          { $$ = op( $2, 1, 0, ej($1) ); }
+	| type_qualifier                                 { $$ = op( nd(DECL_SPEC_LIST, "decl-specs"), 0, 1, ej($1) ); }
+	| type_qualifier declaration_specifiers          { $$ = op( $2, 1, 0, ej($1) ); }
 	;
 
-// TESTED OK
+// TESTED OK - useless iff NULL
 init_declarator_list
-	: init_declarator							{ $$ = op( nd(INIT_DECL_LIST, "var-list"), 0, 1, ej($1) ); }
-	| init_declarator_list ',' init_declarator	{ $$ = op( $1, 0, 1, ej($3) ); }
+	: init_declarator { $$ = ($1) ? op( nd(INIT_DECL_LIST, "var-list"), 0, 1, ej($1) ) : NULL; }
+	| init_declarator_list ',' init_declarator {
+		if (($1) && ($3)) { $$ = op( $1, 0, 1, ej($3) ); } // both useful - simply append
+		else if ($1) { $$ = $1; } // new child useless
+		else if ($3) { $$ = op( nd(INIT_DECL_LIST, "var-list"), 0, 1, ej($3) ); } // first useful child
+		else { $$ = NULL; }
+	}
 	;
 
-// TESTED OK
+// TESTED OK - useless iff NULL
 init_declarator
-	: declarator					{ $$ = $1; }
-	| declarator '=' initializer	{ $$ = op( nd('=', $2), 0, 2, ej($1), ej($3) ); }
+	: declarator                 { $$ = NULL; } // { $$ = $1; }
+	| declarator '=' initializer { $$ = op( nd('=', $2), 0, 2, ej($1), ej($3) ); }
 	;
 
 // TESTED OK
@@ -259,6 +265,7 @@ type_specifier
 	| DOUBLE						{ $$ = nd(DOUBLE, $1); }
 	| SIGNED						{ $$ = nd(SIGNED, $1); }
 	| UNSIGNED						{ $$ = nd(UNSIGNED, $1); }
+	| FILE_OBJ						{ $$ = nd(FILE_OBJ, $1); }
 	| struct_or_union_specifier		{ $$ = $1; }
 	| enum_specifier				{ $$ = $1; } // TESTED OK
 	| TYPE_NAME						{ $$ = nd(TYPE_NAME, $1); } // never encountered in ANSI C (just a user defined type)
@@ -442,12 +449,12 @@ initializer_list
 	;
 
 statement
-	: labeled_statement		{ $$ = $1; }
-	| compound_statement	{ $$ = $1; }
-	| expression_statement	{ $$ = $1; }
-	| selection_statement	{ $$ = $1; }
-	| iteration_statement	{ $$ = $1; }
-	| jump_statement		{ $$ = $1; }
+	: labeled_statement    { $$ = $1; }
+	| compound_statement   { $$ = $1; }
+	| expression_statement { $$ = $1; }
+	| selection_statement  { $$ = $1; }
+	| iteration_statement  { $$ = $1; }
+	| jump_statement       { $$ = $1; }
 	;
 
 // TESTED OK
@@ -460,24 +467,34 @@ labeled_statement
 		{ $$ = op( mkGenNode(DEFAULT, $1, "style=filled,fillcolor=magenta"), 0, 1, ej($3) ); }
 	;
 
-// TESTED OK
+// TESTED OK - useless iff EMPTY_BLOCK (can't substitute NULL, since EMPTY_BLOCK is still a valid function definition)
 compound_statement
-	: '{' '}'											{ $$ = nd(EMPTY_BLOCK, "{}"); }
-	| '{' statement_list '}'							{ $$ = $2; }
-	| '{' declaration_list '}'							{ $$ = $2; }
-	| '{' declaration_list statement_list '}'			{ $$ = op( nd(GEN_BLOCK, "block"), 0, 2, ej($2), ej($3) ); }
+	: '{' '}'                                 { $$ = nd(EMPTY_BLOCK, $1); }
+	| '{' statement_list '}'                  { $$ = ($2) ? ($2) : nd(EMPTY_BLOCK, $1); }
+	| '{' declaration_list '}'                { $$ = ($2) ? ($2) : nd(EMPTY_BLOCK, $1); }
+	| '{' declaration_list statement_list '}' {
+		if (($2) && ($3)) { $$ = op( nd(GEN_BLOCK, "block"), 0, 2, ej($2), ej($3) ); }
+		else if ($2) { $$ = $2; } // only useful decl. list.
+		else if ($3) { $$ = $3; } // only useful stmt. list.
+		else { $$ = nd(EMPTY_BLOCK, $1); } // empty block
+	}
 	;
 
-// TESTED OK
+// TESTED OK - useless iff NULL
 declaration_list
-	: declaration					{ $$ = op( nd(DECL_LIST, "declarations"), 0, 1, ej($1) ); }
-	| declaration_list declaration	{ $$ = op( $1, 0, 1, ej($2) ); }
+	: declaration { $$ = ($1) ? op( nd(DECL_LIST, "declarations"), 0, 1, ej($1) ) : NULL; }
+	| declaration_list declaration	{
+		if ($1 && $2) { $$ = op( $1, 0, 1, ej($2) ); } // both useful - simply append
+		else if ($1) { $$ = $1; } // new child not useful
+		else if ($2) { $$ = op( nd(DECL_LIST, "declarations"), 0, 1, ej($2) ); } // first useful child
+		else { $$ = NULL; }
+	}
 	;
 
 // TESTED OK
 statement_list
-	: statement					{ $$ = op( nd(-1, "stmt-list"), 0, 1, ej($1) ); }
-	| statement_list statement	{ $$ = op( $1, 0, 1, ej($2) ); }
+	: statement                { $$ = op( nd(STMT_LIST, "stmt-list"), 0, 1, ej($1) ); }
+	| statement_list statement { $$ = op( $1, 0, 1, ej($2) ); }
 	;
 
 // TESTED OK
@@ -530,20 +547,28 @@ jump_statement
 	;
 
 translation_unit
-	: external_declaration					{ $$ = op( mkGenNode(-1, fileName, "shape=box"), 0, 1, ej($1) ); }
-	| translation_unit external_declaration	{ $$ = op( $1, 0, 1, ej($2) ); }
+	: external_declaration	{ $$ = AstRoot = op( mkGenNode(-1, fileName, "shape=box"), 0, 1, ej($1) ); }
+	| translation_unit external_declaration	{ $$ = AstRoot = op( $1, 0, 1, ej($2) ); }
 	;
 
 external_declaration
 	: function_definition		{ $$ = $1; }
-	| declaration				{ $$ = $1; }
+	| declaration { $$ = ($1) ? ($1) : NULL; }
 	;
 
 function_definition
-	: declaration_specifiers declarator declaration_list compound_statement { $$ = op(nd(FUNC_DEF,"function_definition"), 0, 4,ej($1), ej($2), ej($3), ej($4)); }
-	| declaration_specifiers declarator compound_statement { $$ = op(nd(FUNC_DEF,"function_definition"), 0, 3,ej($1), ej($2), ej($3)); }
-	| declarator declaration_list compound_statement { $$ = op(nd(FUNC_DEF,"function_definition"), 0, 3, ej($1),ej($2), ej($3)); }
-	| declarator compound_statement { $$ = op(nd(FUNC_DEF,"function_definition"), 0, 2,ej($1), ej($2)); }
+	: declaration_specifiers declarator declaration_list compound_statement {
+		$$ = ($3)
+		? op( nd(FUNC_DEF, "function_definition"), 0, 3, ej($2), ej($3), ej($4) )
+		: op( nd(FUNC_DEF, "function_definition"), 0, 2, ej($2), ej($4) );
+	}
+	| declaration_specifiers declarator compound_statement { $$ = op(nd(FUNC_DEF,"function_definition"), 0, 2, ej($2), ej($3)); }
+	| declarator declaration_list compound_statement {
+		$$ = ($2)
+		? op( nd(FUNC_DEF, "function_definition"), 0, 3, ej($1), ej($2), ej($3) )
+		: op( nd(FUNC_DEF, "function_definition"), 0, 2, ej($1), ej($3) );
+	}
+	| declarator compound_statement { $$ = op( nd(FUNC_DEF, "function_definition"), 0, 2, ej($1), ej($2) ); }
 	;
 
 %%

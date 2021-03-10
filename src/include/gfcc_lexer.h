@@ -17,6 +17,8 @@
 #define E_NO_FILES			(-5)
 #define E_TAB_LEN			(-6)
 
+#define MAX_QUEUE_LENGTH	(1000) // for now, a small limit
+
 #define UNINIT				(-10)
 #define INIT				(-11)
 #define FUNC_CALL			(-12) // () is function call
@@ -84,11 +86,15 @@ int column, token_column, token_line, tab_len, colorize, bad_char_seen;
 
 extern FILE *yyin, *yyout, *temp_out;
 
-char* fileName;
-
-char* yytext;
+char *fileName, *yytext;
 
 ull_t currNumNodes;
+
+extern ull_t q_head, q_tail; // enqueue at tail, dequeue from head
+
+node_t *Q[MAX_QUEUE_LENGTH + 1];
+
+node_t* AstRoot;
 
 void lexUnput(char);
 
@@ -124,9 +130,9 @@ int yyerror(char*);
 
 void dotStmt(const char*, ...);
 
-void dotNode(node_t*);
+void dotNode(FILE *, node_t*);
 
-void dotEdge(node_t*, edge_t*);
+void dotEdge(FILE *, node_t*, edge_t*);
 
 ull_t newNode();
 
@@ -154,6 +160,16 @@ extern node_t* (*op)(node_t*, int, int, ...); // short form
 // void ASTToDot(FILE*, node_t*); // temp_out, root
 
 char* cat(char*, char*);
+
+int Enqueue(node_t *);
+
+node_t *Dequeue();
+
+int IsEmpty();
+
+int accept(node_t *node);
+
+void AstToDot(FILE *, node_t *);
 
 #endif
 
