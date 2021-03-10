@@ -33,29 +33,30 @@ int main (int argc , char *argv[]) {
 
 
 	// maximum three more flags (-b, -c, -t) can be specified (apart from -o)
-	int brief = 0, t_flag = 0; // colorize is global param
-	for (int i = 0; i < 3; i++) {
-		int curr_pos = 1 + brief + colorize + (2 * t_flag);
+	// int brief = -1, t_flag = 0; // colorize is global param
+	// for (int i = 0; i < 3; i++) {
+	// 	int curr_pos = 1 + brief + colorize + (2 * t_flag);
 
-		brief |= isEqual(argv[curr_pos], "--brief", "-b");
-		colorize |= isEqual(argv[curr_pos], "--color", "-c");
+	// 	brief |= isEqual(argv[curr_pos], "--brief", "-b");
+	// 	colorize |= isEqual(argv[curr_pos], "--color", "-c");
 
-		if (isEqual(argv[curr_pos], "--tab-len", "-t")) {
-			t_flag = 1;
-			if ((2 + brief + colorize) >= argc) {
-				lex_err("Please specify desired tab length and also at least one input file. Use \"--help\" or \"-h\" for help.\n");
-				return E_TAB_LEN;
-			}
-			if ((tab_len = atoi(argv[2 + brief + colorize])) < 1) {
-				lex_err("Tab length must be a positive integer. Use \"--help\" or \"-h\" for help.\n");
-				return E_TAB_LEN;
-			}
-		}
-	}
+	// 	if (isEqual(argv[curr_pos], "--tab-len", "-t")) {
+	// 		t_flag = 1;
+	// 		if ((2 + brief + colorize) >= argc) {
+	// 			lex_err("Please specify desired tab length and also at least one input file. Use \"--help\" or \"-h\" for help.\n");
+	// 			return E_TAB_LEN;
+	// 		}
+	// 		if ((tab_len = atoi(argv[2 + brief + colorize])) < 1) {
+	// 			lex_err("Tab length must be a positive integer. Use \"--help\" or \"-h\" for help.\n");
+	// 			return E_TAB_LEN;
+	// 		}
+	// 	}
+	// }
 
 
 	// CHECK FILE LIST AND ALSO SEARCH OPTION [--output|-o]
-	int start = 1 + brief + colorize + (2 * t_flag), o_flag_index = -1;
+	// int start = 1 + brief + colorize + (2 * t_flag), o_flag_index = -1;
+	int start = 1, o_flag_index = -1;
 	for (int i = start; i < argc; i++) {
 		if (isEqual(argv[i], "--output", "-o")) {
 			if (o_flag_index < 0) o_flag_index = i;
@@ -129,14 +130,14 @@ int main (int argc , char *argv[]) {
 			fileName = strdup(argv[start + i]);
 		}
 
-		fprintf(temp_out, "digraph {\n");
-
 		// PostScript OK. Try to adjust for actual PDF (although not required).
-		// fprintf(temp_out, "\tsize=\"8.25,11.75!\" ratio = \"fit\";\n\n");
 
 		int parse_return = yyparse();
 
 		printf("yyparse() = %d\n", parse_return);
+		
+		if (!parse_return) AstToDot(temp_out, AstRoot);
+		temp_out = NULL; // reset for next file
 
 		// fprintf(temp_out, "}\n");
 		// if (!temp_out) {
@@ -195,10 +196,6 @@ int main (int argc , char *argv[]) {
 
 		// // TRY USING THIS FOR PRINTING IN LEXICAL ANALYSIS TOO
 		// fprintTokens(temp_out ? temp_out : stdout, tok_str, (unsigned long int) total_tokens, brief);
-
-		if (!parse_return) AstToDot(temp_out, AstRoot);
-
-		temp_out = NULL; // reset for next file
 	}
 
 	return file_failures;
