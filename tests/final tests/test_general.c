@@ -1,9 +1,6 @@
 #include <stdio.h>
 
-char func(int a, float *f)
-{
-	return a + *f;
-}
+char func(int,float*);
 
 int main()
 {
@@ -33,4 +30,9 @@ int main()
 		good : ;
 	}
 	return 0;
+}
+
+char func(int a, float *f)
+{
+	return a + *f;
 }
