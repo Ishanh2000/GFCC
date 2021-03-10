@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 3.10.2)
 
 project(GFCC VERSION 0.1)
 
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/include/gfcc_meta.h.in
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/include/generated/gfcc_meta.h
+)
+
+
 # specify the C++ standard
 # set(CMAKE_CXX_STANDARD 11)
 # set(CMAKE_CXX_STANDARD_REQUIRED True)
