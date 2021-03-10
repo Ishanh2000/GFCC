@@ -13,7 +13,7 @@ Target (T): MIPS (might change, if backend can be better implemented on another 
 ### Usage:
 Building Project:
 ```bash
-  # will generate lexer binary in bin/
+  # will generate parser binary in bin/
   ./runme.sh build
 ```
 Cleaning Project;
@@ -23,7 +23,7 @@ Cleaning Project;
 ```
 Clean and Build;
 ```bash
-  # Will clean all the generated files
+  # Will clean all the generated files and rebuild binary
   ./runme.sh rebuild
 ```
 Running parser:
