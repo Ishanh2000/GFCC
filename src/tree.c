@@ -134,8 +134,12 @@ int IsEmpty() {
 }
 
 int accept(node_t *node) {
-	if (node->tok_type == DECL_SPEC_LIST) return 0;
-	return 1;
+	switch (node->tok_type)
+	{
+		case DECL_SPEC_LIST: return 0;
+		case PARAM_TYPE_LIST: return 0;
+		default: 	return 1;
+	}
 }
 
 void AstToDot(FILE *f_out, node_t *root) { // Do a DFS/BFS (BFS being done here)

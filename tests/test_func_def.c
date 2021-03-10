@@ -10,6 +10,10 @@ int q4(int g, ...){}
 int q5(){}
 short int main()
 {
+  // register *const const *(**abcd)(int *x, const char **, void *(*)(),...);
+  // register *const const *(**abcd)(int *x, const char **, void *(*)(),...) = NULL;
+  register *const const *(**abcd)(x,c,a) = NULL;
+
   q2(2,33.5);
   a(4,5);
 }
