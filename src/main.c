@@ -134,10 +134,12 @@ int main (int argc , char *argv[]) {
 
 		int parse_return = yyparse();
 
-		printf("yyparse() = %d\n", parse_return);
+		// printf("yyparse() = %d\n", parse_return);
 		
 		if (!parse_return) AstToDot(temp_out, AstRoot);
 		temp_out = NULL; // reset for next file
+		token_line = token_column = 1;
+		column = 1;
 
 		// fprintf(temp_out, "}\n");
 		// if (!temp_out) {

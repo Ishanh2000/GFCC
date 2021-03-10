@@ -393,8 +393,8 @@ parameter_declaration
 	;
 
 identifier_list
-	: IDENTIFIER                       { printf("IL1\n"); $$ = op( nd(ID_LIST, "identifiers"), 0, 1, ej(nd(IDENTIFIER, $1)) ); }
-	| identifier_list ',' IDENTIFIER   { printf("IL2\n"); $$ = op( $1, 0, 1, ej(nd(IDENTIFIER, $3)) );}
+	: IDENTIFIER                       { $$ = op( nd(ID_LIST, "identifiers"), 0, 1, ej(nd(IDENTIFIER, $1)) ); }
+	| identifier_list ',' IDENTIFIER   { $$ = op( $1, 0, 1, ej(nd(IDENTIFIER, $3)) );}
 	;
 
 type_name
@@ -559,7 +559,7 @@ translation_unit
 
 external_declaration
 	: function_definition		{ $$ = $1; }
-	| declaration { printf("HERE2: %p\n", $1); $$ = ($1) ? ($1) : NULL; }
+	| declaration { $$ = ($1) ? ($1) : NULL; }
 	;
 
 function_definition

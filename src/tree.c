@@ -40,7 +40,7 @@ ull_t newNode() {
 }
 
 node_t* mkGenNode(int tok_type, char* label, char* attr) { // label is lexeme. attr may be NULL.
-	printf("Here: %s\n", label);
+	// printf("Here: %s\n", label);
 	node_t *node = (node_t*) malloc(sizeof(node_t)); if (!node) return NULL;
 
 	node->id = newNode(); node->tok_type = tok_type;
