@@ -7,7 +7,7 @@ IS			(u|U|l|L)*
 
 %{
 
-#include <stdio.h>
+#include <cstdio>
 #include <parser.tab.h>
 #include <gfcc_lexer.h>
 
@@ -120,7 +120,7 @@ L?\"(\\.|[^\\"])*\"			{ yylval.terminal = strdup(yytext); count(); return (STRIN
 // SYMBOLS DEFINED BY FLEX/LEX USING #define HAVE BEEN PUT INSIDE A WRAPPER.
 // SO FUNCTION-LIKE SYMBOL IS ACTUALLY A FUNCTION.
 
-char lexInput() { return input(); } // #define to function
+char lexInput() { return yyinput(); } // #define to function
 
 void lexUnput(char c) { unput(c); } // #define to function
 

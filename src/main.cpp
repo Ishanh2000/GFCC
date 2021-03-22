@@ -1,8 +1,8 @@
 // AUM SHREEGANESHAAYA NAMAH|| // DIETY INVOCATION
-#include <stdio.h>
-#include <string.h>
-#include <stdarg.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstring>
+#include <cstdarg>
+#include <cstdlib>
 #include <parser.tab.h>
 #include <gfcc_lexer.h>
 
@@ -15,7 +15,8 @@ FILE *temp_out = NULL; // if this is NULL, use stdout
 int tab_len = TAB_LEN;
 int bad_char_seen = 0; // to notify parser
 ull_t currNumNodes = 0; // invariant: currNumNodes > 0 for all existing nodes.
-node_t *AstRoot = NULL;
+node_t* AstRoot = NULL;
+char * fileName = NULL;
 
 int main (int argc , char *argv[]) {
 	// ARGC TOO FEW
@@ -203,7 +204,7 @@ int main (int argc , char *argv[]) {
 	return file_failures;
 }
 
-char* getTokenName(int tok_num, char* lexeme) {
+const char* getTokenName(int tok_num, const char* lexeme) {
 	return (tok_num < IDENTIFIER || tok_num > RETURN) ? lexeme : TOKEN_NAME_ARRAY[tok_num - IDENTIFIER];
 }
 
@@ -248,7 +249,7 @@ void handle_bad_char() {
 	lex_err("Bad character (%s) seen at line %d, column %d.\n", yytext, token_line, token_column);
 }
 
-int isEqual(char* option, char* a, char* b) { // return 1 iff option matched a OR b
+int isEqual(const char* option, const char* a, const char* b) { // return 1 iff option matched a OR b
 	if (!option || !(a || b)) return 0;
 	if (!a) return !strcmp(option, b); // compare with b if a not given
 	if (!b) return !strcmp(option, a);
@@ -285,7 +286,7 @@ void fprintTokens(FILE *f, token_t* tok_str, unsigned long int size, int brief) 
 	if (!(f && tok_str)) return;
 	for (unsigned long int i = 0; i < size; i++) {
 		int _id = tok_str[i].id, _line = tok_str[i].line, _column = tok_str[i].column;
-		char *_lexeme = tok_str[i].lexeme, *_name = getTokenName(_id, _lexeme);
+		const char *_lexeme = tok_str[i].lexeme, *_name = getTokenName(_id, _lexeme);
 
 		if (brief)	fprintf(f, "%-18s %-30s %d:%d\n", _name, _lexeme, _line, _column);
 		else		fprintf(f, "%-8d %-18s %-30s %-8d %-8d\n", _id, _name, _lexeme, _line, _column);

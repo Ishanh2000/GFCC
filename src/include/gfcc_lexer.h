@@ -1,10 +1,10 @@
 // AUM SHREEGANESHAAYA NAMAH|| // DIETY INVOCATION
-#include <stdio.h>
-#include <gfcc_meta.h>
-#include <gfcc_colors.h>
-
 #ifndef __GFCC_LEXER__
 #define __GFCC_LEXER__
+
+#include <cstdio>
+#include <gfcc_meta.h>
+#include <gfcc_colors.h>
 
 // TAB LENGTH
 #define TAB_LEN 8
@@ -16,8 +16,6 @@
 #define E_NUM_IO_UNEQUAL	(-4)
 #define E_NO_FILES			(-5)
 #define E_TAB_LEN			(-6)
-
-#define MAX_QUEUE_LENGTH	(1000) // for now, a small limit
 
 #define UNINIT				(-10)
 #define INIT				(-11)
@@ -59,7 +57,7 @@ typedef unsigned long long ull_t;
 
 typedef struct _token_t {
 	int id; // type
-	char* lexeme;
+	const char* lexeme;
 	int line;
 	int column;
 } token_t;
@@ -67,8 +65,8 @@ typedef struct _token_t {
 typedef struct _node_t {
 	ull_t id;
 	int tok_type; // [ IDENTIFIER | CONSTANT | STRING_LITERAL | some other | -1 ] (else -1, usually for internal nodes)
-	char* label;
-	char* attr;
+	const char* label;
+	const char* attr;
 	struct _node_t *parent;
 	int numChild;
 	struct _edge_t **edges;
@@ -76,25 +74,23 @@ typedef struct _node_t {
 
 typedef struct _edge_t {
 	struct _node_t *node;
-	char *label;
-	char *attr;
+	const char *label;
+	const char *attr;
 } edge_t;
 
-extern char* TOKEN_NAME_ARRAY[]; // make this const
+extern const char* TOKEN_NAME_ARRAY[]; // make this const
 
-int column, token_column, token_line, tab_len, colorize, bad_char_seen;
+extern int column, token_column, token_line, tab_len, colorize, bad_char_seen;
 
 extern FILE *yyin, *yyout, *temp_out;
 
-char *fileName, *yytext;
+extern char *fileName, *yytext;
 
-ull_t currNumNodes;
+extern ull_t currNumNodes;
 
 extern ull_t q_head, q_tail; // enqueue at tail, dequeue from head
 
-node_t *Q[MAX_QUEUE_LENGTH + 1];
-
-node_t* AstRoot;
+extern node_t* AstRoot;
 
 void lexUnput(char);
 
@@ -106,7 +102,7 @@ void comment(); // [DO NOT CHANGE NAME] for multi-line comment (MLC)
 
 int check_type();
 
-int isEqual(char*, char*, char*); // check if first is equal to second ot third
+int isEqual(const char*, const char*, const char*); // check if first is equal to second ot third
 
 void lex_err(const char*, ...); // printf wrapper for colorized output
 
@@ -114,7 +110,7 @@ void lex_warn(const char*, ...); // printf wrapper for colorized output
 
 void handle_bad_char(); // to handle errors
 
-char* getTokenName(int, char*); // get token name (type) using TOKEN_NAME_ARRAY
+const char* getTokenName(int, const char*); // get token name (type) using TOKEN_NAME_ARRAY
 
 void fprintTokens(FILE*, token_t*, unsigned long int, int); // TRY USING THIS FOR SCANNING (LEXICAL ANALYSIS)
 
@@ -124,9 +120,9 @@ void update_location(char);
 
 // int yywrap();
 
-int yylex();
+extern "C" int yylex();
 
-int yyerror(char*);
+int yyerror(const char*);
 
 void dotStmt(const char*, ...);
 
@@ -137,15 +133,15 @@ void dotEdge(FILE *, node_t*, edge_t*);
 ull_t newNode();
 
 // token_type, label, attr
-node_t* mkGenNode(int, char*, char*); // attr may be NULL
+node_t* mkGenNode(int, const char*, const char*); // attr may be NULL
 
 // token_type, label
-node_t* mkNode(int, char*); // attr will be passed to mkGenNode as NULL
+node_t* mkNode(int, const char*); // attr will be passed to mkGenNode as NULL
 
-extern node_t* (*nd)(int, char*); // short form
+extern node_t* (*nd)(int, const char*); // short form
 
 // child, label, attr
-edge_t* mkGenEdge(node_t*, char*, char*); // label, attr may be NULL
+edge_t* mkGenEdge(node_t*, const char*, const char*); // label, attr may be NULL
 
 // child
 edge_t* mkEdge(node_t*); // label, attr will be passed to mkGenEdge as NULL
@@ -159,7 +155,7 @@ extern node_t* (*op)(node_t*, int, int, ...); // short form
 
 // void ASTToDot(FILE*, node_t*); // temp_out, root
 
-char* cat(char*, char*);
+// char* cat(char*, char*);
 
 int Enqueue(node_t *);
 
@@ -172,4 +168,3 @@ int accept(node_t *node);
 void AstToDot(FILE *, node_t *);
 
 #endif
-

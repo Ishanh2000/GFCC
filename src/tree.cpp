@@ -1,13 +1,14 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <cstdarg>
 #include <gfcc_lexer.h>
+#include <gfcc_tree.h>
 #include <parser.tab.h>
 
 // Find "ASSUMPTION" to see all assumptions made.
 
-int yyerror(char *s) {
+int yyerror(const char *s) {
 	fflush(stdout);
 	printf("\n%*s\n%d:%d:: %*s\n", column, "^", token_line, token_column, column, s);
 }
@@ -22,7 +23,7 @@ void dotNode(FILE *f_out, node_t* node) {
 
 void dotEdge(FILE *f_out, node_t* parent, edge_t* e) { // just a wrapper function
 	fprintf(f_out, "\t%lld -> %lld", parent->id, e->node->id);
-	char *label = e->label, *attr = e->attr;
+	const char *label = e->label, *attr = e->attr;
 
 	if (label || attr) {
 		fprintf(f_out, " [");
@@ -39,7 +40,7 @@ ull_t newNode() {
 	return ++currNumNodes;
 }
 
-node_t* mkGenNode(int tok_type, char* label, char* attr) { // label is lexeme. attr may be NULL.
+node_t* mkGenNode(int tok_type, const char* label, const char* attr) { // label is lexeme. attr may be NULL.
 	// printf("Here: %s\n", label);
 	node_t *node = (node_t*) malloc(sizeof(node_t)); if (!node) return NULL;
 
@@ -50,22 +51,23 @@ node_t* mkGenNode(int tok_type, char* label, char* attr) { // label is lexeme. a
 	node->numChild = 0;
 
 	// A STRING_LITERAL label will have "" included
+	char * newlabel = strdup(label);
 	if (tok_type == STRING_LITERAL) { // assured that label lies in HEAP
-		int end = 0; while(label[end]) end++; label[end - 1] = '\0'; // latter "
-		label += 1; // former "
+		int end = 0; while(newlabel[end]) end++; newlabel[end - 1] = '\0'; // latter "
+		newlabel += 1; // former "
 	}
-	node->label = label; // no need to copy since not mutating (Heap | Read-Only)
+	node->label = newlabel; // no need to copy since not mutating (Heap | Read-Only)
 
 	return node;
 }
 
-node_t* mkNode(int tok_type, char* label) {
-	return mkGenNode(tok_type, label, NULL);
+node_t* mkNode(int tok_type, const char* label) {
+	return mkGenNode(tok_type, strdup(label), NULL);
 }
 
-node_t* (*nd)(int, char*) = mkNode; // short form
+node_t* (*nd)(int, const char*) = mkNode; // short form
 
-edge_t* mkGenEdge(node_t* node, char* label, char* attr) {
+edge_t* mkGenEdge(node_t* node, const char* label, const char* attr) {
 	edge_t* e = (edge_t*) malloc(sizeof(edge_t));
 	if (!e) return NULL;
 	e->node = node; e->label = label; e->attr = attr;

@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <cstdio>
 #include <gfcc_meta.h>
 
 void gfcc_lexer_version() {
