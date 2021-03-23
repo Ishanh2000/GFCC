@@ -32,30 +32,7 @@ int main (int argc , char *argv[]) {
 	if (isEqual(argv[1], "--version", "-v")) { gfcc_lexer_version(); return 0; }
 
 
-	// maximum three more flags (-b, -c, -t) can be specified (apart from -o)
-	// int brief = -1, t_flag = 0; // colorize is global param
-	// for (int i = 0; i < 3; i++) {
-	// 	int curr_pos = 1 + brief + colorize + (2 * t_flag);
-
-	// 	brief |= isEqual(argv[curr_pos], "--brief", "-b");
-	// 	colorize |= isEqual(argv[curr_pos], "--color", "-c");
-
-	// 	if (isEqual(argv[curr_pos], "--tab-len", "-t")) {
-	// 		t_flag = 1;
-	// 		if ((2 + brief + colorize) >= argc) {
-	// 			lex_err("Please specify desired tab length and also at least one input file. Use \"--help\" or \"-h\" for help.\n");
-	// 			return E_TAB_LEN;
-	// 		}
-	// 		if ((tab_len = atoi(argv[2 + brief + colorize])) < 1) {
-	// 			lex_err("Tab length must be a positive integer. Use \"--help\" or \"-h\" for help.\n");
-	// 			return E_TAB_LEN;
-	// 		}
-	// 	}
-	// }
-
-
 	// CHECK FILE LIST AND ALSO SEARCH OPTION [--output|-o]
-	// int start = 1 + brief + colorize + (2 * t_flag), o_flag_index = -1;
 	int start = 1, o_flag_index = -1;
 	for (int i = start; i < argc; i++) {
 		if (isEqual(argv[i], "--output", "-o")) {
@@ -140,64 +117,7 @@ int main (int argc , char *argv[]) {
 		temp_out = NULL; // reset for next file
 		token_line = token_column = 1;
 		column = 1;
-
-		// fprintf(temp_out, "}\n");
-		// if (!temp_out) {
-		// 	printf(i > 0 ? "\n" : "");
-		// 	printf("Token Stream for file \"%s\":\n", argv[start + i]);
-		// }
-
-		// if (colorize && !temp_out) printf("%s%s", _C_BOLD_, _FORE_GREEN_);
-		// if (brief) {
-		// 	fprintf(temp_out ? temp_out : stdout, "%-18s %-30s %-10s\n", "TOKEN NAME", "LEXEME", "LOCATION");
-		// 	fprintf(temp_out ? temp_out : stdout, "------------------ ------------------------------ ----------\n");
-		// } else {
-		// 	fprintf(temp_out ? temp_out : stdout, "%-8s %-18s %-30s %-8s %-8s\n", "TOKEN #", "TOKEN NAME", "LEXEME", "LINE #", "COLUMN #");
-		// 	fprintf(temp_out ? temp_out : stdout, "-------- ------------------ ------------------------------ -------- --------\n");
-		// }
-		// if (colorize && !temp_out) printf(_C_NONE_);
-		
-		// column = token_line = token_column = 1;
-
-		// int token, total_tokens = 0;
-		// token_t *tok_str = NULL;
-		// if (
-		// 	fseek(temp_in, 0, SEEK_END) || !( tok_str = malloc(ftell(temp_in) * sizeof(token_t)) )
-		// ) lex_warn("Could not get size of file \"%s\". Will skip parsing.\n", argv[start + i]);
-		
-		// fseek(temp_in, 0, SEEK_SET); // return to beginning of the file. Assume success for now - lift assumption later.
-
-		// while ((token = yylex()) > 0) {
-		// 	if (tok_str) {
-		// 		tok_str[total_tokens].id = token;
-		// 		tok_str[total_tokens].lexeme = malloc(sizeof(char) * (strlen(yytext) + 1));
-		// 		strcpy(tok_str[total_tokens].lexeme, yytext);
-		// 		tok_str[total_tokens].line = token_line;
-		// 		tok_str[total_tokens].column = token_column;
-		// 	}
-			
-		// 	char* token_name = getTokenName(token, yytext);
-		// 	if (brief)	fprintf(temp_out ? temp_out : stdout, "%-18s %-30s %d:%d\n", token_name, yytext, token_line, token_column);
-		// 	else		fprintf(temp_out ? temp_out : stdout, "%-8d %-18s %-30s %-8d %-8d\n", token, token_name, yytext, token_line, token_column);
-		// 	total_tokens++;
-		// }
-
-		// if (colorize && !temp_out) printf("%s%s", _C_BOLD_, _FORE_GREEN_);
-		// fprintf(temp_out ? temp_out : stdout, "*** TOTAL TOKENS = %d ***\n", total_tokens);
-		// if (colorize && !temp_out) printf(_C_NONE_);
-
-		// if (bad_char_seen) {
-		// 	if (tok_str) lex_warn("Bad characters encountered. Skipping parsing...\n");
-		// 	tok_str = NULL;
-		// }
-
-		// if (tok_str) {
-		// 	token_t* tmp = realloc(tok_str, total_tokens * sizeof(token_t));
-		// 	if (tmp) tok_str = tmp; // else not a very critical issue
-		// }
-
-		// // TRY USING THIS FOR PRINTING IN LEXICAL ANALYSIS TOO
-		// fprintTokens(temp_out ? temp_out : stdout, tok_str, (unsigned long int) total_tokens, brief);
+				
 	}
 
 	return file_failures;
