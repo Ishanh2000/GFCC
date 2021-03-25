@@ -11,6 +11,7 @@
 int yyerror(const char *s) {
 	fflush(stdout);
 	printf("\n%*s\n%d:%d:: %*s\n", column, "^", token_line, token_column, column, s);
+	return -1; // check this later on
 }
 
 void dotNode(FILE *f_out, node_t* node) {

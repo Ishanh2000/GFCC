@@ -8,28 +8,29 @@ typedef unsigned long int ull;
 
 class tab_header {
   public:
-    std::string name;
+    string name;
     tab_header(){}
 };
 
 
-class symbol {
+class sym {
   string name;
   ull type;
   public:
-    symbol(string name, ull type){}
+    sym(string name, ull type){}
+    bool matchesName(string);
 };
 
 
 class symtab {
   public:
     symtab* parent;
-    vector<symbol*> vars;
+    vector<sym*> vars;
     vector<symtab*> child_scopes;
     tab_header header;
   
     symtab(symtab* parent) {}
-    symbol* search_symbol(string name);
+    sym* search_symbol(string name);
     void add_symbol(string name, ull type);
 };
 
@@ -43,7 +44,7 @@ class symtab_root {
   }
   void close_scope() { }
   void new_scope();
-  symbol* lookup(string name);
+  sym* lookup(string name);
 };
 
 #endif

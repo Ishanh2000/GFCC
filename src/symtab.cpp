@@ -5,41 +5,47 @@
 using namespace std;
 typedef unsigned long int ull;
 
-class tab_header {
+class tab_header { // why a separate class just for header? just a mask for string class. - ask Prashant.
   public:
-    std::string name;
+    string name;
     tab_header(){}
 };
 
-class symbol {
+class sym {
   string name;
   ull type;
+  // Derive a scheme: type must have space enough for attributes: isFunc,
+  // isStatic, isVolatile, isConst, etc. - will discover with progress.
+  // More constructors required apart from a "generic" constrtuctor.
   public:
-    symbol(string name, ull type) {
-      this->name = name;
-      this->type = type;
-    }
+    // constructor (use initializer list wherever possible, and short names)
+    sym(string _name, ull _type) : name(_name), type(_type) { }
+    bool matchesName(string _name) { return (name == _name); } // use a shorter name. could make "name" puclic?
+  
 };
 
 
 class symtab {
   public:
-    symtab* parent;
-    vector<symbol*> vars;
-    vector<symtab*> child_scopes;
-    tab_header header;
-  
-    symtab(symtab* parent) {
-      this->parent = parent;
-    }
+    tab_header header; // name (string mask)
+    symtab* parent = NULL; // parent symbol table
+    vector<symtab*> child_scopes; // children symbol tables
+    vector<sym*> vars; // symbols
     
-    symbol* search_symbol(string name) {
-      // TODO
+    // Keep all constructors and destructors here.
+    // symtab() : parent(NULL);
+    symtab(symtab* _parent) : parent(_parent) { }
+    
+    sym* getSym(string name) { // search symbol by name
+      if (name == "") return NULL;
+      for (int i = 0; i < vars.size(); i++) {
+        if (vars[i]->matchesName(name)) return vars[i];
+      }
       return NULL;
     }
 
     void add_symbol(string name, ull type) {
-      auto new_symbol = new symbol(name, type);
+      auto new_symbol = new sym(name, type);
       // TODO add error check, scope check
       vars.push_back(new_symbol);
     }
@@ -63,11 +69,11 @@ class symtab_root {
     curr_scope = new_scope;
   }
   
-  symbol* lookup(string name) {
+  sym* lookup(string name) {
     symtab* run_scope = curr_scope;
-    symbol* symb = NULL;
+    sym* symb = NULL;
     while(run_scope != NULL) {
-      symb = run_scope->search_symbol(name);
+      symb = run_scope->getSym(name);
       if(symb != NULL) {
         return symb;
       }
@@ -76,3 +82,7 @@ class symtab_root {
     return NULL;
   }
 };
+
+void testSuite() {
+
+}
