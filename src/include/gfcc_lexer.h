@@ -70,6 +70,7 @@ typedef struct _node_t {
 	struct _node_t *parent;
 	int numChild;
 	struct _edge_t **edges;
+	// int line, column; // for error reporting
 } node_t;
 
 typedef struct _edge_t {

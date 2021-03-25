@@ -1,88 +1,203 @@
-#include<symtab.h>
-#include<string>
-#include<vector>
+// AUM SHREEGANESHAAYA NAMAH||
 
-using namespace std;
+/************************ NOTE TO THE DEVELOPER ************************
+ * SEE <proj_root>/src/include/symtab.h for description of various classes,
+   members, methods, etc.
+ * Search "TODO" for things to do.
+ * Search "ASSUMPTIONS" for assumptions.
+ * Execution using: g++ -DSYMTEST -DSYMDEBUG symtab.cpp -Iinclude
+************************************************************************/
+
+#include <iostream>
+#include <symtab.h>
+#include <string>
+#include <vector>
+
+#ifdef SYMDEBUG
+const bool dbg = true;
+#else
+const bool dbg = false;
+#endif
+
 typedef unsigned long int ull;
 
-class tab_header { // why a separate class just for header? just a mask for string class. - ask Prashant.
-  public:
-    string name;
-    tab_header(){}
-};
+using namespace std;
 
-class sym {
-  string name;
-  ull type;
-  // Derive a scheme: type must have space enough for attributes: isFunc,
-  // isStatic, isVolatile, isConst, etc. - will discover with progress.
-  // More constructors required apart from a "generic" constrtuctor.
-  public:
-    // constructor (use initializer list wherever possible, and short names)
-    sym(string _name, ull _type) : name(_name), type(_type) { }
-    bool matchesName(string _name) { return (name == _name); } // use a shorter name. could make "name" puclic?
-  
-};
-
-
-class symtab {
-  public:
-    tab_header header; // name (string mask)
-    symtab* parent = NULL; // parent symbol table
-    vector<symtab*> child_scopes; // children symbol tables
-    vector<sym*> vars; // symbols
-    
-    // Keep all constructors and destructors here.
-    // symtab() : parent(NULL);
-    symtab(symtab* _parent) : parent(_parent) { }
-    
-    sym* getSym(string name) { // search symbol by name
-      if (name == "") return NULL;
-      for (int i = 0; i < vars.size(); i++) {
-        if (vars[i]->matchesName(name)) return vars[i];
-      }
-      return NULL;
-    }
-
-    void add_symbol(string name, ull type) {
-      auto new_symbol = new sym(name, type);
-      // TODO add error check, scope check
-      vars.push_back(new_symbol);
-    }
-    
-
-};
-
-class symtab_root {
-  symtab* curr_scope;
-  symtab* root;
-  symtab_root() {
-    root = new symtab(NULL);
-    curr_scope = root;
-  }
-  void close_scope() {
-    curr_scope = curr_scope->parent;
-  }
-  void new_scope() {
-    symtab* new_scope = new symtab(curr_scope);
-    curr_scope->child_scopes.push_back(new_scope);
-    curr_scope = new_scope;
-  }
-  
-  sym* lookup(string name) {
-    symtab* run_scope = curr_scope;
-    sym* symb = NULL;
-    while(run_scope != NULL) {
-      symb = run_scope->getSym(name);
-      if(symb != NULL) {
-        return symb;
-      }
-      run_scope = run_scope->parent;
-    }
-    return NULL;
-  }
-};
-
-void testSuite() {
-
+bool acceptType(ull type) {
+  // analyze type properly. eg: return 0 if "auto static int"
+  // TODO
+  return true;
 }
+
+/************ CLASS "sym" ************/
+// TODO: see how to prevent instantiation if acceptType(type) == false
+sym::sym(string _name, ull _type) : name(_name), type(_type) { }
+
+
+/************ CLASS "symtab" ************/
+symtab::symtab() { } // do nothing - initialization in class declaration
+
+symtab::symtab(symtab* _parent) : parent(_parent) { }
+
+symtab::~symtab() {
+  int l1 = subScopes.size(), l2 = syms.size();
+  for (int i = 0; i < l1; i++) {
+    if (dbg) cout << "deleting subscope " << i << endl;
+    delete subScopes[i];
+  }
+  for (int i = 0; i < l2; i++) {
+    if (dbg) cout << "deleting " << syms[i]->name << endl;
+    delete syms[i];
+  }
+}
+
+sym* symtab::srchSym(string _name) { // search symbol by name
+  if (_name == "") return NULL; // not required, but a speedup.
+
+  int l = syms.size();
+  for (int i = 0; i < l; i++) {
+    if (syms[i]->name == _name) return syms[i];
+  }
+  return NULL;
+}
+
+bool symtab::pushSym(sym* newSym) {
+  if (!newSym || srchSym(newSym->name)) {
+    if (dbg) cout << "WARNING: Could not push new symbol in current scope." << endl;
+    return false;
+  }
+  if (dbg) cout << "inserting " << newSym->name << endl;
+  syms.push_back(newSym);
+  return true;
+}
+
+bool symtab::pushSym(string _name, ull _type) {
+  if (_name == "" || !acceptType(_type) || srchSym(_name)) {
+    if (dbg) cout << "WARNING: Could not push \"" << _name << "\" in current scope." << endl;
+    return false;
+  }
+  return pushSym(new sym(_name, _type));
+  // sym* newSym = new sym(_name, _type);
+  // if (!newSym) return false;
+  // if (dbg) cout << "inserting " << _name << endl;
+  // syms.push_back(newSym);
+  // return true;
+}
+
+symRoot::symRoot() {
+  currScope = root = new symtab(); // handle exception if returns NULL
+  if (dbg) {
+    if (!root) cout << "WARNING Could not open global scope." << endl;
+    else cout << "Global scope opened succesfully." << endl;
+  }
+}
+
+symRoot::~symRoot() {
+  delete root;
+}
+
+bool symRoot::newScope() {
+  if (!currScope) return false;
+  symtab* new_scope = new symtab(currScope);
+  if (!new_scope) return false;
+  currScope->subScopes.push_back(new_scope);
+  currScope = new_scope;
+  if (dbg) cout << "opening new scope" << endl;
+  return true;
+}
+
+void symRoot::closeScope() {
+  if (currScope && (currScope != root)) {
+    if (dbg) cout << "closing existing scope" << endl;
+    currScope = currScope->parent;
+  } else {
+    if (dbg) cout << "WARNING: Cannot close global scope!!!" << endl;
+  }
+  // In future, can add functionality to delete currScope - NOT NOW.
+  // Hence, "closing" and "deleting" scopes are two DIFFERENT things.
+}
+
+sym* symRoot::lookup(string _name) {
+  symtab* run_scope = currScope;
+
+  while (run_scope) {
+    sym* symb = run_scope->srchSym(_name);
+    if (symb) return symb; // found
+    run_scope = run_scope->parent; // check in parent
+  }
+
+  return NULL; // not found
+}
+
+bool symRoot::pushSym(sym* newSym) {
+  if (!currScope) return false;
+  return currScope->pushSym(newSym);
+}
+
+bool symRoot::pushSym(string _name, ull _type) {
+  if (!currScope) return false;
+  return currScope->pushSym(_name, _type);
+}
+
+
+/******************************************************************/
+/************************ TEST SUITES HERE ************************/
+/******************************************************************/
+  
+void testSymTab() {
+  symtab st;
+  st.srchSym("");
+  st.pushSym(new sym("praskr", 123));
+  st.pushSym("deba", 456);
+  st.pushSym(new sym("praskr", 123));
+  st.srchSym("padnda");
+  st.srchSym("deba");
+  st.srchSym("priyanag");
+}
+
+void testSymRoot() {
+  symRoot sr;
+  sr.pushSym("main", 0);
+  sr.newScope();
+  sr.pushSym("x", 45);
+  sr.lookup("x");
+  sr.lookup("y");
+  sr.pushSym("x", 45);
+  sr.newScope(); sr.newScope(); sr.newScope();
+  sr.newScope(); sr.newScope();
+  sr.closeScope(); sr.closeScope(); sr.closeScope(); sr.closeScope();
+  sr.closeScope(); sr.closeScope(); sr.closeScope(); sr.closeScope();
+  sr.pushSym("main", 0);
+  sr.pushSym("maina", 0);
+  sr.newScope();
+  sr.pushSym("x", 45);
+  sr.lookup("x");
+  sr.lookup("y");
+  sr.pushSym("x", 45);
+  sr.newScope(); sr.newScope(); sr.newScope();
+  sr.newScope(); sr.newScope();
+  sr.closeScope(); sr.closeScope(); sr.closeScope(); sr.closeScope();
+  sr.closeScope(); sr.closeScope(); sr.closeScope(); sr.closeScope();
+  sr.pushSym("maina", 0);
+  sr.pushSym("mainb", 0);
+  sr.newScope();
+  sr.pushSym("x", 45);
+  sr.lookup("x");
+  sr.lookup("y");
+  sr.pushSym("x", 45);
+  sr.newScope(); sr.newScope(); sr.newScope();
+  sr.newScope(); sr.newScope();
+  sr.closeScope(); sr.closeScope(); sr.closeScope(); sr.closeScope();
+  sr.closeScope(); sr.closeScope(); sr.closeScope(); sr.closeScope();
+  sr.pushSym("mainb", 0);
+}
+
+#ifdef SYMTEST
+
+int main() {
+  testSymTab();
+  testSymRoot();
+  return 0;
+}
+
+#endif
