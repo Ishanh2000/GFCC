@@ -43,18 +43,26 @@ sym::sym(string _name, ull _type) : name(_name), type(_type) {
   }
 }
 
+void sym::dump(ofstream &f) {
+  f << name << " , " << type << endl; // decode type later on
+}
+
 
 /****************************************/
 /************ CLASS "symtab" ************/
 /****************************************/
 symtab::symtab() { } // do nothing - initialization in class declaration
 
-symtab::symtab(symtab* _parent) : parent(_parent) { }
+symtab::symtab(string _name) : name(_name) { }
+
+symtab::symtab(symtab *_parent) : parent(_parent) { }
+
+symtab::symtab(string _name, symtab *_parent) : name(_name), parent(_parent) { }
 
 symtab::~symtab() {
   int l1 = subScopes.size(), l2 = syms.size();
   for (int i = 0; i < l1; i++) {
-    if (dbg) cout << "Deleting subscope " << i << endl;
+    if (dbg) cout << "Deleting subscope \"" << subScopes[i]->name << "\"." << endl;
     delete subScopes[i];
   }
   for (int i = 0; i < l2; i++) {
@@ -96,12 +104,22 @@ bool symtab::pushSym(string _name, ull _type) {
   // return true;
 }
 
+void symtab::dump(ofstream &f, string scopePath) {
+  f << "###### Scope = " << scopePath << name << " ######," << endl;
+  
+  // First print symbols, then scopes; just a random decision.
+  // CAUTION: Will NOT reflect the history of symbols in CSV file.
+  int l1 = syms.size(), l2 = subScopes.size();
+  for (int i = 0; i < l1; i++) syms[i]->dump(f); // ASSUMPTION: none is NULL
+  for (int i = 0; i < l2; i++) subScopes[i]->dump(f, scopePath + name + " >> "); // ASSUMPTION: none is NULL  
+}
+
 
 /*****************************************/
 /************ class "symRoot" ************/
 /*****************************************/
 symRoot::symRoot() {
-  currScope = root = new symtab(); // handle exception if returns NULL
+  currScope = root = new symtab("Global"); // handle exception if returns NULL
   if (dbg) {
     if (!root) msg(WARN) << "Could not open global scope.";
     else cout << "Global scope opened succesfully." << endl;
@@ -114,17 +132,22 @@ symRoot::~symRoot() {
 
 bool symRoot::newScope() {
   if (!currScope) return false;
-  symtab* new_scope = new symtab(currScope);
+  return newScope( "_unnamed_" + to_string(currScope->subScopes.size()) );
+}
+
+bool symRoot::newScope(string scope_name) {
+  if (!currScope) return false;
+  symtab* new_scope = new symtab(scope_name, currScope);
   if (!new_scope) return false;
   currScope->subScopes.push_back(new_scope);
   currScope = new_scope;
-  if (dbg) cout << "Opening new scope." << endl;
+  if (dbg) cout << "Opening new scope \"" << scope_name << "\"." << endl;
   return true;
 }
 
 void symRoot::closeScope() {
   if (currScope && (currScope != root)) {
-    if (dbg) cout << "Closing existing scope." << endl;
+    if (dbg) cout << "Closing existing scope \"" << currScope->name << "\"." << endl;
     currScope = currScope->parent;
   } else {
     if (dbg) msg(WARN) << "Cannot close global scope!";
@@ -134,6 +157,11 @@ void symRoot::closeScope() {
 }
 
 sym* symRoot::lookup(string _name) {
+  if (!currScope) return NULL;  
+  return currScope->srchSym(_name);
+}
+
+sym* symRoot::gLookup(string _name) {
   symtab* run_scope = currScope;
 
   while (run_scope) {
@@ -155,11 +183,10 @@ bool symRoot::pushSym(string _name, ull _type) {
   return currScope->pushSym(_name, _type);
 }
 
-void symDump(const char* _fname, symRoot* s) {
-  ofstream f(_fname);
-  // f << "Namaste!";
-  f.close();
-
+void symRoot::dump(ofstream &f) {
+  f << "###### Scope = Global ######," << endl;
+  if (!root) return; // nothing to do
+  root->dump(f, "");
 }
 
 
@@ -191,33 +218,19 @@ void testSymRoot() {
   sr.lookup("x");
   sr.lookup("y");
   sr.pushSym("x", 45);
-  sr.newScope(); sr.newScope(); sr.newScope();
+  sr.newScope(); sr.newScope("for_loop"); sr.newScope();
   sr.newScope(); sr.newScope();
+  sr.newScope(); sr.closeScope(); sr.newScope(); sr.closeScope();
   sr.closeScope(); sr.closeScope(); sr.closeScope(); sr.closeScope();
   sr.closeScope(); sr.closeScope(); sr.closeScope(); sr.closeScope();
   sr.pushSym("main", 0);
   sr.pushSym("maina", 0);
-  sr.newScope();
-  sr.pushSym("x", 45);
-  sr.lookup("x");
-  sr.lookup("y");
-  sr.pushSym("x", 45);
-  sr.newScope(); sr.newScope(); sr.newScope();
-  sr.newScope(); sr.newScope();
-  sr.closeScope(); sr.closeScope(); sr.closeScope(); sr.closeScope();
-  sr.closeScope(); sr.closeScope(); sr.closeScope(); sr.closeScope();
-  sr.pushSym("maina", 0);
-  sr.pushSym("mainb", 0);
-  sr.newScope();
-  sr.pushSym("x", 45);
-  sr.lookup("x");
-  sr.lookup("y");
-  sr.pushSym("x", 45);
-  sr.newScope(); sr.newScope(); sr.newScope();
-  sr.newScope(); sr.newScope();
-  sr.closeScope(); sr.closeScope(); sr.closeScope(); sr.closeScope();
-  sr.closeScope(); sr.closeScope(); sr.closeScope(); sr.closeScope();
-  sr.pushSym("mainb", 0);
+  
+  ofstream f("out.csv");
+  f << "# File Name: <must_get_somehow>" << endl << endl;
+  f << "SYMBOL NAME , SYMBOL TYPE" << endl << endl;
+  sr.dump(f);
+  f.close();
 }
 
 #ifdef TEST_SYM
@@ -226,7 +239,6 @@ int main() {
   testSym();
   testSymTab();
   testSymRoot();
-  symDump("out.csv", NULL);
 
   return 0;
 }

@@ -8,6 +8,8 @@
 
 #ifndef __GFCC_SYMTAB__
 #define __GFCC_SYMTAB__
+#include <iostream>
+#include <fstream>
 #include <string>
 #include <vector>
 
@@ -27,19 +29,22 @@ class sym { // SYMBOL
 
     // Constructor + Destructors
     sym(string, ull);
+    void dump(std::ofstream &); // dump all info into (opened writable) file
 };
 
 
 class symtab { //  SYMBOL TABLE
   public:
-    // string name; // table name - first consult for default value
+    string name = "_unnamed_"; // table name (should reflect context)
     symtab* parent = NULL;
     vector<symtab*> subScopes; // size() = 0
     vector<sym*> syms; // size() = 0
   
     // Constructor + Destructors
     symtab();
-    symtab(symtab*); // parent specified
+    symtab(string); // name given
+    symtab(symtab *); // parent specified
+    symtab(string, symtab *); // name and parent both specified
     ~symtab();
 
     // Methods
@@ -48,6 +53,8 @@ class symtab { //  SYMBOL TABLE
     // push a symbol (if name and type is proper, and symbol did not pre-exist)
     bool pushSym(sym*);
     bool pushSym(string, ull);
+
+    void dump(std::ofstream &, std::string); // dump all info into (opened writable) file
 };
 
 
@@ -62,14 +69,18 @@ class symRoot {
 
     // Methods
     bool newScope();
+    bool newScope(string); // name given
     void closeScope(); // no need to report success
     sym* lookup(string);
+    sym* gLookup(string);
     bool pushSym(sym*);
     bool pushSym(string, ull);
+    void dump(std::ofstream &); // dump all info into (opened writable) file
 };
 
 bool acceptType(ull); // check if the given (encoded) type is actually valid
 
 void symDump(const char*, symRoot*); // to dump CSV data for symbol tables
+
 
 #endif
