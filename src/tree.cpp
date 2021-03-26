@@ -18,6 +18,7 @@ void dotNode(FILE *f_out, node_t* node) {
 	fprintf(f_out, "\t%lld [label=\"", node->id);
 	if (node->tok_type == STRING_LITERAL) fprintf(f_out, "\\\"%s\\\"", node->label);
 	else fprintf(f_out, "%s", node->label);
+	fprintf(f_out, "\\n[%d:%d]", node->line, node->column);
 	if (node->attr) fprintf(f_out, "\",%s];\n", node->attr);
 	else fprintf(f_out, "\"];\n");
 }
@@ -68,6 +69,23 @@ node_t* mkNode(int tok_type, const char* label) {
 
 node_t* (*nd)(int, const char*) = mkNode; // short form
 
+// VERSION 2
+node_t* mkGenNode2(int tok_type, const char* label, const char* attr, ull_t enc, int line, int column) { // label is lexeme. attr may be NULL.
+	printf("Here: %d, %d\n", line, column);
+	node_t *node = mkGenNode(tok_type, label, attr);
+	if (node) { node->enc = enc; node->line = line; node->column = column; }
+
+	return node;
+}
+
+// VERSION 2
+node_t* mkNode2(int tok_type, const char* label, ull_t enc, int line, int column) {
+	return mkGenNode2(tok_type, strdup(label), NULL, enc, line, column);
+}
+
+// VERSION 2
+node_t* (*nd2)(int, const char*, ull_t, int, int) = mkNode2; // short form
+
 edge_t* mkGenEdge(node_t* node, const char* label, const char* attr) {
 	edge_t* e = (edge_t*) malloc(sizeof(edge_t));
 	if (!e) return NULL;
@@ -83,7 +101,7 @@ edge_t* (*ej)(node_t*) = mkEdge; // short form
 
 node_t* mkOpNode(node_t *parent, int l, int r, ...) { // attr may be NULL
 	if (!parent) return NULL;
-	if (!(l || r)) return parent; // nothing to do
+	if ((l < 1) && (r < 1)) return parent; // nothing to do
 	int curr = parent->numChild;
 	edge_t **tmp = (edge_t**) malloc((curr + l + r) * sizeof(edge_t*));
 	if (!tmp) return NULL; // is this bad? Should we print on STDOUT/STDERR? Or should we return (-1)?
@@ -111,6 +129,11 @@ node_t* mkOpNode(node_t *parent, int l, int r, ...) { // attr may be NULL
 	free(parent->edges);
 	parent->edges = tmp;
 	parent->numChild += (l + r);
+	if (l > 0) {
+		node_t* firstChild = parent->edges[0]->node;
+		// printf("%s: %d, %d\n", (parent->tok_type != RETURN) ? "-" : "RETURN", firstChild->line, firstChild->column);
+		parent->line = firstChild->line; parent->column = firstChild->column;
+	}
 
 	return parent;
 }

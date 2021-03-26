@@ -1,0 +1,2 @@
+short int;
+void char;

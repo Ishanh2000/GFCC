@@ -14,5 +14,6 @@ int main()
 {int a,b,c;
  long long int tt;
  struct Books a = b;
-return 0;
+ return 0;
 }
+ void;

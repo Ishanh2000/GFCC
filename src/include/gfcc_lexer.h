@@ -70,7 +70,8 @@ typedef struct _node_t {
 	struct _node_t *parent;
 	int numChild;
 	struct _edge_t **edges;
-	// int line, column; // for error reporting
+	int line, column; // for error reporting
+	ull_t enc; // type encoding - could use tok_type itself
 } node_t;
 
 typedef struct _edge_t {
@@ -140,6 +141,15 @@ node_t* mkGenNode(int, const char*, const char*); // attr may be NULL
 node_t* mkNode(int, const char*); // attr will be passed to mkGenNode as NULL
 
 extern node_t* (*nd)(int, const char*); // short form
+
+// [VERSION 2] token_type, label, attr, encoding, line, column
+node_t* mkGenNode2(int, const char*, const char*, ull_t, int, int); // attr may be NULL
+
+// [VERSION 2] token_type, label, encoding, line, column
+node_t* mkNode2(int, const char*, ull_t, int, int); // attr will be passed to mkGenNode as NULL
+
+// [VERSION 2]
+extern node_t* (*nd2)(int, const char*, ull_t, int, int); // short form
 
 // child, label, attr
 edge_t* mkGenEdge(node_t*, const char*, const char*); // label, attr may be NULL

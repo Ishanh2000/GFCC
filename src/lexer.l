@@ -11,6 +11,45 @@ IS			(u|U|l|L)*
 #include <parser.tab.h>
 #include <gfcc_lexer.h>
 
+#ifdef COMPLETE
+const char type_spec_attr[] = "style=filled,fillcolor=lightgreen,shape=diamond";
+const char strg_class_attr[] = "style=filled,fillcolor=lightgreen,shape=diamond";
+const char type_qual_attr[] = "style=filled,fillcolor=lightgreen,shape=diamond";
+#else
+const char *type_spec_attr = NULL;
+const char *strg_class_attr = NULL;
+const char *type_qual_attr = NULL;
+#endif
+
+const char return_attr[] = "style=filled,fillcolor=orange";
+
+// type_specifier
+#define void_b          0     // 0x00000001
+#define char_b          1     // 0x00000002
+#define short_b         2     // 0x00000004
+#define int_b           3     // 0x00000008
+#define long_b          4     // 0x00000010
+#define float_b         5     // 0x00000020
+#define double_b        6     // 0x00000040
+#define signed_b        7     // 0x00000080
+#define unsigned_b      8     // 0x00000100
+#define file_b          9     // 0x00000200
+#define typename_b     10     // 0x00000400
+
+// const int *const
+// const int **a[]
+
+// type_qualifier
+#define const_b        11     // 0x00000800
+#define volatile_b     12     // 0x00001000
+
+// storage_class_specifier
+#define typedef_b      13     // 0x00002000
+#define extern_b       14     // 0x00004000
+#define static_b       15     // 0x00008000
+#define auto_b         16     // 0x00010000
+#define register_b     17     // 0x00020000
+
 %}
 
 %%
@@ -19,41 +58,73 @@ IS			(u|U|l|L)*
 "/*"				{ comment(); }
 "#"([^\n\0])*		{ count(); }
 
-"auto"			{ yylval.terminal = "auto"; count(); return (AUTO); }
+"auto"			{ count(); yylval.node = mkGenNode2(AUTO, "auto", strg_class_attr, 1 << short_b, token_line, token_column); return (AUTO); }
+
 "break"			{ yylval.terminal = "break"; count(); return (BREAK); }
-"case"			{ yylval.terminal = "case"; count(); return (CASE); }
-"char"			{ yylval.terminal = "char"; count(); return (CHAR); }
-"const"			{ yylval.terminal = "const"; count(); return (CONST); }
+
+"case"			{ count(); yylval.node = mkGenNode2(CASE, "case", "style=filled,fillcolor=magenta", 0, token_line, token_column); return (CASE); }
+
+"char"			{ count(); yylval.node = mkGenNode2(CHAR, "char", type_spec_attr, 1 << char_b, token_line, token_column); return (CHAR); }
+
+"const"			{ count(); yylval.node = mkGenNode2(CONST, "const", type_qual_attr, 1 << const_b, token_line, token_column); return (CONST); }
+
 "continue"		{ yylval.terminal = "continue"; count(); return (CONTINUE); }
-"default"		{ yylval.terminal = "default"; count(); return (DEFAULT); }
+
+"default"		{ count(); yylval.node = mkGenNode2(DEFAULT, "default", "style=filled,fillcolor=magenta", 0, token_line, token_column); return (DEFAULT); }
+
 "do"			{ yylval.terminal = "do"; count(); return (DO); }
-"double"		{ yylval.terminal = "double"; count(); return (DOUBLE); }
+
+"double"		{ count(); yylval.node = mkGenNode2(DOUBLE, "double", type_spec_attr, 1 << double_b, token_line, token_column); return (DOUBLE); }
+
 "else"			{ yylval.terminal = "else"; count(); return (ELSE); }
+
 "enum"			{ yylval.terminal = "enum"; count(); return (ENUM); }
-"extern"		{ yylval.terminal = "extern"; count(); return (EXTERN); }
-"float"			{ yylval.terminal = "float"; count(); return (FLOAT); }
+
+"extern"		{ count(); yylval.node = mkGenNode2(EXTERN, "extern", strg_class_attr, 1 << extern_b, token_line, token_column); return (EXTERN); }
+
+"float"			{ count(); yylval.node = mkGenNode2(FLOAT, "float", type_spec_attr, 1 << float_b, token_line, token_column); return (FLOAT); }
+
 "for"			{ yylval.terminal = "for"; count(); return (FOR); }
-"FILE"			{ yylval.terminal = "FILE"; count(); return (FILE_OBJ); }
+
+"FILE"			{ count(); yylval.node = mkGenNode2(FILE_OBJ, "FILE", type_spec_attr, 1 << file_b, token_line, token_column); return (FILE_OBJ); }
+
 "goto"			{ yylval.terminal = "goto"; count(); return (GOTO); }
+
 "if"			{ yylval.terminal = "if"; count(); return (IF); }
-"int"			{ yylval.terminal = "int"; count(); return (INT); }
-"long"			{ yylval.terminal = "long"; count(); return (LONG); }
-"register"		{ yylval.terminal = "register"; count(); return (REGISTER); }
-"return"		{ yylval.terminal = "return"; count(); return (RETURN); }
-"short"			{ yylval.terminal = "short"; count(); return (SHORT); }
-"signed"		{ yylval.terminal = "signed"; count(); return (SIGNED); }
+
+"int"			{ count(); yylval.node = mkGenNode2(INT, "int", type_spec_attr, 1 << int_b, token_line, token_column); return (INT); }
+
+"long"			{ count(); yylval.node = mkGenNode2(LONG, "long", type_spec_attr, 1 << long_b, token_line, token_column); return (LONG); }
+
+"register"		{ count(); yylval.node = mkGenNode2(REGISTER, "register", strg_class_attr, 1 << register_b, token_line, token_column); return (REGISTER); }
+
+"return"		{ count(); yylval.node = mkGenNode2(RETURN, "return", return_attr, 0, token_line, token_column); return (RETURN); }
+
+"short"			{ count(); yylval.node = mkGenNode2(SHORT, "short", type_spec_attr, 1 << short_b, token_line, token_column); return (SHORT); }
+
+"signed"		{ count(); yylval.node = mkGenNode2(SIGNED, "signed", type_spec_attr, 1 << signed_b, token_line, token_column); return (SIGNED); }
+
 "sizeof"		{ yylval.terminal = "sizeof"; count(); return (SIZEOF); }
-"static"		{ yylval.terminal = "static"; count(); return (STATIC); }
+
+"static"		{ count(); yylval.node = mkGenNode2(STATIC, "static", strg_class_attr, 1 << static_b, token_line, token_column); return (STATIC); }
+
 "struct"		{ yylval.terminal = "struct"; count(); return (STRUCT); }
+
 "switch"		{ yylval.terminal = "switch"; count(); return (SWITCH); }
-"typedef"		{ yylval.terminal = "typedef"; count(); return (TYPEDEF); }
+
+"typedef"		{ count(); yylval.node = mkGenNode2(TYPEDEF, "typedef", strg_class_attr, 1 << typedef_b, token_line, token_column); return (TYPEDEF); }
+
 "union"			{ yylval.terminal = "union"; count(); return (UNION); }
-"unsigned"		{ yylval.terminal = "unsigned"; count(); return (UNSIGNED); }
-"void"			{ yylval.terminal = "void"; count(); return (VOID); }
-"volatile"		{ yylval.terminal = "volatile"; count(); return (VOLATILE); }
+
+"unsigned"		{ count(); yylval.node = mkGenNode2(UNSIGNED, "unsigned", type_spec_attr, 1 << unsigned_b, token_line, token_column); return (UNSIGNED); }
+
+"void"			{ count(); yylval.node = mkGenNode2(VOID, "void", type_spec_attr, 1 << void_b, token_line, token_column); return (VOID); }
+
+"volatile"		{ count(); yylval.node = mkGenNode2(VOLATILE, "volatile", type_qual_attr, 1 << volatile_b, token_line, token_column); return (VOLATILE); }
+
 "while"			{ yylval.terminal = "while"; count(); return (WHILE); }
 
-{L}({L}|{D})*				{ yylval.terminal = strdup(yytext); count(); return (check_type()); /* returns IDENTIFIER */ }
+{L}({L}|{D})*				{ count(); yylval.node = nd2(IDENTIFIER, strdup(yytext), 0, token_line, token_column); return (check_type()); /* returns IDENTIFIER */ }
 
 0[xX]{H}+{IS}?				{ yylval.terminal = strdup(yytext); count(); return (CONSTANT); }
 0{D}+{IS}?					{ yylval.terminal = strdup(yytext); count(); return (CONSTANT); }
@@ -92,7 +163,7 @@ L?\"(\\.|[^\\"])*\"			{ yylval.terminal = strdup(yytext); count(); return (STRIN
 ("}"|"%>")		{ yylval.terminal = NULL; count(); return ('}'); }
 ","				{ yylval.terminal = ","; count(); return (','); }
 ":"				{ yylval.terminal = ":"; count(); return (':'); }
-"="				{ yylval.terminal = "="; count(); return ('='); }
+"="				{ count(); yylval.node = nd2('=', "=", 0, token_line, token_column); return ('='); }
 "("				{ yylval.terminal = "("; count(); return ('('); }
 ")"				{ yylval.terminal = ")"; count(); return (')'); }
 ("["|"<:")		{ yylval.terminal = "[]"; count(); return ('['); }

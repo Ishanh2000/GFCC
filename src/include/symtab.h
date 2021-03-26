@@ -54,7 +54,7 @@ class symtab { //  SYMBOL TABLE
     bool pushSym(sym*);
     bool pushSym(string, ull);
 
-    void dump(std::ofstream &, std::string); // dump all info into (opened writable) file
+    void dump(std::ofstream &, std::string); // dump all info into (opened writable) file, scopePath
 };
 
 
@@ -79,8 +79,5 @@ class symRoot {
 };
 
 bool acceptType(ull); // check if the given (encoded) type is actually valid
-
-void symDump(const char*, symRoot*); // to dump CSV data for symbol tables
-
 
 #endif
