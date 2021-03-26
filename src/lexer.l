@@ -10,6 +10,7 @@ IS			(u|U|l|L)*
 #include <cstdio>
 #include <parser.tab.h>
 #include <gfcc_lexer.h>
+// #include <symtab.h>
 
 #ifdef COMPLETE
 const char type_spec_attr[] = "style=filled,fillcolor=lightgreen,shape=diamond";

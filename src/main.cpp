@@ -5,6 +5,11 @@
 #include <cstdlib>
 #include <parser.tab.h>
 #include <gfcc_lexer.h>
+#include <symtab.h>
+#include <iostream>
+#include <fstream>
+
+using namespace std;
 
 // INITIALIZE ALL GLOBAL VARIABLES IN THIS FILE ONLY. DO NOT CHANGE
 // THEIR NAMES. SINCE THEY ARE SHARE ACROSS MULTIPLE FILES.
@@ -17,6 +22,7 @@ int bad_char_seen = 0; // to notify parser
 ull_t currNumNodes = 0; // invariant: currNumNodes > 0 for all existing nodes.
 node_t* AstRoot = NULL;
 char * fileName = NULL;
+symRoot *sr = NULL;
 
 int main (int argc , char *argv[]) {
 	// ARGC TOO FEW
@@ -110,11 +116,25 @@ int main (int argc , char *argv[]) {
 
 		// PostScript OK. Try to adjust for actual PDF (although not required).
 
+		sr = new symRoot();
+
 		int parse_return = yyparse();
 
 		// printf("yyparse() = %d\n", parse_return);
 		
-		if (!parse_return) AstToDot(temp_out, AstRoot);
+		if (!parse_return) {
+			AstToDot(temp_out, AstRoot);
+
+			ofstream f("out.csv"); // TODO: will get/derive later
+			f << "# File Name: " << argv[start + i] << endl << endl;
+			f << "SYMBOL NAME , SYMBOL TYPE" << endl << endl;
+			sr->dump(f);
+			f.close();
+		}
+
+		// PREPARE FOR NEXT FILE (ITERATION)
+		// Can free AstRoot too - later (if time permits)
+		delete sr; // frees the current symbol tables
 		temp_out = NULL; // reset for next file
 		token_line = token_column = 1;
 		column = 1;

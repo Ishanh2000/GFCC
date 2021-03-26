@@ -19,40 +19,38 @@ typedef unsigned long int ull;
 // #define NULL_SYM (-1)
 // #define SYM_EXISTS (-2)
 
-using namespace std;
-
 class sym { // SYMBOL
   public:
-    string name;
+    std::string name;
     ull type;
     // Derive a scheme: type must store attributes: isFunc, isStatic, isVolatile, isConst, etc. (must discover with progress)
 
     // Constructor + Destructors
-    sym(string, ull);
+    sym(std::string, ull);
     void dump(std::ofstream &); // dump all info into (opened writable) file
 };
 
 
 class symtab { //  SYMBOL TABLE
   public:
-    string name = "_unnamed_"; // table name (should reflect context)
+    std::string name = "_unnamed_"; // table name (should reflect context)
     symtab* parent = NULL;
-    vector<symtab*> subScopes; // size() = 0
-    vector<sym*> syms; // size() = 0
+    std::vector<symtab*> subScopes; // size() = 0
+    std::vector<sym*> syms; // size() = 0
   
     // Constructor + Destructors
     symtab();
-    symtab(string); // name given
+    symtab(std::string); // name given
     symtab(symtab *); // parent specified
-    symtab(string, symtab *); // name and parent both specified
+    symtab(std::string, symtab *); // name and parent both specified
     ~symtab();
 
     // Methods
-    sym* srchSym(string); // search a symbol by name
+    sym* srchSym(std::string); // search a symbol by name
     
     // push a symbol (if name and type is proper, and symbol did not pre-exist)
     bool pushSym(sym*);
-    bool pushSym(string, ull);
+    bool pushSym(std::string, ull);
 
     void dump(std::ofstream &, std::string); // dump all info into (opened writable) file, scopePath
 };
@@ -69,15 +67,17 @@ class symRoot {
 
     // Methods
     bool newScope();
-    bool newScope(string); // name given
+    bool newScope(std::string); // name given
     void closeScope(); // no need to report success
-    sym* lookup(string);
-    sym* gLookup(string);
+    sym* lookup(std::string);
+    sym* gLookup(std::string);
     bool pushSym(sym*);
-    bool pushSym(string, ull);
+    bool pushSym(std::string, ull);
     void dump(std::ofstream &); // dump all info into (opened writable) file
 };
 
 bool acceptType(ull); // check if the given (encoded) type is actually valid
+
+extern symRoot *sr;
 
 #endif

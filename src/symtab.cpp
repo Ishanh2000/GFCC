@@ -200,36 +200,36 @@ void testSym() {
 }
 
 void testSymTab() {
-  symtab st;
-  st.srchSym("");
-  st.pushSym(new sym("praskr", 123));
-  st.pushSym("deba", 456);
-  st.pushSym(new sym("praskr", 123));
-  st.srchSym("padnda");
-  st.srchSym("deba");
-  st.srchSym("priyanag");
+  symtab _st;
+  _st.srchSym("");
+  _st.pushSym(new sym("praskr", 123));
+  _st.pushSym("deba", 456);
+  _st.pushSym(new sym("praskr", 123));
+  _st.srchSym("padnda");
+  _st.srchSym("deba");
+  _st.srchSym("priyanag");
 }
 
 void testSymRoot() {
-  symRoot sr;
-  sr.pushSym("main", 0);
-  sr.newScope();
-  sr.pushSym("x", 45);
-  sr.lookup("x");
-  sr.lookup("y");
-  sr.pushSym("x", 45);
-  sr.newScope(); sr.newScope("for_loop"); sr.newScope();
-  sr.newScope(); sr.newScope();
-  sr.newScope(); sr.closeScope(); sr.newScope(); sr.closeScope();
-  sr.closeScope(); sr.closeScope(); sr.closeScope(); sr.closeScope();
-  sr.closeScope(); sr.closeScope(); sr.closeScope(); sr.closeScope();
-  sr.pushSym("main", 0);
-  sr.pushSym("maina", 0);
+  symRoot _sr;
+  _sr.pushSym("main", 0);
+  _sr.newScope();
+  _sr.pushSym("x", 45);
+  _sr.lookup("x");
+  _sr.lookup("y");
+  _sr.pushSym("x", 45);
+  _sr.newScope(); _sr.newScope("for_loop"); _sr.newScope();
+  _sr.newScope(); _sr.newScope();
+  _sr.newScope(); _sr.closeScope(); _sr.newScope(); _sr.closeScope();
+  _sr.closeScope(); _sr.closeScope(); _sr.closeScope(); _sr.closeScope();
+  _sr.closeScope(); _sr.closeScope(); _sr.closeScope(); _sr.closeScope();
+  _sr.pushSym("main", 0);
+  _sr.pushSym("maina", 0);
   
   ofstream f("out.csv");
   f << "# File Name: <must_get_somehow>" << endl << endl;
   f << "SYMBOL NAME , SYMBOL TYPE" << endl << endl;
-  sr.dump(f);
+  _sr.dump(f);
   f.close();
 }
 

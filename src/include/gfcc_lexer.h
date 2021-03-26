@@ -17,6 +17,8 @@
 #define E_NO_FILES			(-5)
 #define E_TAB_LEN			(-6)
 
+#define E_MULT_DECL			(-7)
+
 #define UNINIT				(-10)
 #define INIT				(-11)
 #define FUNC_CALL			(-12) // () is function call
@@ -53,6 +55,9 @@
 #define PARAM_DECL          (-42) //parameter declarations
 #define ABSTRACT_DECLN      (-43)//() used in abstract declratoins 
 #define FUNC_DEF            (-44)
+
+
+
 typedef unsigned long long ull_t;
 
 typedef struct _token_t {

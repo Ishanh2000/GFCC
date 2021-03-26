@@ -3,6 +3,7 @@
 
 int main()
 {
+  int p, q=9, r, s=89;
   int a = 0,b = 0,c = 100;
   int d = 100, e = 123;
   for(;;)

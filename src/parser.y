@@ -5,11 +5,16 @@
 // See include files for usage/syntax of "nd", "ej" and "op".
 
 #include <cstdio>
+#include <cstdlib>
 #include <gfcc_lexer.h>
+#include <symtab.h>
+#include <typo.h>
 
 edge_t* ek(void* child) {
 	return mkEdge((node_t*) child);
 }
+
+// sr->pushSym(((node_t*) $1)->label, 0);
 
 %}
 
@@ -220,19 +225,41 @@ constant_expression
 // useless iff NULL
 declaration
 	: declaration_specifiers ';' { $$ = NULL; } // { $$ = $1; }
-	| declaration_specifiers init_declarator_list ';' {
-		$$ = ($2) ? ($2) : NULL;
-		// check for existence of atleast one useful node in $2. If none, pass NULL. Dissolve all useless ones.
-		/* node_t* varList = (node_t*) $2; edge_t** childEdges = varList->edges;
-		int useful = 0; int l = varList->numChild;
-		for (int i = 0; i < l; i++) {
-			// check for non-existence of childEdges[i]->node->label in current scope
-			useful += (childEdges[i]->node->tok_type == '=');
-		}
-		if (!useful) $$ = NULL; // should also dissolve $2 completely
-		else {
+	| declaration_specifiers init_declarator_list ';' { /* $$ = ($2) ? ($2) : NULL; */
 
-		} */
+		node_t *ds = (node_t*) $1, *idl = (node_t*) $2;
+		edge_t **ch_ds = ds->edges, **ch_idl = idl->edges;
+		int len_ds = ds->numChild, len_idl = idl->numChild;
+
+		// construct type encoding from list of declaration_specifiers
+		ull_t enc = 0; for (int i = 0; i < len_ds; i++) { enc |= (ch_ds[i]->node->enc); msg(SUCC) << ch_ds[i]->node->label; } // simplicity for now.
+
+		int useful = 0;
+
+		// single pass over variables
+		for (int i = 0; i < len_idl; i++) { // first check that there is no var in scope
+			node_t *c_node = (ch_idl[i]->node); // "concerned node" - get directly
+			if (c_node->tok_type == '=') {
+				c_node = (c_node->edges[0]->node); // get from "declarator" part - risky - doesnot take into acount pointer like stuff
+				useful++;
+			}
+			msg(SUCC) << c_node->label;
+
+			if (sr->lookup(c_node->label)) {
+				msg(ERR) << c_node->line << ":" << c_node->column << ":: Multiple declaration of \"" << c_node->label << "\". Previous declaration at location " << "sym mein daal dena.";
+				exit(E_MULT_DECL);
+			} else msg(SUCC) << "Will insert \"" << c_node->label << "\".";
+			
+			sr->pushSym(c_node->label, enc); // ASUMPTION: success - can check that too
+		}
+
+		if (useful > 0) {
+			edge_t **tmp = (edge_t **) malloc(useful * sizeof(edge_t *)); int curr = 0;
+			for (int i = 0; i < len_idl; i++) if (ch_idl[i]->node->tok_type == '=') tmp[curr++] = ch_idl[i];
+			free(ch_idl); idl->edges = tmp; idl->numChild = useful;
+			$$ = $2;
+		} else $$ = NULL;
+
 	}
 	;
 // int
