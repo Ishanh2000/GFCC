@@ -149,6 +149,8 @@ edge_t* mkEdge(node_t*); // label, attr will be passed to mkGenEdge as NULL
 
 extern edge_t* (*ej)(node_t*); // short form
 
+edge_t* ek(void*); // to wrap "ej" - will remove later.
+
 // parent, numLeft, numRight, edge_1, edge_2, ...
 node_t* mkOpNode(node_t*, int, int, ...);
 

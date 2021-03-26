@@ -1,7 +1,15 @@
+// AUM SHREEGANESHAAYA NAMAH||
+/***********************************************************************/
+/************************ NOTE TO THE DEVELOPER ************************
+ * Use initializer lists for constructors wherever possible.
+ * Try using multiple constructors for variability (not immediate requirement).
+ * Appropriately use destructor for freeing heap.
+************************************************************************/
+
 #ifndef __GFCC_SYMTAB__
 #define __GFCC_SYMTAB__
-#include<string>
-#include<vector>
+#include <string>
+#include <vector>
 
 typedef unsigned long int ull;
 
@@ -11,12 +19,6 @@ typedef unsigned long int ull;
 
 using namespace std;
 
-
-// NOTE TO THE DEVELOPER
-// Use initializer lists for constructors wherever possible.
-// Try using multiple constructors for variability (not immediate requirement).
-// Appropriately use destructor for freeing heap.
-
 class sym { // SYMBOL
   public:
     string name;
@@ -25,8 +27,6 @@ class sym { // SYMBOL
 
     // Constructor + Destructors
     sym(string, ull);
-    
-    // Methods
 };
 
 
@@ -60,6 +60,7 @@ class symRoot {
     symRoot();
     ~symRoot();
 
+    // Methods
     bool newScope();
     void closeScope(); // no need to report success
     sym* lookup(string);
@@ -67,6 +68,8 @@ class symRoot {
     bool pushSym(string, ull);
 };
 
-bool acceptType(ull);
+bool acceptType(ull); // check if the given (encoded) type is actually valid
+
+void symDump(const char*, symRoot*); // to dump CSV data for symbol tables
 
 #endif

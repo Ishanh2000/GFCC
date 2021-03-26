@@ -79,7 +79,7 @@ edge_t* mkEdge(node_t* child) {
 	return mkGenEdge(child, NULL, NULL);
 }
 
-edge_t* (*ej)(node_t*) = mkEdge;
+edge_t* (*ej)(node_t*) = mkEdge; // short form
 
 node_t* mkOpNode(node_t *parent, int l, int r, ...) { // attr may be NULL
 	if (!parent) return NULL;

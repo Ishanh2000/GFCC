@@ -7,6 +7,10 @@
 #include <cstdio>
 #include <gfcc_lexer.h>
 
+edge_t* ek(void* child) {
+	return mkEdge((node_t*) child, NULL, NULL);
+}
+
 %}
 
 %union {
@@ -69,27 +73,27 @@ primary_expression
 
 postfix_expression
 	: primary_expression									{ $$ = $1; }
-	| postfix_expression '[' expression ']'					{ $$ = op( nd(SUBSCRIPT, $2), 0, 2, ej((node_t*)$1), ej((node_t*)$3) ); }
-	| postfix_expression '(' ')'							{ $$ = op( mkGenNode(FUNC_CALL, "() [func-call]", "shape=box"), 0, 1, ej((node_t*)$1) ); }
-	| postfix_expression '(' argument_expression_list ')'	{ $$ = op( mkGenNode(FUNC_CALL, "() [func-call]", "shape=box"), 0, 2, ej((node_t*)$1), ej((node_t*)$3) ); }
-	| postfix_expression '.' IDENTIFIER						{ $$ = op( nd('.', $2), 0, 2, ej((node_t*)$1), ej((node_t*)nd(IDENTIFIER, $3)) ); }
-	| postfix_expression PTR_OP IDENTIFIER					{ $$ = op( nd(PTR_OP, $2), 0, 2, ej((node_t*)$1), ej((node_t*)nd(IDENTIFIER, $3)) ); }
-	| postfix_expression INC_OP								{ $$ = op( nd(INC_OP, $2), 0, 1, ej((node_t*)$1) ); }
-	| postfix_expression DEC_OP								{ $$ = op( nd(DEC_OP, $2), 0, 1, ej((node_t*)$1) ); }
+	| postfix_expression '[' expression ']'					{ $$ = op( nd(SUBSCRIPT, $2), 0, 2, ek($1), ek($3) ); }
+	| postfix_expression '(' ')'							{ $$ = op( mkGenNode(FUNC_CALL, "() [func-call]", "shape=box"), 0, 1, ek($1) ); }
+	| postfix_expression '(' argument_expression_list ')'	{ $$ = op( mkGenNode(FUNC_CALL, "() [func-call]", "shape=box"), 0, 2, ek($1), ek($3) ); }
+	| postfix_expression '.' IDENTIFIER						{ $$ = op( nd('.', $2), 0, 2, ek($1), ek(nd(IDENTIFIER, $3)) ); }
+	| postfix_expression PTR_OP IDENTIFIER					{ $$ = op( nd(PTR_OP, $2), 0, 2, ek($1), ek(nd(IDENTIFIER, $3)) ); }
+	| postfix_expression INC_OP								{ $$ = op( nd(INC_OP, $2), 0, 1, ek($1) ); }
+	| postfix_expression DEC_OP								{ $$ = op( nd(DEC_OP, $2), 0, 1, ek($1) ); }
 	;
 
 argument_expression_list
-	: assignment_expression									{ $$ = op( nd(ARG_EXPR_LIST, "arg-expr-list"), 0, 1, ej((node_t*)$1) ); }
-	| argument_expression_list ',' assignment_expression	{ $$ = op( (node_t*)$1, 0, 1, ej((node_t*)$3) ); }
+	: assignment_expression									{ $$ = op( nd(ARG_EXPR_LIST, "arg-expr-list"), 0, 1, ek($1) ); }
+	| argument_expression_list ',' assignment_expression	{ $$ = op( (node_t*)$1, 0, 1, ek($3) ); }
 	;
 
 unary_expression
 	: postfix_expression				{ $$ = $1; }
-	| INC_OP unary_expression			{ $$ = op( nd(INC_OP, $1), 0, 1, ej((node_t*)$2) ); }
-	| DEC_OP unary_expression			{ $$ = op( nd(DEC_OP, $1), 0, 1, ej((node_t*)$2) ); }
-	| unary_operator cast_expression	{ $$ = op( (node_t*)$1, 0, 1, ej((node_t*)$2) ); }
-	| SIZEOF unary_expression			{ $$ = op( nd(SIZEOF, $1), 0, 1, ej((node_t*)$2) ); }
-	| SIZEOF '(' type_name ')'			{ $$ = op( nd(SIZEOF, $1), 0, 1, ej((node_t*)$3) ); }
+	| INC_OP unary_expression			{ $$ = op( nd(INC_OP, $1), 0, 1, ek($2) ); }
+	| DEC_OP unary_expression			{ $$ = op( nd(DEC_OP, $1), 0, 1, ek($2) ); }
+	| unary_operator cast_expression	{ $$ = op( (node_t*)$1, 0, 1, ek($2) ); }
+	| SIZEOF unary_expression			{ $$ = op( nd(SIZEOF, $1), 0, 1, ek($2) ); }
+	| SIZEOF '(' type_name ')'			{ $$ = op( nd(SIZEOF, $1), 0, 1, ek($3) ); }
 	;
 
 unary_operator
@@ -109,60 +113,60 @@ cast_expression
 
 multiplicative_expression
 	: cast_expression { $$ = $1; }
-	| multiplicative_expression '*' cast_expression { $$ = op( nd('*', $2), 0, 2, ej((node_t*)$1), ej((node_t*)$3) ); }
-	| multiplicative_expression '/' cast_expression { $$ = op( nd('/', $2), 0, 2, ej((node_t*)$1), ej((node_t*)$3) ); }
-	| multiplicative_expression '%' cast_expression { $$ = op( nd('%', $2), 0, 2, ej((node_t*)$1), ej((node_t*)$3) ); }
+	| multiplicative_expression '*' cast_expression { $$ = op( nd('*', $2), 0, 2, ek($1), ek($3) ); }
+	| multiplicative_expression '/' cast_expression { $$ = op( nd('/', $2), 0, 2, ek($1), ek($3) ); }
+	| multiplicative_expression '%' cast_expression { $$ = op( nd('%', $2), 0, 2, ek($1), ek($3) ); }
 	;
 
 additive_expression
 	: multiplicative_expression { $$ = $1; }
-	| additive_expression '+' multiplicative_expression { $$ = op( nd('+', $2), 0, 2, ej((node_t*)$1), ej((node_t*)$3) ); }
-	| additive_expression '-' multiplicative_expression { $$ = op( nd('-', $2), 0, 2, ej((node_t*)$1), ej((node_t*)$3) ); }
+	| additive_expression '+' multiplicative_expression { $$ = op( nd('+', $2), 0, 2, ek($1), ek($3) ); }
+	| additive_expression '-' multiplicative_expression { $$ = op( nd('-', $2), 0, 2, ek($1), ek($3) ); }
 	;
 
 shift_expression
 	: additive_expression { $$ = $1; }
-	| shift_expression LEFT_OP additive_expression	{ $$ = op( nd(LEFT_OP, $2), 0, 2, ej((node_t*)$1), ej((node_t*)$3) ); }
-	| shift_expression RIGHT_OP additive_expression	{ $$ = op( nd(RIGHT_OP, $2), 0, 2, ej((node_t*)$1), ej((node_t*)$3) ); }
+	| shift_expression LEFT_OP additive_expression	{ $$ = op( nd(LEFT_OP, $2), 0, 2, ek($1), ek($3) ); }
+	| shift_expression RIGHT_OP additive_expression	{ $$ = op( nd(RIGHT_OP, $2), 0, 2, ek($1), ek($3) ); }
 	;
 
 relational_expression
 	: shift_expression { $$ = $1; }
-	| relational_expression '<' shift_expression	{ $$ = op( nd('<', $2), 0, 2, ej((node_t*)$1), ej((node_t*)$3) ); }
-	| relational_expression '>' shift_expression	{ $$ = op( nd('>', $2), 0, 2, ej((node_t*)$1), ej((node_t*)$3) ); }
-	| relational_expression LE_OP shift_expression	{ $$ = op( nd(LE_OP, $2), 0, 2, ej((node_t*)$1), ej((node_t*)$3) ); }
-	| relational_expression GE_OP shift_expression	{ $$ = op( nd(GE_OP, $2), 0, 2, ej((node_t*)$1), ej((node_t*)$3) ); }
+	| relational_expression '<' shift_expression	{ $$ = op( nd('<', $2), 0, 2, ek($1), ek($3) ); }
+	| relational_expression '>' shift_expression	{ $$ = op( nd('>', $2), 0, 2, ek($1), ek($3) ); }
+	| relational_expression LE_OP shift_expression	{ $$ = op( nd(LE_OP, $2), 0, 2, ek($1), ek($3) ); }
+	| relational_expression GE_OP shift_expression	{ $$ = op( nd(GE_OP, $2), 0, 2, ek($1), ek($3) ); }
 	;
 
 equality_expression
 	: relational_expression { $$ = $1; }
-	| equality_expression EQ_OP relational_expression	{ $$ = op( nd(EQ_OP, $2), 0, 2, ej((node_t*)$1), ej((node_t*)$3) ); }
-	| equality_expression NE_OP relational_expression	{ $$ = op( nd(NE_OP, $2), 0, 2, ej((node_t*)$1), ej((node_t*)$3) ); }
+	| equality_expression EQ_OP relational_expression	{ $$ = op( nd(EQ_OP, $2), 0, 2, ek($1), ek($3) ); }
+	| equality_expression NE_OP relational_expression	{ $$ = op( nd(NE_OP, $2), 0, 2, ek($1), ek($3) ); }
 	;
 
 and_expression
 	: equality_expression { $$ = $1; }
-	| and_expression '&' equality_expression { $$ = op( nd('&', $2), 0, 2, ej((node_t*)$1), ej((node_t*)$3) ); }
+	| and_expression '&' equality_expression { $$ = op( nd('&', $2), 0, 2, ek($1), ek($3) ); }
 	;
 
 exclusive_or_expression
 	: and_expression { $$ = $1; }
-	| exclusive_or_expression '^' and_expression { $$ = op( nd('^', $2), 0, 2, ej((node_t*)$1), ej((node_t*)$3) ); }
+	| exclusive_or_expression '^' and_expression { $$ = op( nd('^', $2), 0, 2, ek($1), ek($3) ); }
 	;
 
 inclusive_or_expression
 	: exclusive_or_expression { $$ = $1; }
-	| inclusive_or_expression '|' exclusive_or_expression { $$ = op( nd('|', $2), 0, 2, ej((node_t*)$1), ej((node_t*)$3) ); }
+	| inclusive_or_expression '|' exclusive_or_expression { $$ = op( nd('|', $2), 0, 2, ek($1), ek($3) ); }
 	;
 
 logical_and_expression
 	: inclusive_or_expression { $$ = $1; }
-	| logical_and_expression AND_OP inclusive_or_expression { $$ = op( nd(AND_OP, $2), 0, 2, ej((node_t*)$1), ej((node_t*)$3) ); }
+	| logical_and_expression AND_OP inclusive_or_expression { $$ = op( nd(AND_OP, $2), 0, 2, ek($1), ek($3) ); }
 	;
 
 logical_or_expression
 	: logical_and_expression { $$ = $1; }
-	| logical_or_expression OR_OP logical_and_expression { $$ = op( nd(OR_OP, $2), 0, 2, ej((node_t*)$1), ej((node_t*)$3) ); }
+	| logical_or_expression OR_OP logical_and_expression { $$ = op( nd(OR_OP, $2), 0, 2, ek($1), ek($3) ); }
 	;
 
 conditional_expression
@@ -177,7 +181,7 @@ conditional_expression
 
 assignment_expression
 	: conditional_expression { $$ = $1; }
-	| unary_expression assignment_operator assignment_expression { $$ = op( (node_t*)$2, 0, 2, ej((node_t*)$1), ej((node_t*)$3) ); }
+	| unary_expression assignment_operator assignment_expression { $$ = op( (node_t*)$2, 0, 2, ek($1), ek($3) ); }
 	;
 
 assignment_operator
@@ -196,7 +200,7 @@ assignment_operator
 
 expression
 	: assignment_expression { $$ = $1; }
-	| expression ',' assignment_expression { $$ = op( nd(',', $2), 0, 2, ej((node_t*)$1), ej((node_t*)$3) ); }
+	| expression ',' assignment_expression { $$ = op( nd(',', $2), 0, 2, ek($1), ek($3) ); }
 	// Here, comma is an operator, and is not treated like a list delimiter
 	;
 
@@ -221,29 +225,29 @@ declaration
 // TESTED OK - useless iff NULL
 // A list of three kinds of objects. Also, new child appends to the left.
 declaration_specifiers
-	: storage_class_specifier                        { $$ = op( nd(DECL_SPEC_LIST, "decl-specs"), 0, 1, ej((node_t*)$1) ); }
-	| storage_class_specifier declaration_specifiers { $$ = op( (node_t*)$2, 1, 0, ej((node_t*)$1) ); }
-	| type_specifier                                 { $$ = op( nd(DECL_SPEC_LIST, "decl-specs"), 0, 1, ej((node_t*)$1) ); }
-	| type_specifier declaration_specifiers          { $$ = op( (node_t*)$2, 1, 0, ej((node_t*)$1) ); }
-	| type_qualifier                                 { $$ = op( nd(DECL_SPEC_LIST, "decl-specs"), 0, 1, ej((node_t*)$1) ); }
-	| type_qualifier declaration_specifiers          { $$ = op( (node_t*)$2, 1, 0, ej((node_t*)$1) ); }
+	: storage_class_specifier                        { $$ = op( nd(DECL_SPEC_LIST, "decl-specs"), 0, 1, ek($1) ); }
+	| storage_class_specifier declaration_specifiers { $$ = op( (node_t*)$2, 1, 0, ek($1) ); }
+	| type_specifier                                 { $$ = op( nd(DECL_SPEC_LIST, "decl-specs"), 0, 1, ek($1) ); }
+	| type_specifier declaration_specifiers          { $$ = op( (node_t*)$2, 1, 0, ek($1) ); }
+	| type_qualifier                                 { $$ = op( nd(DECL_SPEC_LIST, "decl-specs"), 0, 1, ek($1) ); }
+	| type_qualifier declaration_specifiers          { $$ = op( (node_t*)$2, 1, 0, ek($1) ); }
 	;
 
 // TESTED OK - useless iff NULL
 init_declarator_list
-	: init_declarator { $$ = ($1) ? op( nd(INIT_DECL_LIST, "var-list"), 0, 1, ej((node_t*)$1) ) : NULL; }
+	: init_declarator { $$ = ($1) ? op( nd(INIT_DECL_LIST, "var-list"), 0, 1, ek($1) ) : NULL; }
 	| init_declarator_list ',' init_declarator {
-		if (($1) && ($3)) { $$ = op( (node_t*)$1, 0, 1, ej((node_t*)$3) ); } // both useful - simply append
+		if (($1) && ($3)) { $$ = op( (node_t*)$1, 0, 1, ek($3) ); } // both useful - simply append
 		else if ($1) { $$ = $1; } // new child useless
-		else if ($3) { $$ = op( nd(INIT_DECL_LIST, "var-list"), 0, 1, ej((node_t*)$3) ); } // first useful child
+		else if ($3) { $$ = op( nd(INIT_DECL_LIST, "var-list"), 0, 1, ek($3) ); } // first useful child
 		else { $$ = NULL; }
 	}
 	;
 
 // TESTED OK - useless iff NULL
 init_declarator
-	: declarator                 { $$ = NULL; } // { $$ = $1; }
-	| declarator '=' initializer { $$ = op( nd('=', $2), 0, 2, ej((node_t*)$1), ej((node_t*)$3) ); }
+	: declarator                 { $$ = $1; } // continue from here
+	| declarator '=' initializer { $$ = op( nd('=', $2), 0, 2, ek($1), ek($3) ); }
 	;
 
 // TESTED OK
@@ -273,11 +277,11 @@ type_specifier
 
 struct_or_union_specifier
 	: struct_or_union IDENTIFIER '{' struct_declaration_list '}'
-	{$$ = op((node_t*)$1, 0, 2, ej((node_t*)nd(IDENTIFIER,$2)),ej((node_t*)$4));}
+	{$$ = op((node_t*)$1, 0, 2, ek(nd(IDENTIFIER,$2)),ek($4));}
 	| struct_or_union '{' struct_declaration_list '}'
-	{$$ = op((node_t*)$1, 0, 1, ej((node_t*)$3));}
+	{$$ = op((node_t*)$1, 0, 1, ek($3));}
 	| struct_or_union IDENTIFIER
-	{$$ = op((node_t*)$1, 0, 1, ej((node_t*)nd(IDENTIFIER,$2)));}
+	{$$ = op((node_t*)$1, 0, 1, ek(nd(IDENTIFIER,$2)));}
 	;
 
 // TESTED OK
@@ -287,54 +291,54 @@ struct_or_union
 	;
 
 struct_declaration_list 
-	: struct_declaration {$$ = op(nd(ALL_MEMBERS,"member-list"),0,1,ej((node_t*)$1));}
+	: struct_declaration {$$ = op(nd(ALL_MEMBERS,"member-list"),0,1,ek($1));}
 	| struct_declaration_list struct_declaration 
-	{$$=op((node_t*)$1, 0, 1, ej((node_t*)$2));}
+	{$$=op((node_t*)$1, 0, 1, ek($2));}
 	;
 
 struct_declaration
 	: specifier_qualifier_list struct_declarator_list ';' 
-	{$$ = op(nd(STRUCT_MEMBER,"member"),0,2,ej((node_t*)$1),ej((node_t*)$2));}
+	{$$ = op(nd(STRUCT_MEMBER,"member"),0,2,ek($1),ek($2));}
 	;
 
 specifier_qualifier_list
-	: type_specifier specifier_qualifier_list  {$$ = op((node_t*)$2, 1, 0, ej((node_t*)$1));}
+	: type_specifier specifier_qualifier_list  {$$ = op((node_t*)$2, 1, 0, ek($1));}
 	| type_specifier                           
-	{$$ = op(nd(SPEC_QUAL_LIST,"spec-qual"),0,1,ej((node_t*)$1));}
-	| type_qualifier specifier_qualifier_list  {$$ = op((node_t*)$2, 1, 0, ej((node_t*)$1));}
+	{$$ = op(nd(SPEC_QUAL_LIST,"spec-qual"),0,1,ek($1));}
+	| type_qualifier specifier_qualifier_list  {$$ = op((node_t*)$2, 1, 0, ek($1));}
 	| type_qualifier			   
-	{$$ = op(nd(SPEC_QUAL_LIST,"spec-qual"),0,1,ej((node_t*)$1));}
+	{$$ = op(nd(SPEC_QUAL_LIST,"spec-qual"),0,1,ek($1));}
 	;
 
 struct_declarator_list
-	: struct_declarator  {$$ = op(nd(INIT_DECL_LIST,"var-list"),0,1,ej((node_t*)$1));}
-	| struct_declarator_list ',' struct_declarator {$$ = op((node_t*)$1, 0, 1, ej((node_t*)$3));}
+	: struct_declarator  {$$ = op(nd(INIT_DECL_LIST,"var-list"),0,1,ek($1));}
+	| struct_declarator_list ',' struct_declarator {$$ = op((node_t*)$1, 0, 1, ek($3));}
 	;
 
 struct_declarator
 	: declarator {$$=$1;}
 	| ':' constant_expression  {$$ = $2;}
 	| declarator ':' constant_expression 
-	{$$ = op(nd(STRUCT_DECL,"declarator"),0,2,ej((node_t*)$1),ej((node_t*)$3));} 
+	{$$ = op(nd(STRUCT_DECL,"declarator"),0,2,ek($1),ek($3));} 
 	;
 
 // TESTED OK
 enum_specifier
-	: ENUM '{' enumerator_list '}'				{ $$ = op( nd(ENUM, $1), 0, 1, ej((node_t*)$3) ); }
-	| ENUM IDENTIFIER '{' enumerator_list '}'	{ $$ = op( nd(ENUM, $1), 0, 2, ej((node_t*)nd(IDENTIFIER, $2)), ej((node_t*)$4) ); }
-	| ENUM IDENTIFIER							{ $$ = op( nd(ENUM, $1), 0, 1, ej((node_t*)nd(IDENTIFIER, $2)) ); }
+	: ENUM '{' enumerator_list '}'				{ $$ = op( nd(ENUM, $1), 0, 1, ek($3) ); }
+	| ENUM IDENTIFIER '{' enumerator_list '}'	{ $$ = op( nd(ENUM, $1), 0, 2, ek(nd(IDENTIFIER, $2)), ek($4) ); }
+	| ENUM IDENTIFIER							{ $$ = op( nd(ENUM, $1), 0, 1, ek(nd(IDENTIFIER, $2)) ); }
 	;
 
 // TESTED OK
 enumerator_list
-	: enumerator						{ $$ = op( nd(ENUM_LIST, "enum-list"), 0, 1, ej((node_t*)$1) ); }
-	| enumerator_list ',' enumerator	{ $$ = op( (node_t*)$1, 0, 1, ej((node_t*)$3) ); }
+	: enumerator						{ $$ = op( nd(ENUM_LIST, "enum-list"), 0, 1, ek($1) ); }
+	| enumerator_list ',' enumerator	{ $$ = op( (node_t*)$1, 0, 1, ek($3) ); }
 	;
 
 // TESTED OK
 enumerator
 	: IDENTIFIER							{ $$ = nd(IDENTIFIER, $1); }
-	| IDENTIFIER '=' constant_expression	{ $$ = op( nd('=', $2), 0, 2, ej((node_t*)nd(IDENTIFIER, $1)), ej((node_t*)$3) ); }
+	| IDENTIFIER '=' constant_expression	{ $$ = op( nd('=', $2), 0, 2, ek(nd(IDENTIFIER, $1)), ek($3) ); }
 	;
 
 // TESTE OK
@@ -345,7 +349,7 @@ type_qualifier
 
 // TESTED OK
 declarator
-	: pointer direct_declarator	{ $$ = op( nd(DECLARATOR, "var"), 0, 2, ej((node_t*)$1), ej((node_t*)$2) ); }
+	: pointer direct_declarator	{ $$ = op( nd(DECLARATOR, "var"), 0, 2, ek($1), ek($2) ); }
 	| direct_declarator			{ $$ = $1; }
 	;
 
@@ -353,71 +357,71 @@ declarator
 direct_declarator
 	: IDENTIFIER									{ $$ = nd(IDENTIFIER, $1); }
 	| '(' declarator ')'							{ $$ = $2; }
-	| direct_declarator '[' constant_expression ']'	{ $$ = op( nd(SUBSCRIPT, $2), 0, 2, ej((node_t*)$1), ej((node_t*)$3) ); }
-	| direct_declarator '[' ']'						{ $$ = op( nd(SUBSCRIPT, $2), 0, 1, ej((node_t*)$1) ); }
-	| direct_declarator '(' parameter_type_list ')'	{ $$ = $1;/* $$ = op( nd(FUNC_PTR, "() [func-ptr]"), 0, 2, ej((node_t*)$1), ej((node_t*)$3) ); */ }
-	| direct_declarator '(' identifier_list ')'		{ $$ = $1;/* $$ = op( nd(FUNC_PTR, "() [func-ptr]"), 0, 2, ej((node_t*)$1), ej((node_t*)$3) ); */ }
-	| direct_declarator '(' ')'						{ $$ = op( nd(FUNC_PTR, "() [func-ptr]"), 0, 1, ej((node_t*)$1) ); }
+	| direct_declarator '[' constant_expression ']'	{ $$ = op( nd(SUBSCRIPT, $2), 0, 2, ek($1), ek($3) ); }
+	| direct_declarator '[' ']'						{ $$ = op( nd(SUBSCRIPT, $2), 0, 1, ek($1) ); }
+	| direct_declarator '(' parameter_type_list ')'	{ $$ = $1;/* $$ = op( nd(FUNC_PTR, "() [func-ptr]"), 0, 2, ek($1), ek($3) ); */ }
+	| direct_declarator '(' identifier_list ')'		{ $$ = $1;/* $$ = op( nd(FUNC_PTR, "() [func-ptr]"), 0, 2, ek($1), ek($3) ); */ }
+	| direct_declarator '(' ')'						{ $$ = op( nd(FUNC_PTR, "() [func-ptr]"), 0, 1, ek($1) ); }
 	;
 
 // TESTED OK
 pointer
 	: '*'								{ $$ = nd(DEREF, $1); }
-	| '*' type_qualifier_list			{ $$ = nd(DEREF, $1); /* $$ = op( nd(DEREF, $1), 0, 1, ej((node_t*)$2) ); */ }
-	| '*' pointer						{ $$ = op( nd(DEREF, $1), 0, 1, ej((node_t*)$2) ); }
-	| '*' type_qualifier_list pointer	{ $$ = op( nd(DEREF, $1), 0, 1, ej((node_t*)$3) ); /* $$ = op( nd(DEREF, $1), 0, 2, ej((node_t*)$2), ej((node_t*)$3) ); */ }
+	| '*' type_qualifier_list			{ $$ = nd(DEREF, $1); /* $$ = op( nd(DEREF, $1), 0, 1, ek($2) ); */ }
+	| '*' pointer						{ $$ = op( nd(DEREF, $1), 0, 1, ek($2) ); }
+	| '*' type_qualifier_list pointer	{ $$ = op( nd(DEREF, $1), 0, 1, ek($3) ); /* $$ = op( nd(DEREF, $1), 0, 2, ek($2), ek($3) ); */ }
 	;
 
 // TESTED OK
 type_qualifier_list
-	: type_qualifier						{ $$ = op( nd(TYPE_QUAL_LIST, "type-quals"), 0, 1, ej((node_t*)$1) ); }
-	| type_qualifier_list type_qualifier	{ $$ = op( (node_t*)$1, 0, 1, ej((node_t*)$2) ); }
+	: type_qualifier						{ $$ = op( nd(TYPE_QUAL_LIST, "type-quals"), 0, 1, ek($1) ); }
+	| type_qualifier_list type_qualifier	{ $$ = op( (node_t*)$1, 0, 1, ek($2) ); }
 	;
 
 // TESTED OK
 parameter_type_list
 	: parameter_list				{ $$ = $1; }
-	| parameter_list ',' ELLIPSIS	{ $$ = op( (node_t*)$1, 0, 1, ej((node_t*)nd(ELLIPSIS, $3)) ); }
+	| parameter_list ',' ELLIPSIS	{ $$ = op( (node_t*)$1, 0, 1, ek(nd(ELLIPSIS, $3)) ); }
 	;
 
 // TESTED OK
 parameter_list
-	: parameter_declaration						{ $$ = op( nd(PARAM_TYPE_LIST, "param-types"), 0, 1, ej((node_t*)$1) ); }
-	| parameter_list ',' parameter_declaration	{ $$ = op( (node_t*)$1, 0, 1, ej((node_t*)$3) ); }
+	: parameter_declaration						{ $$ = op( nd(PARAM_TYPE_LIST, "param-types"), 0, 1, ek($1) ); }
+	| parameter_list ',' parameter_declaration	{ $$ = op( (node_t*)$1, 0, 1, ek($3) ); }
 	;
 
 parameter_declaration
-	: declaration_specifiers declarator            { $$ = op( nd(PARAM_DECL, "param-decl"), 0, 2, ej((node_t*)$1), ej((node_t*)$2) ); }
-	| declaration_specifiers abstract_declarator   { $$ = op( nd(PARAM_DECL, "param-decl"), 0, 2, ej((node_t*)$1), ej((node_t*)$2) ); }
+	: declaration_specifiers declarator            { $$ = op( nd(PARAM_DECL, "param-decl"), 0, 2, ek($1), ek($2) ); }
+	| declaration_specifiers abstract_declarator   { $$ = op( nd(PARAM_DECL, "param-decl"), 0, 2, ek($1), ek($2) ); }
 	| declaration_specifiers                       { $$ = $1; }
 	;
 
 identifier_list
-	: IDENTIFIER                       { $$ = op( nd(ID_LIST, "identifiers"), 0, 1, ej((node_t*)nd(IDENTIFIER, $1)) ); }
-	| identifier_list ',' IDENTIFIER   { $$ = op( (node_t*)$1, 0, 1, ej((node_t*)nd(IDENTIFIER, $3)) );}
+	: IDENTIFIER                       { $$ = op( nd(ID_LIST, "identifiers"), 0, 1, ek(nd(IDENTIFIER, $1)) ); }
+	| identifier_list ',' IDENTIFIER   { $$ = op( (node_t*)$1, 0, 1, ek(nd(IDENTIFIER, $3)) );}
 	;
 
 type_name
-	: specifier_qualifier_list                        { $$ = op( nd(TYPE_NAME, "type-name"), 0, 1, ej((node_t*)$1) ); }
-	| specifier_qualifier_list abstract_declarator    { $$ = op( (node_t*)$1, 0, 1, ej((node_t*)$2) ); }
+	: specifier_qualifier_list                        { $$ = op( nd(TYPE_NAME, "type-name"), 0, 1, ek($1) ); }
+	| specifier_qualifier_list abstract_declarator    { $$ = op( (node_t*)$1, 0, 1, ek($2) ); }
 	;
 
 abstract_declarator
 	: pointer                              { $$ = $1; }
 	| direct_abstract_declarator           { $$ = $1; }
-	| pointer direct_abstract_declarator   { $$ = op( nd(ABSTRACT_DECLARATOR, "abst-decl"), 0, 2, ej((node_t*)$1), ej((node_t*)$2) ); }
+	| pointer direct_abstract_declarator   { $$ = op( nd(ABSTRACT_DECLARATOR, "abst-decl"), 0, 2, ek($1), ek($2) ); }
 	;
 
 direct_abstract_declarator
 	: '(' abstract_declarator ')'                                { $$ = $2; }
 	| '[' ']'                                                    { $$ = nd(SUBSCRIPT, "[]"); }
-	| '[' constant_expression ']'                                { $$ = op(nd(SUBSCRIPT, $1), 0, 1, ej((node_t*)$2)); }
-	| direct_abstract_declarator '[' ']'                         { $$ = op( nd(SUBSCRIPT, $2), 0, 1, ej((node_t*)$1) ); }
-	| direct_abstract_declarator '[' constant_expression ']'     { $$ = op( nd(SUBSCRIPT, $2), 0, 2, ej((node_t*)$1), ej((node_t*)$3) ); }
+	| '[' constant_expression ']'                                { $$ = op(nd(SUBSCRIPT, $1), 0, 1, ek($2)); }
+	| direct_abstract_declarator '[' ']'                         { $$ = op( nd(SUBSCRIPT, $2), 0, 1, ek($1) ); }
+	| direct_abstract_declarator '[' constant_expression ']'     { $$ = op( nd(SUBSCRIPT, $2), 0, 2, ek($1), ek($3) ); }
 	| '(' ')'                                                    { $$ = nd(ABSTRACT_DECLN, "() abst-declaration"); }
-	| '(' parameter_type_list ')'                                { $$ = op(nd(ABSTRACT_DECLN, "() abst-declaration"), 0 ,1, ej((node_t*)$2)); } // ! Will handle
-	| direct_abstract_declarator '(' ')'                         { $$ = op(nd(ABSTRACT_DECLN, "() abst-declaration"), 0 ,1, ej((node_t*)$1)); }
-	| direct_abstract_declarator '(' parameter_type_list ')'     { $$ = op( nd(ABSTRACT_DECLN, "() abst-declaration"), 0, 2, ej((node_t*)$1), ej((node_t*)$3) ); }
+	| '(' parameter_type_list ')'                                { $$ = op(nd(ABSTRACT_DECLN, "() abst-declaration"), 0 ,1, ek($2)); } // ! Will handle
+	| direct_abstract_declarator '(' ')'                         { $$ = op(nd(ABSTRACT_DECLN, "() abst-declaration"), 0 ,1, ek($1)); }
+	| direct_abstract_declarator '(' parameter_type_list ')'     { $$ = op( nd(ABSTRACT_DECLN, "() abst-declaration"), 0, 2, ek($1), ek($3) ); }
 	;
 
 // TESTED OK
@@ -429,22 +433,22 @@ initializer
 
 // TESTED OK
 initializer_list
-	: initializer						{ $$ = op( nd(INIT_LIST, "array"), 0, 1, ej((node_t*)$1) ); }
+	: initializer						{ $$ = op( nd(INIT_LIST, "array"), 0, 1, ek($1) ); }
 	| initializer_list ',' initializer	{
 		/* THIS CODE WORKS, BUT USE ONLY WHEN SIMULTANEOUS PRINTING IS NOT GOING ON */
 		// if (((node_t*)$3)->tok_type == INIT_LIST) { // array within an array
 		// 	node_t* parent = (node_t*)$3, *tmp = (node_t*)$1;
 		// 	int n = parent->numChild;
 		// 	for (int i = 0; i < n; i++) {
-		// 		tmp = op( tmp, 0, 1, ej((node_t*)parent->edges[i]->node) );
+		// 		tmp = op( tmp, 0, 1, ek(parent->edges[i]->node) );
 		// 		// hide edge - ineffective (this code adds NEW invisible edges, but doesn't hide old ones)
 		// 		fprintf(temp_out, "\t%lld -> %lld [style = \"invis\"];\n", parent->id, parent->edges[i]->node->id);
 		// 	}
 		// 	fprintf(temp_out, "\t%lld [style = \"invis\"];\n", parent->id); // hide parent
 		// 	free(parent->edges); parent->edges = NULL;
 		// 	$$ = tmp;
-		// } else $$ = op( (node_t*)$1, 0, 1, ej((node_t*)$3) );
-		$$ = op( (node_t*)$1, 0, 1, ej((node_t*)$3) );
+		// } else $$ = op( (node_t*)$1, 0, 1, ek($3) );
+		$$ = op( (node_t*)$1, 0, 1, ek($3) );
 	}
 	;
 
@@ -460,11 +464,11 @@ statement
 // TESTED OK
 labeled_statement
 	: IDENTIFIER ':' statement
-		{ $$ = op( mkGenNode(IDENTIFIER, $1, "style=filled,fillcolor=magenta"), 0, 1, ej((node_t*)$3) ); }
+		{ $$ = op( mkGenNode(IDENTIFIER, $1, "style=filled,fillcolor=magenta"), 0, 1, ek($3) ); }
 	| CASE constant_expression ':' statement
-		{ $$ = op( mkGenNode(CASE, $1, "style=filled,fillcolor=magenta"), 0, 2, ej((node_t*)$2), ej((node_t*)$4) ); }
+		{ $$ = op( mkGenNode(CASE, $1, "style=filled,fillcolor=magenta"), 0, 2, ek($2), ek($4) ); }
 	| DEFAULT ':' statement
-		{ $$ = op( mkGenNode(DEFAULT, $1, "style=filled,fillcolor=magenta"), 0, 1, ej((node_t*)$3) ); }
+		{ $$ = op( mkGenNode(DEFAULT, $1, "style=filled,fillcolor=magenta"), 0, 1, ek($3) ); }
 	;
 
 // TESTED OK - useless iff EMPTY_BLOCK (can't substitute NULL, since EMPTY_BLOCK is still a valid function definition)
@@ -473,7 +477,7 @@ compound_statement
 	| '{' statement_list '}'                  { $$ = ($2) ? ($2) : nd(EMPTY_BLOCK, $1); }
 	| '{' declaration_list '}'                { $$ = ($2) ? ($2) : nd(EMPTY_BLOCK, $1); }
 	| '{' declaration_list statement_list '}' {
-		if (($2) && ($3)) { $$ = op( nd(GEN_BLOCK, "block"), 0, 2, ej((node_t*)$2), ej((node_t*)$3) ); }
+		if (($2) && ($3)) { $$ = op( nd(GEN_BLOCK, "block"), 0, 2, ek($2), ek($3) ); }
 		else if ($2) { $$ = $2; } // only useful decl. list.
 		else if ($3) { $$ = $3; } // only useful stmt. list.
 		else { $$ = nd(EMPTY_BLOCK, $1); } // empty block
@@ -482,19 +486,19 @@ compound_statement
 
 // TESTED OK - useless iff NULL
 declaration_list
-	: declaration { $$ = ($1) ? op( nd(DECL_LIST, "declarations"), 0, 1, ej((node_t*)$1) ) : NULL; }
+	: declaration { $$ = ($1) ? op( nd(DECL_LIST, "declarations"), 0, 1, ek($1) ) : NULL; }
 	| declaration_list declaration	{
-		if ($1 && $2) { $$ = op( (node_t*)$1, 0, 1, ej((node_t*)$2) ); } // both useful - simply append
+		if ($1 && $2) { $$ = op( (node_t*)$1, 0, 1, ek($2) ); } // both useful - simply append
 		else if ($1) { $$ = $1; } // new child not useful
-		else if ($2) { $$ = op( nd(DECL_LIST, "declarations"), 0, 1, ej((node_t*)$2) ); } // first useful child
+		else if ($2) { $$ = op( nd(DECL_LIST, "declarations"), 0, 1, ek($2) ); } // first useful child
 		else { $$ = NULL; }
 	}
 	;
 
 // TESTED OK
 statement_list
-	: statement                { $$ = op( nd(STMT_LIST, "stmt-list"), 0, 1, ej((node_t*)$1) ); }
-	| statement_list statement { $$ = op( (node_t*)$1, 0, 1, ej((node_t*)$2) ); }
+	: statement                { $$ = op( nd(STMT_LIST, "stmt-list"), 0, 1, ek($1) ); }
+	| statement_list statement { $$ = op( (node_t*)$1, 0, 1, ek($2) ); }
 	;
 
 // TESTED OK
@@ -539,19 +543,19 @@ iteration_statement
 	;
 
 jump_statement
-	: GOTO IDENTIFIER ';'	{ $$ = op( mkGenNode(GOTO, $1, "style=filled,fillcolor=orange"), 0, 1, ej((node_t*)nd(IDENTIFIER, $2)) ); }
+	: GOTO IDENTIFIER ';'	{ $$ = op( mkGenNode(GOTO, $1, "style=filled,fillcolor=orange"), 0, 1, ek(nd(IDENTIFIER, $2)) ); }
 	| CONTINUE ';'			{ $$ = mkGenNode(CONTINUE, $1, "style=filled,fillcolor=orange"); }
 	| BREAK ';'				{ $$ = mkGenNode(BREAK, $1, "style=filled,fillcolor=orange"); }
 	| RETURN ';'			{ $$ = mkGenNode(RETURN, $1, "style=filled,fillcolor=orange"); }
-	| RETURN expression ';'	{ $$ = op( mkGenNode(RETURN, $1, "style=filled,fillcolor=orange"), 0, 1, ej((node_t*)$2) ); }
+	| RETURN expression ';'	{ $$ = op( mkGenNode(RETURN, $1, "style=filled,fillcolor=orange"), 0, 1, ek($2) ); }
 	;
 
 translation_unit
-	: external_declaration	{ AstRoot = (node_t*)($$ = ($1) ? op( mkGenNode(-1, fileName, "shape=box"), 0, 1, ej((node_t*)$1) ) : NULL); }
+	: external_declaration	{ AstRoot = (node_t*)($$ = ($1) ? op( mkGenNode(-1, fileName, "shape=box"), 0, 1, ek($1) ) : NULL); }
 	| translation_unit external_declaration	{
-		if ($1 && $2) { $$ = op( (node_t*)$1, 0, 1, ej((node_t*)$2) ); }
+		if ($1 && $2) { $$ = op( (node_t*)$1, 0, 1, ek($2) ); }
 		else if ($1) { $$ = $1; } // new child useless
-		else if ($2) { $$ = op( mkGenNode(-1, fileName, "shape=box"), 0, 1, ej((node_t*)$2) ); }
+		else if ($2) { $$ = op( mkGenNode(-1, fileName, "shape=box"), 0, 1, ek($2) ); }
 		else { $$ = NULL; }
 		AstRoot = (node_t*)$$;
 	}
@@ -565,16 +569,16 @@ external_declaration
 function_definition
 	: declaration_specifiers declarator declaration_list compound_statement {
 		$$ = ($3)
-		? op( nd(FUNC_DEF, "function_definition"), 0, 3, ej((node_t*)$2), ej((node_t*)$3), ej((node_t*)$4) )
-		: op( nd(FUNC_DEF, "function_definition"), 0, 2, ej((node_t*)$2), ej((node_t*)$4) );
+		? op( nd(FUNC_DEF, "function_definition"), 0, 3, ek($2), ek($3), ek($4) )
+		: op( nd(FUNC_DEF, "function_definition"), 0, 2, ek($2), ek($4) );
 	}
-	| declaration_specifiers declarator compound_statement { $$ = op(nd(FUNC_DEF,"function_definition"), 0, 2, ej((node_t*)$2), ej((node_t*)$3)); }
+	| declaration_specifiers declarator compound_statement { $$ = op(nd(FUNC_DEF,"function_definition"), 0, 2, ek($2), ek($3)); }
 	| declarator declaration_list compound_statement {
 		$$ = ($2)
-		? op( nd(FUNC_DEF, "function_definition"), 0, 3, ej((node_t*)$1), ej((node_t*)$2), ej((node_t*)$3) )
-		: op( nd(FUNC_DEF, "function_definition"), 0, 2, ej((node_t*)$1), ej((node_t*)$3) );
+		? op( nd(FUNC_DEF, "function_definition"), 0, 3, ek($1), ek($2), ek($3) )
+		: op( nd(FUNC_DEF, "function_definition"), 0, 2, ek($1), ek($3) );
 	}
-	| declarator compound_statement { $$ = op( nd(FUNC_DEF, "function_definition"), 0, 2, ej((node_t*)$1), ej((node_t*)$2) ); }
+	| declarator compound_statement { $$ = op( nd(FUNC_DEF, "function_definition"), 0, 2, ek($1), ek($2) ); }
 	;
 
 %%
