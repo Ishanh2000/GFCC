@@ -12,6 +12,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 typedef unsigned long int ull;
 
@@ -37,7 +38,7 @@ class symtab { //  SYMBOL TABLE
     symtab* parent = NULL;
     std::vector<symtab*> subScopes; // size() = 0
     std::vector<sym*> syms; // size() = 0
-  
+    std::unordered_map <std::string,sym*> map_syms;
     // Constructor + Destructors
     symtab();
     symtab(std::string); // name given

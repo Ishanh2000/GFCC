@@ -12,6 +12,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 #include <symtab.h>
 #include <typo.h>
@@ -73,11 +74,13 @@ symtab::~symtab() {
 
 sym* symtab::srchSym(string _name) { // search symbol by name
   if (_name == "") return NULL; // not required, but a speedup.
-
-  int l = syms.size();
-  for (int i = 0; i < l; i++) {
-    if (syms[i]->name == _name) return syms[i];
-  }
+  
+  if( map_syms.find(_name) != map_syms.end() )
+    return map_syms[_name];
+  // int l = syms.size();
+  // for (int i = 0; i < l; i++) {
+  //   if (syms[i]->name == _name) return syms[i];
+  // }
   return NULL;
 }
 
@@ -88,6 +91,7 @@ bool symtab::pushSym(sym* newSym) {
   }
   if (dbg) cout << "Pushing " << newSym->name << endl;
   syms.push_back(newSym);
+  map_syms[newSym->name] = newSym;
   return true;
 }
 

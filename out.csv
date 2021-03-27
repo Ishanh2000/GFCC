@@ -1,10 +1,15 @@
-# File Name: tests/new.c
+# File Name: tests/test_BO.c
 
 SYMBOL NAME , SYMBOL TYPE
 
 ###### Scope = Global ######,
 ###### Scope = Global ######,
-p , 6154
-q , 6154
-r , 6154
-s , 6154
+p , 8
+q , 8
+r , 8
+s , 8
+a , 8
+b , 8
+c , 8
+d , 8
+e , 8
