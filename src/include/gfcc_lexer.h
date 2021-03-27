@@ -99,6 +99,25 @@ extern ull_t q_head, q_tail; // enqueue at tail, dequeue from head
 
 extern node_t* AstRoot;
 
+#ifdef COMPLETE
+extern const char type_spec_attr[];
+extern const char strg_class_attr[];
+extern const char type_qual_attr[];
+#else
+extern const char *type_spec_attr;
+extern const char *strg_class_attr;
+extern const char *type_qual_attr;
+#endif
+
+extern const char
+	jump_attr[],
+	iter_attr[],
+	select_attr[],
+	sizeof_attr[],
+	empty_attr[],
+	file_name_attr[],
+	func_call_attr[];
+
 void lexUnput(char);
 
 char lexInput(void);
@@ -123,7 +142,7 @@ void fprintTokens(FILE*, token_t*, unsigned long int, int); // TRY USING THIS FO
 
 void update_location(char);
 
-// int yyarse();
+// int yyparse();
 
 // int yywrap();
 
@@ -139,41 +158,20 @@ void dotEdge(FILE *, node_t*, edge_t*);
 
 ull_t newNode();
 
-// token_type, label, attr
-node_t* mkGenNode(int, const char*, const char*); // attr may be NULL
+// token_type, label, attr, encoding, line, column
+node_t* Nd(int, const char*, const char*, ull_t, int, int); // attr may be NULL
 
-// token_type, label
-node_t* mkNode(int, const char*); // attr will be passed to mkGenNode as NULL
-
-extern node_t* (*nd)(int, const char*); // short form
-
-// [VERSION 2] token_type, label, attr, encoding, line, column
-node_t* mkGenNode2(int, const char*, const char*, ull_t, int, int); // attr may be NULL
-
-// [VERSION 2] token_type, label, encoding, line, column
-node_t* mkNode2(int, const char*, ull_t, int, int); // attr will be passed to mkGenNode as NULL
-
-// [VERSION 2]
-extern node_t* (*nd2)(int, const char*, ull_t, int, int); // short form
+// token_type, label, encoding, line, column
+node_t* nd(int, const char*, ull_t, int, int); // attr will be passed to Nd as NULL
 
 // child, label, attr
-edge_t* mkGenEdge(node_t*, const char*, const char*); // label, attr may be NULL
+edge_t* Ej(node_t*, const char*, const char*); // label and attr may be NULL
 
 // child
-edge_t* mkEdge(node_t*); // label, attr will be passed to mkGenEdge as NULL
-
-extern edge_t* (*ej)(node_t*); // short form
-
-edge_t* ek(void*); // to wrap "ej" - will remove later.
+edge_t* ej(node_t*); // label and attr will be passed to mkGenEdge as NULL
 
 // parent, numLeft, numRight, edge_1, edge_2, ...
-node_t* mkOpNode(node_t*, int, int, ...);
-
-extern node_t* (*op)(node_t*, int, int, ...); // short form
-
-// void ASTToDot(FILE*, node_t*); // temp_out, root
-
-// char* cat(char*, char*);
+node_t* op(node_t*, int, int, ...);
 
 int Enqueue(node_t *);
 

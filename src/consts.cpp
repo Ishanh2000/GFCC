@@ -1,3 +1,5 @@
+#include <gfcc_lexer.h>
+
 const char* TOKEN_NAME_ARRAY[] = {
 	"IDENTIFIER", "CONSTANT", "STRING_LITERAL", "SIZEOF", "FILE_OBJ", "PTR_OP", "INC_OP", "DEC_OP", "LEFT_OP", "RIGHT_OP",
 	"LE_OP", "GE_OP", "EQ_OP", "NE_OP", "AND_OP", "OR_OP", "MUL_ASSIGN", "DIV_ASSIGN", "MOD_ASSIGN", "ADD_ASSIGN",
@@ -6,6 +8,24 @@ const char* TOKEN_NAME_ARRAY[] = {
 	"CONST", "VOLATILE", "VOID", "STRUCT", "UNION", "ENUM", "ELLIPSIS", "CASE", "DEFAULT", "IF", "ELSE", "SWITCH",
 	"WHILE", "DO", "FOR", "GOTO", "CONTINUE", "BREAK", "RETURN",
 };
+
+#ifdef COMPLETE
+const char type_spec_attr[] = "style=filled,fillcolor=lightgreen,shape=diamond";
+const char strg_class_attr[] = "style=filled,fillcolor=lightgreen,shape=diamond";
+const char type_qual_attr[] = "style=filled,fillcolor=lightgreen,shape=diamond";
+#else
+const char *type_spec_attr = NULL;
+const char *strg_class_attr = NULL;
+const char *type_qual_attr = NULL;
+#endif
+
+const char jump_attr[] = "style=filled,fillcolor=orange";
+const char iter_attr[] = "style=filled,fillcolor=lightblue";
+const char select_attr[] = "style=filled,fillcolor=yellow";
+const char sizeof_attr[] = "style=filled,fillcolor=lightgreen";
+const char empty_attr[] = "style=filled,fillcolor=gray"; // empty statment ';' / empty block '{}'
+const char file_name_attr[] = "shape=box";
+const char func_call_attr[] = "shape=box";
 
 char lexer_help[] = "\
 Usage: <exec-name> [options] files... [--output|-o] output-files...\n\

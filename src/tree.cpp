@@ -42,64 +42,48 @@ ull_t newNode() {
 	return ++currNumNodes;
 }
 
-node_t* mkGenNode(int tok_type, const char* label, const char* attr) { // label is lexeme. attr may be NULL.
-	// printf("Here: %s\n", label);
+/*******************************************************************************/
+/******************************* OKAY ABOVE THIS *******************************/
+/*******************************************************************************/
+
+node_t* Nd(int tok_type, const char* label, const char* attr, ull_t _enc, int _line, int _column) {
+	// label is lexeme. attr may be NULL.
+	
 	node_t *node = (node_t*) malloc(sizeof(node_t)); if (!node) return NULL;
 
 	node->id = newNode(); node->tok_type = tok_type;
 	node->attr = attr; // no need to copy since not mutating (Heap | Read-Only)
-	node->parent = NULL;
-	node->edges = NULL;
-	node->numChild = 0;
+	node->parent = NULL; node->edges = NULL; node->numChild = 0;
 
 	// A STRING_LITERAL label will have "" included
-	char * newlabel = strdup(label);
+	char * newlabel = strdup(label); // "label", in itself probabbly lies in read-only memory region.
 	if (tok_type == STRING_LITERAL) { // assured that label lies in HEAP
 		int end = 0; while(newlabel[end]) end++; newlabel[end - 1] = '\0'; // latter "
 		newlabel += 1; // former "
 	}
-	node->label = newlabel; // no need to copy since not mutating (Heap | Read-Only)
+	node->label = newlabel;
+
+	node->enc = _enc; node->line = _line; node->column = _column;
 
 	return node;
 }
 
-node_t* mkNode(int tok_type, const char* label) {
-	return mkGenNode(tok_type, strdup(label), NULL);
+node_t* nd(int tok_type, const char* label, ull_t _enc, int _line, int _column) {
+	return Nd(tok_type, label, NULL, _enc, _line, _column); // CAUTION: See for "strdup".
 }
 
-node_t* (*nd)(int, const char*) = mkNode; // short form
-
-// VERSION 2
-node_t* mkGenNode2(int tok_type, const char* label, const char* attr, ull_t enc, int line, int column) { // label is lexeme. attr may be NULL.
-	printf("Here: %d, %d\n", line, column);
-	node_t *node = mkGenNode(tok_type, label, attr);
-	if (node) { node->enc = enc; node->line = line; node->column = column; }
-
-	return node;
-}
-
-// VERSION 2
-node_t* mkNode2(int tok_type, const char* label, ull_t enc, int line, int column) {
-	return mkGenNode2(tok_type, strdup(label), NULL, enc, line, column);
-}
-
-// VERSION 2
-node_t* (*nd2)(int, const char*, ull_t, int, int) = mkNode2; // short form
-
-edge_t* mkGenEdge(node_t* node, const char* label, const char* attr) {
+edge_t* Ej(node_t* node, const char* label, const char* attr) {
 	edge_t* e = (edge_t*) malloc(sizeof(edge_t));
 	if (!e) return NULL;
 	e->node = node; e->label = label; e->attr = attr;
 	return e;
 }
 
-edge_t* mkEdge(node_t* child) {
-	return mkGenEdge(child, NULL, NULL);
+edge_t* ej(node_t* child) {
+	return Ej(child, NULL, NULL);
 }
 
-edge_t* (*ej)(node_t*) = mkEdge; // short form
-
-node_t* mkOpNode(node_t *parent, int l, int r, ...) { // attr may be NULL
+node_t* op(node_t *parent, int l, int r, ...) { // attr may be NULL
 	if (!parent) return NULL;
 	if ((l < 1) && (r < 1)) return parent; // nothing to do
 	int curr = parent->numChild;
@@ -129,6 +113,8 @@ node_t* mkOpNode(node_t *parent, int l, int r, ...) { // attr may be NULL
 	free(parent->edges);
 	parent->edges = tmp;
 	parent->numChild += (l + r);
+
+	// TODO: some logical error here.
 	if (l > 0) {
 		node_t* firstChild = parent->edges[0]->node;
 		// printf("%s: %d, %d\n", (parent->tok_type != RETURN) ? "-" : "RETURN", firstChild->line, firstChild->column);
@@ -138,7 +124,9 @@ node_t* mkOpNode(node_t *parent, int l, int r, ...) { // attr may be NULL
 	return parent;
 }
 
-node_t* (*op)(node_t*, int, int, ...) = mkOpNode;
+/*********************************************************************************************/
+/******************************* PRINTING RELATED STUFF BEGINS *******************************/
+/*********************************************************************************************/
 
 ull_t q_head = 0, q_tail = 0;
 
