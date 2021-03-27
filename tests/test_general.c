@@ -22,9 +22,10 @@ int main()
 			g++;
 			while(g)
 			{
-				printf("do");
+				printf("do", sizeof(oioioi));
 				g--;
 			}
+			do {hehe;} while (haha);
 		}
 		good : ;
 	}

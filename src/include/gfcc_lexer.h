@@ -7,7 +7,7 @@
 #include <gfcc_colors.h>
 
 // TAB LENGTH
-#define TAB_LEN 8
+#define TAB_LEN 4 // TODO: must change later
 
 // ERROR CODES
 #define E_TOO_FEW_ARGS		(-1)
@@ -49,14 +49,14 @@
 #define DECLARATOR			(-36) // declarator (general variable, a, b[], c[90], *x, (*func)(), etc.)
 #define INIT_LIST			(-37) // Array initializer list
 #define DO_WHILE			(-38) // Do while iteration statement
-#define STRUCT_MEMBER			(-39) // Used to denote a member in struct/union	
+#define STRUCT_MEMBER       (-39) // Used to denote a member in struct/union	
 #define ALL_MEMBERS			(-40) // To denote all members of a struct/union as a parent node
-#define ABSTRACT_DECLARATOR (-41) //Denote the abstracgt declarations like int *, int [], etc.
-#define PARAM_DECL          (-42) //parameter declarations
-#define ABSTRACT_DECLN      (-43)//() used in abstract declratoins 
+#define ABSTRACT_DECLARATOR (-41) // Denote the abstracgt declarations like int *, int [], etc.
+#define PARAM_DECL          (-42) // parameter declarations
+#define ABST_DCLN           (-43) // () used in abstract declratoins 
 #define FUNC_DEF            (-44)
 
-
+#define TERNARY_EXPR        (-45) // <cond_expr> ? <expr1> : <expr2>
 
 typedef unsigned long long ull_t;
 

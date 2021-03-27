@@ -58,7 +58,7 @@ edge_t* ek(void* child) {
 %type <terminal> '(' ')' '[' ']' '{' '}'
 %type <terminal> '+' '-' '=' '*' '/' '%'
 %type <terminal> '&' '~' '!' '>' '<' '|' '^'
-%type <terminal> ',' ';' ':' '.'
+%type <terminal> ',' ';' ':' '.' '?'
 
 
 // Start symbol
@@ -71,21 +71,28 @@ edge_t* ek(void* child) {
 /***********************************************************************************************/
 
 primary_expression
-	: IDENTIFIER			{ $$ = (node_t*) $1; }
-	| CONSTANT				{ $$ = nd(CONSTANT, $1); }
-	| STRING_LITERAL		{ $$ = nd(STRING_LITERAL, $1); }
+	: IDENTIFIER			{ $$ = (node_t *) $1; }
+	| CONSTANT				{ $$ = (node_t *) $1; }
+	// get sematic number (means 0x56 = 86, 0227 = 151, etc) during semantic analysis - but ENCODE HERE ITSELF
+	| STRING_LITERAL		{ $$ = (node_t *) $1; } // encode as (const char *) - or some other appropriate enc.
 	| '(' expression ')'	{ $$ = $2; }
 	;
 
 postfix_expression
 	: primary_expression									{ $$ = $1; }
-	| postfix_expression '[' expression ']'					{ $$ = op( nd(SUBSCRIPT, $2), 0, 2, ek($1), ek($3) ); }
-	| postfix_expression '(' ')'							{ $$ = op( mkGenNode(FUNC_CALL, "() [func-call]", "shape=box"), 0, 1, ek($1) ); }
-	| postfix_expression '(' argument_expression_list ')'	{ $$ = op( mkGenNode(FUNC_CALL, "() [func-call]", "shape=box"), 0, 2, ek($1), ek($3) ); }
+	| postfix_expression '[' expression ']'					{ $$ = op( (node_t *) $2, 0, 2, ek($1), ek($3) ); }
+	| postfix_expression '(' ')' {
+		node_t* bra = (node_t*) $2; bra->tok_type = FUNC_CALL; bra->label = "() [func-call]"; bra->attr = "shape=box";
+		$$ = op( bra, 0, 1, ek($1) );
+	}
+	| postfix_expression '(' argument_expression_list ')' {
+		node_t* bra = (node_t*) $2; bra->tok_type = FUNC_CALL; bra->label = "() [func-call]"; bra->attr = "shape=box";
+		$$ = op( bra, 0, 2, ek($1), ek($3) );
+	}
 	| postfix_expression '.' IDENTIFIER						{ $$ = op( nd('.', $2), 0, 2, ek($1), ek((void*) $3) ); }
-	| postfix_expression PTR_OP IDENTIFIER					{ $$ = op( nd(PTR_OP, $2), 0, 2, ek($1), ek((void*) $3) ); }
-	| postfix_expression INC_OP								{ $$ = op( nd(INC_OP, $2), 0, 1, ek($1) ); }
-	| postfix_expression DEC_OP								{ $$ = op( nd(DEC_OP, $2), 0, 1, ek($1) ); }
+	| postfix_expression PTR_OP IDENTIFIER					{ $$ = op( (node_t*) $2, 0, 2, ek($1), ek((void*) $3) ); }
+	| postfix_expression INC_OP								{ $$ = op( (node_t*) $2, 0, 1, ek($1) ); }
+	| postfix_expression DEC_OP								{ $$ = op( (node_t*) $2, 0, 1, ek($1) ); }
 	;
 
 argument_expression_list
@@ -95,20 +102,20 @@ argument_expression_list
 
 unary_expression
 	: postfix_expression				{ $$ = $1; }
-	| INC_OP unary_expression			{ $$ = op( nd(INC_OP, $1), 0, 1, ek($2) ); }
-	| DEC_OP unary_expression			{ $$ = op( nd(DEC_OP, $1), 0, 1, ek($2) ); }
+	| INC_OP unary_expression			{ $$ = op( (node_t*) $1, 0, 1, ek($2) ); }
+	| DEC_OP unary_expression			{ $$ = op( (node_t*) $1, 0, 1, ek($2) ); }
 	| unary_operator cast_expression	{ $$ = op( (node_t*)$1, 0, 1, ek($2) ); }
-	| SIZEOF unary_expression			{ $$ = op( nd(SIZEOF, $1), 0, 1, ek($2) ); }
-	| SIZEOF '(' type_name ')'			{ $$ = op( nd(SIZEOF, $1), 0, 1, ek($3) ); }
+	| SIZEOF unary_expression			{ $$ = op( (node_t *) $1, 0, 1, ek($2) ); }
+	| SIZEOF '(' type_name ')'			{ $$ = op( (node_t *) $1, 0, 1, ek($3) ); }
 	;
 
 unary_operator
-	: '&' { $$ = nd('&', $1); }
-	| '*' { $$ = nd('*', $1); }
-	| '+' { $$ = nd('+', $1); }
-	| '-' { $$ = nd('-', $1); }
-	| '~' { $$ = nd('~', $1); }
-	| '!' { $$ = nd('!', $1); }
+	: '&' { $$ = (node_t *) $1; }
+	| '*' { $$ = (node_t *) $1; }
+	| '+' { $$ = (node_t *) $1; }
+	| '-' { $$ = (node_t *) $1; }
+	| '~' { $$ = (node_t *) $1; }
+	| '!' { $$ = (node_t *) $1; }
 	;
 
 cast_expression
@@ -119,66 +126,66 @@ cast_expression
 
 multiplicative_expression
 	: cast_expression { $$ = $1; }
-	| multiplicative_expression '*' cast_expression { $$ = op( nd('*', $2), 0, 2, ek($1), ek($3) ); }
-	| multiplicative_expression '/' cast_expression { $$ = op( nd('/', $2), 0, 2, ek($1), ek($3) ); }
-	| multiplicative_expression '%' cast_expression { $$ = op( nd('%', $2), 0, 2, ek($1), ek($3) ); }
+	| multiplicative_expression '*' cast_expression { $$ = op( (node_t *) $2, 0, 2, ek($1), ek($3) ); }
+	| multiplicative_expression '/' cast_expression { $$ = op( (node_t *) $2, 0, 2, ek($1), ek($3) ); }
+	| multiplicative_expression '%' cast_expression { $$ = op( (node_t *) $2, 0, 2, ek($1), ek($3) ); }
 	;
 
 additive_expression
 	: multiplicative_expression { $$ = $1; }
-	| additive_expression '+' multiplicative_expression { $$ = op( nd('+', $2), 0, 2, ek($1), ek($3) ); }
-	| additive_expression '-' multiplicative_expression { $$ = op( nd('-', $2), 0, 2, ek($1), ek($3) ); }
+	| additive_expression '+' multiplicative_expression { $$ = op( (node_t *) $2, 0, 2, ek($1), ek($3) ); }
+	| additive_expression '-' multiplicative_expression { $$ = op( (node_t *) $2, 0, 2, ek($1), ek($3) ); }
 	;
 
 shift_expression
 	: additive_expression { $$ = $1; }
-	| shift_expression LEFT_OP additive_expression	{ $$ = op( nd(LEFT_OP, $2), 0, 2, ek($1), ek($3) ); }
-	| shift_expression RIGHT_OP additive_expression	{ $$ = op( nd(RIGHT_OP, $2), 0, 2, ek($1), ek($3) ); }
+	| shift_expression LEFT_OP additive_expression	{ $$ = op( (node_t*) $2, 0, 2, ek($1), ek($3) ); }
+	| shift_expression RIGHT_OP additive_expression	{ $$ = op( (node_t*) $2, 0, 2, ek($1), ek($3) ); }
 	;
 
 relational_expression
 	: shift_expression { $$ = $1; }
-	| relational_expression '<' shift_expression	{ $$ = op( nd('<', $2), 0, 2, ek($1), ek($3) ); }
-	| relational_expression '>' shift_expression	{ $$ = op( nd('>', $2), 0, 2, ek($1), ek($3) ); }
-	| relational_expression LE_OP shift_expression	{ $$ = op( nd(LE_OP, $2), 0, 2, ek($1), ek($3) ); }
-	| relational_expression GE_OP shift_expression	{ $$ = op( nd(GE_OP, $2), 0, 2, ek($1), ek($3) ); }
+	| relational_expression '<' shift_expression	{ $$ = op( (node_t *) $2, 0, 2, ek($1), ek($3) ); }
+	| relational_expression '>' shift_expression	{ $$ = op( (node_t *) $2, 0, 2, ek($1), ek($3) ); }
+	| relational_expression LE_OP shift_expression	{ $$ = op( (node_t*) $2, 0, 2, ek($1), ek($3) ); }
+	| relational_expression GE_OP shift_expression	{ $$ = op( (node_t*) $2, 0, 2, ek($1), ek($3) ); }
 	;
 
 equality_expression
 	: relational_expression { $$ = $1; }
-	| equality_expression EQ_OP relational_expression	{ $$ = op( nd(EQ_OP, $2), 0, 2, ek($1), ek($3) ); }
-	| equality_expression NE_OP relational_expression	{ $$ = op( nd(NE_OP, $2), 0, 2, ek($1), ek($3) ); }
+	| equality_expression EQ_OP relational_expression	{ $$ = op( (node_t*) $2, 0, 2, ek($1), ek($3) ); }
+	| equality_expression NE_OP relational_expression	{ $$ = op( (node_t*) $2, 0, 2, ek($1), ek($3) ); }
 	;
 
 and_expression
 	: equality_expression { $$ = $1; }
-	| and_expression '&' equality_expression { $$ = op( nd('&', $2), 0, 2, ek($1), ek($3) ); }
+	| and_expression '&' equality_expression { $$ = op( (node_t *) $2, 0, 2, ek($1), ek($3) ); }
 	;
 
 exclusive_or_expression
 	: and_expression { $$ = $1; }
-	| exclusive_or_expression '^' and_expression { $$ = op( nd('^', $2), 0, 2, ek($1), ek($3) ); }
+	| exclusive_or_expression '^' and_expression { $$ = op( (node_t *) $2, 0, 2, ek($1), ek($3) ); }
 	;
 
 inclusive_or_expression
 	: exclusive_or_expression { $$ = $1; }
-	| inclusive_or_expression '|' exclusive_or_expression { $$ = op( nd('|', $2), 0, 2, ek($1), ek($3) ); }
+	| inclusive_or_expression '|' exclusive_or_expression { $$ = op( (node_t *) $2, 0, 2, ek($1), ek($3) ); }
 	;
 
 logical_and_expression
 	: inclusive_or_expression { $$ = $1; }
-	| logical_and_expression AND_OP inclusive_or_expression { $$ = op( nd(AND_OP, $2), 0, 2, ek($1), ek($3) ); }
+	| logical_and_expression AND_OP inclusive_or_expression { $$ = op( (node_t*) $2, 0, 2, ek($1), ek($3) ); }
 	;
 
 logical_or_expression
 	: logical_and_expression { $$ = $1; }
-	| logical_or_expression OR_OP logical_and_expression { $$ = op( nd(OR_OP, $2), 0, 2, ek($1), ek($3) ); }
+	| logical_or_expression OR_OP logical_and_expression { $$ = op( (node_t*) $2, 0, 2, ek($1), ek($3) ); }
 	;
 
 conditional_expression
 	: logical_or_expression { $$ = $1; }
 	| logical_or_expression '?' expression ':' conditional_expression { $$ = op(
-		mkGenNode(-1, "ternary expr (? :)", NULL), 0, 3,
+		(node_t *) $2, 0, 3,
 		mkGenEdge((node_t*)$1, "condition", NULL),
 		mkGenEdge((node_t*)$3, "expr (if TRUE)", NULL),
 		mkGenEdge((node_t*)$5, "expr (if FALSE)", NULL)
@@ -192,21 +199,21 @@ assignment_expression
 
 assignment_operator
 	: '='			{ $$ = (node_t *) $1; }
-	| MUL_ASSIGN	{ $$ = nd(MUL_ASSIGN, $1); }
-	| DIV_ASSIGN	{ $$ = nd(DIV_ASSIGN, $1); }
-	| MOD_ASSIGN	{ $$ = nd(MOD_ASSIGN, $1); }
-	| ADD_ASSIGN	{ $$ = nd(ADD_ASSIGN, $1); }
-	| SUB_ASSIGN	{ $$ = nd(SUB_ASSIGN, $1); }
-	| LEFT_ASSIGN	{ $$ = nd(LEFT_ASSIGN, $1); }
-	| RIGHT_ASSIGN	{ $$ = nd(RIGHT_ASSIGN, $1); }
-	| AND_ASSIGN	{ $$ = nd(AND_ASSIGN, $1); }
-	| XOR_ASSIGN	{ $$ = nd(XOR_ASSIGN, $1); }
-	| OR_ASSIGN		{ $$ = nd(OR_ASSIGN, $1); }
+	| MUL_ASSIGN	{ $$ = (node_t *) $1; }
+	| DIV_ASSIGN	{ $$ = (node_t *) $1; }
+	| MOD_ASSIGN	{ $$ = (node_t *) $1; }
+	| ADD_ASSIGN	{ $$ = (node_t *) $1; }
+	| SUB_ASSIGN	{ $$ = (node_t *) $1; }
+	| LEFT_ASSIGN	{ $$ = (node_t *) $1; }
+	| RIGHT_ASSIGN	{ $$ = (node_t *) $1; }
+	| AND_ASSIGN	{ $$ = (node_t *) $1; }
+	| XOR_ASSIGN	{ $$ = (node_t *) $1; }
+	| OR_ASSIGN		{ $$ = (node_t *) $1; }
 	;
 
 expression
 	: assignment_expression { $$ = $1; }
-	| expression ',' assignment_expression { $$ = op( nd(',', $2), 0, 2, ek($1), ek($3) ); }
+	| expression ',' assignment_expression { $$ = op( (node_t *) $2, 0, 2, ek($1), ek($3) ); }
 	// Here, comma is an operator, and is not treated like a list delimiter
 	;
 
@@ -390,19 +397,22 @@ declarator
 direct_declarator
 	: IDENTIFIER									{ $$ = (node_t *) $1; }
 	| '(' declarator ')'							{ $$ = $2; }
-	| direct_declarator '[' constant_expression ']'	{ $$ = op( nd(SUBSCRIPT, $2), 0, 2, ek($1), ek($3) ); }
-	| direct_declarator '[' ']'						{ $$ = op( nd(SUBSCRIPT, $2), 0, 1, ek($1) ); }
+	| direct_declarator '[' constant_expression ']'	{ $$ = op( (node_t *) $2, 0, 2, ek($1), ek($3) ); }
+	| direct_declarator '[' ']'						{ $$ = op( (node_t *) $2, 0, 1, ek($1) ); }
 	| direct_declarator '(' parameter_type_list ')'	{ $$ = $1;/* $$ = op( nd(FUNC_PTR, "() [func-ptr]"), 0, 2, ek($1), ek($3) ); */ }
 	| direct_declarator '(' identifier_list ')'		{ $$ = $1;/* $$ = op( nd(FUNC_PTR, "() [func-ptr]"), 0, 2, ek($1), ek($3) ); */ }
-	| direct_declarator '(' ')'						{ $$ = op( nd(FUNC_PTR, "() [func-ptr]"), 0, 1, ek($1) ); }
+	| direct_declarator '(' ')' {
+		node_t *bra = (node_t *) $2; bra->tok_type = FUNC_PTR; bra->label = "() [func-ptr]";
+		$$ = op( bra, 0, 1, ek($1) );
+	}
 	;
 
 // TESTED OK
 pointer
-	: '*'								{ $$ = nd(DEREF, $1); }
-	| '*' type_qualifier_list			{ $$ = nd(DEREF, $1); /* $$ = op( nd(DEREF, $1), 0, 1, ek($2) ); */ }
-	| '*' pointer						{ $$ = op( nd(DEREF, $1), 0, 1, ek($2) ); }
-	| '*' type_qualifier_list pointer	{ $$ = op( nd(DEREF, $1), 0, 1, ek($3) ); /* $$ = op( nd(DEREF, $1), 0, 2, ek($2), ek($3) ); */ }
+	: '*'								{ ((node_t *)$1)->tok_type = DEREF; $$ = (node_t*) $1; }
+	| '*' type_qualifier_list			{ ((node_t *)$1)->tok_type = DEREF; $$ = (node_t*) $1; /* $$ = op( nd(DEREF, $1), 0, 1, ek($2) ); */ }
+	| '*' pointer						{ ((node_t *)$1)->tok_type = DEREF; $$ = op( (node_t *) $1, 0, 1, ek($2) ); }
+	| '*' type_qualifier_list pointer	{ ((node_t *)$1)->tok_type = DEREF; $$ = op( (node_t *) $1, 0, 1, ek($3) ); /* $$ = op( nd(DEREF, $1), 0, 2, ek($2), ek($3) ); */ }
 	;
 
 // TESTED OK
@@ -447,14 +457,14 @@ abstract_declarator
 
 direct_abstract_declarator
 	: '(' abstract_declarator ')'                                { $$ = $2; }
-	| '[' ']'                                                    { $$ = nd(SUBSCRIPT, "[]"); }
-	| '[' constant_expression ']'                                { $$ = op(nd(SUBSCRIPT, $1), 0, 1, ek($2)); }
-	| direct_abstract_declarator '[' ']'                         { $$ = op( nd(SUBSCRIPT, $2), 0, 1, ek($1) ); }
-	| direct_abstract_declarator '[' constant_expression ']'     { $$ = op( nd(SUBSCRIPT, $2), 0, 2, ek($1), ek($3) ); }
-	| '(' ')'                                                    { $$ = nd(ABSTRACT_DECLN, "() abst-declaration"); }
-	| '(' parameter_type_list ')'                                { $$ = op(nd(ABSTRACT_DECLN, "() abst-declaration"), 0 ,1, ek($2)); } // ! Will handle
-	| direct_abstract_declarator '(' ')'                         { $$ = op(nd(ABSTRACT_DECLN, "() abst-declaration"), 0 ,1, ek($1)); }
-	| direct_abstract_declarator '(' parameter_type_list ')'     { $$ = op( nd(ABSTRACT_DECLN, "() abst-declaration"), 0, 2, ek($1), ek($3) ); }
+	| '[' ']'                                                    { $$ = (node_t *) $1; }
+	| '[' constant_expression ']'                                { $$ = op( (node_t *) $1, 0, 1, ek($2)); }
+	| direct_abstract_declarator '[' ']'                         { $$ = op( (node_t *) $2, 0, 1, ek($1) ); }
+	| direct_abstract_declarator '[' constant_expression ']'     { $$ = op( (node_t *) $2, 0, 2, ek($1), ek($3) ); }
+	| '(' ')'                                                    { node_t *bra = (node_t *) $1; bra->tok_type = ABST_DCLN; bra->label = "() abst-dcln"; $$ = bra; }
+	| '(' parameter_type_list ')'                                { node_t *bra = (node_t *) $1; bra->tok_type = ABST_DCLN; bra->label = "() abst-dcln"; $$ = op( bra, 0, 1, ek($2) ); } // ! Will handle
+	| direct_abstract_declarator '(' ')'                         { node_t *bra = (node_t *) $2; bra->tok_type = ABST_DCLN; bra->label = "() abst-dcln"; $$ = op( bra, 0, 1, ek($1) ); }
+	| direct_abstract_declarator '(' parameter_type_list ')'     { node_t *bra = (node_t *) $2; bra->tok_type = ABST_DCLN; bra->label = "() abst-dcln"; $$ = op( bra, 0, 2, ek($1), ek($3) ); }
 	;
 
 // TESTED OK
@@ -503,14 +513,14 @@ labeled_statement
 
 // TESTED OK - useless iff EMPTY_BLOCK (can't substitute NULL, since EMPTY_BLOCK is still a valid function definition)
 compound_statement
-	: '{' '}'                                 { $$ = nd(EMPTY_BLOCK, $1); }
-	| '{' statement_list '}'                  { $$ = ($2) ? ($2) : nd(EMPTY_BLOCK, $1); }
-	| '{' declaration_list '}'                { $$ = ($2) ? ($2) : nd(EMPTY_BLOCK, $1); }
+	: '{' '}'                                 { $$ = (node_t *) $1; }
+	| '{' statement_list '}'                  { $$ = ($2) ? ($2) : ((node_t *) $1); }
+	| '{' declaration_list '}'                { $$ = ($2) ? ($2) : ((node_t *) $1); }
 	| '{' declaration_list statement_list '}' {
 		if (($2) && ($3)) { $$ = op( nd(GEN_BLOCK, "block"), 0, 2, ek($2), ek($3) ); }
 		else if ($2) { $$ = $2; } // only useful decl. list.
 		else if ($3) { $$ = $3; } // only useful stmt. list.
-		else { $$ = nd(EMPTY_BLOCK, $1); } // empty block
+		else { $$ = ((node_t *) $1); } // empty block
 	}
 	;
 
@@ -533,49 +543,42 @@ statement_list
 
 // TESTED OK
 expression_statement
-	: ';'				{ $$ = mkGenNode(';', "; [empty-stmt]", "style=filled,fillcolor=gray"); }
+	: ';'				{ $$ = (node_t *) $1; }
 	| expression ';'	{ $$ = $1; }
 	;
 
 // TESTED OK
 selection_statement
-	: IF '(' expression ')' statement { $$ = op(
-		mkGenNode(IF_STMT, "if-stmt", "style=filled,fillcolor=yellow"), 0, 2,
+	: IF '(' expression ')' statement { $$ = op( (node_t *) $1, 0, 2,
 		mkGenEdge((node_t*)$3, "cond", NULL), mkGenEdge((node_t*)$5, "stmts", NULL)
 	); }
-	| IF '(' expression ')' statement ELSE statement { $$ = op(
-		mkGenNode(IF_ELSE_STMT, "if-else-stmt", "style=filled,fillcolor=yellow"), 0, 3,
+	| IF '(' expression ')' statement ELSE statement { $$ = op( (node_t *) $6, 0, 3,
 		mkGenEdge((node_t*)$3, "cond", NULL), mkGenEdge((node_t*)$5, "stmts (if TRUE)", NULL), mkGenEdge((node_t*)$7, "stmts (if FALSE)", NULL)
 	); }
-	| SWITCH '(' expression ')' statement { $$ = op(
-		mkGenNode(SWITCH, $1, "style=filled,fillcolor=yellow"), 0, 2,
+	| SWITCH '(' expression ')' statement { $$ = op( (node_t *) $1, 0, 2,
 		mkGenEdge((node_t*)$3, "expr", NULL), mkGenEdge((node_t*)$5, "stmts", NULL)
 	); }
 	;
 
 iteration_statement
-	: WHILE '(' expression ')' statement { $$ = op(
-		mkGenNode(WHILE, $1, "style=filled,fillcolor=lightblue"), 0, 2,
+	: WHILE '(' expression ')' statement { $$ = op( (node_t *) $1, 0, 2,
 		mkGenEdge((node_t*)$3, "expr", NULL), mkGenEdge((node_t*)$5, "stmts", NULL)
 	); }
-	| DO statement WHILE '(' expression ')' ';' { $$ = op(
-		mkGenNode(DO_WHILE, "do-while", "style=filled,fillcolor=lightblue"), 0, 2,
+	| DO statement WHILE '(' expression ')' ';' { $$ = op( (node_t *) $1, 0, 2,
 		mkGenEdge((node_t*)$2, "stmts", NULL), mkGenEdge((node_t*)$5, "expr", NULL)
 	); }
-	| FOR '(' expression_statement expression_statement ')' statement { $$ = op(
-		mkGenNode(FOR, $1, "style=filled,fillcolor=lightblue"), 0, 3,
+	| FOR '(' expression_statement expression_statement ')' statement { $$ = op( (node_t *) $1, 0, 3,
 		mkGenEdge((node_t*)$3, "expr", NULL), mkGenEdge((node_t*)$4, "expr", NULL), mkGenEdge((node_t*)$6, "stmts", NULL)
 	); }
-	| FOR '(' expression_statement expression_statement expression ')' statement  { $$ = op(
-		mkGenNode(FOR, $1, "style=filled,fillcolor=lightblue"), 0, 4,
+	| FOR '(' expression_statement expression_statement expression ')' statement  { $$ = op( (node_t *) $1, 0, 4,
 		mkGenEdge((node_t*)$3, "expr", NULL), mkGenEdge((node_t*)$4, "expr", NULL), mkGenEdge((node_t*)$5, "expr", NULL), mkGenEdge((node_t*)$7, "stmts", NULL)
 	); }
 	;
 
 jump_statement
-	: GOTO IDENTIFIER ';'	{ $$ = op( mkGenNode(GOTO, $1, "style=filled,fillcolor=orange"), 0, 1, ek((void*)$2) ); }
-	| CONTINUE ';'			{ $$ = mkGenNode(CONTINUE, $1, "style=filled,fillcolor=orange"); }
-	| BREAK ';'				{ $$ = mkGenNode(BREAK, $1, "style=filled,fillcolor=orange"); }
+	: GOTO IDENTIFIER ';'	{ $$ = op( (node_t*) $1, 0, 1, ek((void*)$2) ); }
+	| CONTINUE ';'			{ $$ = (void*) $1; }
+	| BREAK ';'				{ $$ = (void*) $1; }
 	| RETURN ';'			{ $$ = (void*) $1; }
 	| RETURN expression ';'	{ $$ = op( (node_t*) $1, 0, 1, ek($2) ); }
 	;
