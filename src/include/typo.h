@@ -9,6 +9,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+
 #include <gfcc_colors.h>
 #include <gfcc_lexer.h>
 
@@ -29,11 +30,15 @@ class msg : public std::stringstream {
 
 int yyerror(const char *);
 
+void reportError(int, int, std::string, const char *); // very similar to yyerror
+
 void dotStmt(const char*, ...);
 
 void dotNode(std::ofstream &, node_t*);
 
 void dotEdge(std::ofstream &, node_t*, edge_t*);
+
+void AstToDot(std::ofstream &, node_t *);
 
 void lex_err(const char*, ...); // [Deprecated] printf wrapper for colorized output
 
