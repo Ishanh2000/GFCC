@@ -9,8 +9,8 @@ configure_file(
 
 
 # specify the C++ standard
-# set(CMAKE_CXX_STANDARD 11)
-# set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # add executable
 add_executable(parser
