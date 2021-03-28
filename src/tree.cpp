@@ -3,10 +3,10 @@
 
 #include <iostream>
 #include <fstream>
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <cstdarg>
+
 #include <gfcc_lexer.h>
 #include <gfcc_tree.h>
 #include <typo.h>
@@ -15,7 +15,7 @@
 using namespace std;
 
 node_t* node_t::ch (int i) {
-	if ((!edges) || (i < 0) || (i >= numChild)) return NULL;
+	if ((!edges) || (i < 0) || (i >= numChild) || (!(edges[i]))) return NULL;
 	return edges[i]->node;
 }
 
@@ -25,8 +25,8 @@ ull_t newNode() {
 
 node_t* Nd(int tok, const char* label, const char* attr, ull_t _enc, loc_t pos) {
 	// label is lexeme. attr may be NULL.
-	
-	node_t *node = (node_t*) malloc(sizeof(node_t)); if (!node) return NULL;
+
+	node_t *node = new node_t; if (!node) return NULL;
 
 	node->id = newNode(); node->tok = tok;
 	node->attr = attr; // no need to copy since not mutating (Heap | Read-Only)
@@ -35,7 +35,7 @@ node_t* Nd(int tok, const char* label, const char* attr, ull_t _enc, loc_t pos) 
 	// A STRING_LITERAL label will have "" included
 	char * newlabel = strdup(label); // "label", in itself probabbly lies in read-only memory region.
 	if (tok == STRING_LITERAL) { // assured that label lies in HEAP
-		int end = 0; while(newlabel[end]) end++; newlabel[end - 1] = '\0'; // latter "
+		int end = 0; while (newlabel[end]) end++; newlabel[end - 1] = '\0'; // latter "
 		newlabel += 1; // former "
 	}
 	node->label = newlabel;
@@ -50,7 +50,7 @@ node_t* nd(int tok, const char* label, ull_t _enc, loc_t pos) {
 }
 
 edge_t* Ej(node_t* node, const char* label, const char* attr) {
-	edge_t* e = (edge_t*) malloc(sizeof(edge_t));
+	edge_t* e = new edge_t;
 	if (!e) return NULL;
 	e->node = node; e->label = label; e->attr = attr;
 	return e;
@@ -91,39 +91,25 @@ node_t* op(node_t *parent, int l, int r, ...) { // attr may be NULL
 	parent->edges = tmp;
 	parent->numChild += (l + r);
 
-	// TODO: some logical error here.
-	if (l > 0) {
-		node_t* firstChild = parent->ch(0);
-		parent->pos.line = firstChild->pos.line; parent->pos.column = firstChild->pos.column;
-	}
+	// update parent's compounded location
+	node_t* firstChild = parent->ch(0);
+	parent->pos.line = firstChild->pos.line; parent->pos.column = firstChild->pos.column;
 
 	return parent;
 }
 
-/*********************************************************************************************/
-/******************************* PRINTING RELATED STUFF BEGINS *******************************/
-/*********************************************************************************************/
-
-ull_t q_head = 0, q_tail = 0;
-
-int Enqueue(node_t* node) {
-	if ( ((q_tail + 1) % (MAX_QUEUE_LENGTH + 1)) == q_head ) return -1;
-	Q[q_tail++] = node;
-	return 0;
+void purgeAST(node_t *root) {
+	if (!root) return;
+	int numChild = root->numChild;
+	for (int i = 0; i < numChild; i++) {
+		purgeAST(root->ch(i));
+		if (root->edges) delete root->edges[i];
+	}
+	delete root;
 }
 
-node_t* Dequeue() {
-	if (q_head == q_tail) return NULL; // empty queue
-	node_t* tmp = Q[q_head];
-	q_head = (q_head + 1) % (MAX_QUEUE_LENGTH + 1);
-	return tmp;
-}
-
-int IsEmpty() {
-	return (q_tail == q_head);
-}
-
-int accept(node_t *node) {
+bool accept(node_t *node) {
+	if (!node) return false;
 	switch (node->tok) {
 		case DECL_SPEC_LIST: return 0;
 		case PARAM_TYPE_LIST: return 0;
@@ -131,37 +117,3 @@ int accept(node_t *node) {
 	}
 }
 
-void AstToDot(std::ofstream &f, node_t *root) { // Do a DFS/BFS (BFS being done here)
-	if (!root) {
-		f << "digraph {" << endl;
-		f << "\t0 [label=\"" << fileName << " (nothing useful)\",shape=none];" << endl;
-		f << "}" << endl;
-		return;
-	}
-
-	f << "digraph {" << endl;
-	dotNode(f, root); // prints file name
-	Enqueue(root);
-
-	while (!IsEmpty()) {
-		node_t* curr = Dequeue(); // assume success
-		string enforcer;
-
-		for (int i = 0; i < curr->numChild; i++) {
-			node_t* tmp_child = curr->ch(i);
-			if (accept(tmp_child)) {
-				dotNode(f, tmp_child);
-				dotEdge(f, curr, curr->edges[i]);
-				Enqueue(tmp_child); // assume success
-				enforcer += to_string(tmp_child->id) + " -> ";
-			}
-		}
-
-		if (curr->numChild > 1) {
-			enforcer.erase(enforcer.find_last_of(" -> ") - 3);
-			f << "\t{ rank = same; " << enforcer << " [style = \"invis\"]; rankdir = LR; }" << endl;
-		}
-	}
-
-	f << "}" << endl;
-}

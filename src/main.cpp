@@ -1,4 +1,4 @@
-// AUM SHREEGANESHAAYA NAMAH|| // DIETY INVOCATION
+// AUM SHREEGANESHAAYA NAMAH|| (DIETY INVOCATION)
 #include <cstring>
 #include <iostream>
 #include <fstream>
@@ -23,8 +23,8 @@ ull_t currNumNodes = 0; // invariant: currNumNodes > 0 for all existing nodes.
 node_t* AstRoot = NULL;
 char * fileName = NULL;
 symRoot *SymRoot = NULL;
-
-using namespace std;
+vector<unsigned int> offsets; // line i starts at offsets[i-1]
+ifstream in_file;
 
 // CLA: <exec-name> [some options] in_1 in_2 ... in_N
 // CLA: <exec-name> [some options] in_1 in_2 ... in_N -o dot_1 csv_1 dot_2 csv_2 ... dot_n csv_n
@@ -88,6 +88,9 @@ int main (int argc , char *argv[]) {
 			continue;
 		}
 
+		// doing this to seek independently of 'yyin' when printing errors.
+		in_file.open(argv[_in]); // TODO: must gracefully handle errors
+
 		ofstream dot_out, csv_out;
 
 		if ( o_flag_index >= 0 ) {
@@ -126,22 +129,28 @@ int main (int argc , char *argv[]) {
 
 		SymRoot = new symRoot();
 
+		offsets.push_back(0); // line 1 starts at offsets[0] = 0
+
 		int parse_return = yyparse(); // cout << "yyparse() = " << parse_return << endl;
 		
 		if (!parse_return) {
-			AstToDot(dot_out, AstRoot);
+			// AST to DOT conversion
+			dot_out << "digraph {" << endl;
+			if (!AstRoot) dot_out << "\t0 [label=\"" << fileName << " (nothing useful)\",shape=none];" << endl;
+			else AstToDot(dot_out, AstRoot);
+			dot_out << "}" << endl;
 
+			// Symbol table to CSV conversion
 			csv_out << "# File Name:, " << argv[_in] << endl << endl;
 			csv_out << "SYMBOL NAME , SYMBOL TYPE" << endl << endl; /// CSV HEADERS
 			SymRoot->dump(csv_out);
 		}
 
 		// PREPARE FOR NEXT FILE (ITERATION)
-		dot_out.close(); csv_out.close();
-		// Can free AstRoot too - later (if time permits)
+		in_file.close(); dot_out.close(); csv_out.close();
+		purgeAST(AstRoot); // frees the current AST
 		delete SymRoot; // frees the current symbol tables
-		column = 1; gpos = { 1, 1 };		
-
+		column = 1; gpos = { 1, 1 };
 		temp_out = NULL; // reset for next file
 	}
 
@@ -202,7 +211,7 @@ bool matches(const char* option, string a, string b) { // return 1 iff option ma
 }
 
 void update_location (char c) {
-	if (c == '\n') { column = 1; gpos.line++; }
+	if (c == '\n') { column = 1; gpos.line++; offsets.push_back(offsets.back() + gpos.column); } // Inserting new offset here also.
 	else if (c == '\t') column += tab_len - ((column - 1) % tab_len);
 	else column++;
 }

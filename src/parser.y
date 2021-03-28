@@ -7,10 +7,13 @@
 **************************************************************************/
 
 #include <cstdlib>
+#include <sstream>
 
 #include <gfcc_lexer.h>
 #include <symtab.h>
 #include <typo.h>
+
+using namespace std;
 
 %}
 
@@ -237,8 +240,13 @@ declaration
 			msg(SUCC) << c_node->label;
 
 			if (SymRoot->lookup(c_node->label)) {
-				msg(ERR) << c_node->pos.line << ":" << c_node->pos.column << ":: Multiple declaration of \"" << c_node->label << "\". Previous declaration at location " << "sym mein daal dena.";
-				exit(E_MULT_DECL);
+				stringstream str1; str1 << "Multiple declarations of \"" << c_node->label << "\".";
+				reportError(c_node->pos.line, c_node->pos.column, str1.str(), _FORE_RED_);
+				stringstream str2; str2 << "Previous declaration at location sym mein daal dena.";
+				cout << "HER: " << c_node->pos.column << endl;
+				reportError(c_node->pos.line, c_node->pos.column, str2.str(), _FORE_CYAN_);
+				
+				exit(E_MULT_DECL); // should abort, not exit
 			} else msg(SUCC) << "Will insert \"" << c_node->label << "\".";
 			
 			SymRoot->pushSym(c_node->label, enc); // ASUMPTION: success - can check that too
@@ -250,7 +258,6 @@ declaration
 			free(ch_idl); idl->edges = tmp; idl->numChild = useful;
 			$$ = $2;
 		} else $$ = NULL;
-
 	}
 	;
 

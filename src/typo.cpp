@@ -7,6 +7,7 @@
 ***********************************************************************/
 
 #include <iostream>
+#include <iomanip> // setw (set width) manipulation
 #include <stdarg.h>
 #include <parser.tab.h>
 #include <gfcc_lexer.h>
@@ -20,20 +21,46 @@ msg::msg(int _type) : msg_type(_type) { }
 
 msg::~msg() {
     switch (msg_type) {
-        case SUCC: std::cout << _C_BOLD_ << _FORE_GREEN_ << this->str() << _C_NONE_ << std::endl; break; // can use prefix "SUCCESS: "
-        case WARN: std::cout << _C_BOLD_ << _FORE_YELLOW_ << "WARNING: " << this->str() << _C_NONE_ << std::endl; break;
-        case ERR : std::cout << _C_BOLD_ << _FORE_RED_ << "ERROR: " << this->str() << _C_NONE_ << std::endl; break;
-        default  : std::cout << this->str() << std::endl;
+        case SUCC: cout << _C_BOLD_ << _FORE_GREEN_ << this->str() << _C_NONE_ << endl; break; // can use prefix "SUCCESS: "
+        case WARN: cout << _C_BOLD_ << _FORE_YELLOW_ << "WARNING: " << this->str() << _C_NONE_ << endl; break;
+        case ERR : cout << _C_BOLD_ << _FORE_RED_ << "ERROR: " << this->str() << _C_NONE_ << endl; break;
+        default  : cout << this->str() << endl;
     }
 }
 
 int yyerror(const char *s) {
-	fflush(stdout);
-	printf("\n%*s\n%d:%d:: %*s\n", column, "^", gpos.line, gpos.column, column, s);
+	// cout << fflush << endl;
+	cout << _C_BOLD_ << "GFCC : " << fileName << ':' << gpos.line << ':' << gpos.column << ": ";
+	cout << _FORE_RED_ << setw(column) << s << " [approx. positions indicated.]" << _C_NONE_ << endl;
+
+	// Here, print from offsets[line-1] till '\n'
+	in_file.seekg(offsets[gpos.line - 1]);
+	string lineToPrint; getline(in_file, lineToPrint);
+	cout << lineToPrint << endl;
+	
+	// Now, place the '^'. 
+	cout << setw(column+1) << _C_BOLD_ << _FORE_RED_ << '^' << _C_NONE_ << endl;
+	// confusion in computing column - ask TEAM
+
 	return -1; // check this later on
 }
 
-void dotNode(std::ofstream &f, node_t* node) {
+void reportError(int _line, int _column, string str, const char* _color) { // very similar to yyerror
+	// cout << fflush << endl;
+	cout << _C_BOLD_ << "GFCC : " << fileName << ':' << _line << ':' << _column << ": ";
+	cout << _color << setw(_column) << str << " [approx. positions indicated.]" << _C_NONE_ << endl;
+
+	// Here, print from offsets[line-1] till '\n'
+	in_file.seekg(offsets[_line - 1]);
+	string lineToPrint; getline(in_file, lineToPrint);
+	cout << lineToPrint << endl;
+	
+	// Now, place the '^'.
+	cout << setw(_column) << _C_BOLD_ << _color << '^' << _C_NONE_ << endl;
+}
+
+void dotNode(ofstream &f, node_t* node) {
+	if (!node) return;
 	f << "\t" << node->id << " [label=\"";
 	if (node->tok == STRING_LITERAL) f << "\\\"" << node->label << "\\\"";
 	else f << node->label;
@@ -42,7 +69,8 @@ void dotNode(std::ofstream &f, node_t* node) {
 	else f << "\"];" << endl;
 }
 
-void dotEdge(std::ofstream &f, node_t* parent, edge_t* e) { // just a wrapper function
+void dotEdge(ofstream &f, node_t* parent, edge_t* e) { // just a wrapper function
+	if (!parent || !e || !(e->node)) return;
 	f << "\t" << parent->id << " -> " << e->node->id;
 	const char *label = e->label, *attr = e->attr;
 
@@ -55,6 +83,28 @@ void dotEdge(std::ofstream &f, node_t* parent, edge_t* e) { // just a wrapper fu
 	}
 
 	f << ";" << endl;
+}
+
+void AstToDot(ofstream &f, node_t *node) { // Do a DFS/BFS (DFS being done here)
+	if (!node) return;
+	dotNode(f, node); // print self
+	int numChild = node->numChild;
+	string enforcer;
+
+	for (int i = 0; i < numChild; i++) {
+		node_t* tmp_child = node->ch(i); // node's i-th child
+		if (accept(tmp_child)) { // acceptable child
+			// do not alter order of statements here.
+			AstToDot(f, tmp_child); // DFS sub-call (build sub-tree with child as root, while enforcing order)
+			dotEdge(f, node, node->edges[i]);
+			enforcer += to_string(tmp_child->id) + " -> ";
+		}
+	}
+
+	if (numChild > 1) {
+		enforcer.erase(enforcer.find_last_of(" -> ") - 3);
+		f << "\t{ rank = same; " << enforcer << " [style = \"invis\"]; rankdir = LR; }" << endl;
+	}
 }
 
 void lex_err(const char* format, ...) { // [Deprecated] printing errors

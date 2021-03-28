@@ -1,4 +1,4 @@
-// AUM SHREEGANESHAAYA NAMAH|| // DIETY INVOCATION
+// AUM SHREEGANESHAAYA NAMAH|| (DIETY INVOCATION)
 #ifndef __GFCC_LEXER__
 #define __GFCC_LEXER__
 
@@ -6,8 +6,8 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+
 #include <gfcc_meta.h>
-#include <gfcc_colors.h>
 
 // TAB LENGTH
 #define TAB_LEN 4 // TODO: must change later
@@ -107,7 +107,7 @@ extern char *fileName, *yytext;
 
 extern ull_t currNumNodes;
 
-extern ull_t q_head, q_tail; // enqueue at tail, dequeue from head
+extern std::ifstream in_file;
 
 extern node_t* AstRoot;
 
@@ -130,6 +130,8 @@ extern const char
 	file_name_attr[],
 	func_call_attr[],
 	label_attr[];
+
+extern std::vector<unsigned int> offsets; // line i starts at offsets[i-1]
 
 void lexUnput(char);
 
@@ -176,14 +178,8 @@ edge_t* ej(node_t*); // label and attr will be passed to mkGenEdge as NULL
 // parent, numLeft, numRight, edge_1, edge_2, ...
 node_t* op(node_t*, int, int, ...);
 
-int Enqueue(node_t *);
+void purgeAST(node_t *); // free unrequired data structures
 
-node_t *Dequeue();
-
-int IsEmpty();
-
-int accept(node_t *node);
-
-void AstToDot(std::ofstream &, node_t *);
+bool accept(node_t *node);
 
 #endif
