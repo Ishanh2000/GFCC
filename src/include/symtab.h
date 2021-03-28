@@ -79,6 +79,6 @@ class symRoot {
 
 bool acceptType(ull); // check if the given (encoded) type is actually valid
 
-extern symRoot *sr;
+extern symRoot *SymRoot;
 
 #endif

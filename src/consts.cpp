@@ -9,6 +9,7 @@ const char* TOKEN_NAME_ARRAY[] = {
 	"WHILE", "DO", "FOR", "GOTO", "CONTINUE", "BREAK", "RETURN",
 };
 
+
 #ifdef COMPLETE
 const char type_spec_attr[] = "style=filled,fillcolor=lightgreen,shape=diamond";
 const char strg_class_attr[] = "style=filled,fillcolor=lightgreen,shape=diamond";

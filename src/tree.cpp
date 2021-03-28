@@ -23,7 +23,7 @@ ull_t newNode() {
 	return ++currNumNodes;
 }
 
-node_t* Nd(int tok, const char* label, const char* attr, ull_t _enc, int _line, int _column) {
+node_t* Nd(int tok, const char* label, const char* attr, ull_t _enc, loc_t pos) {
 	// label is lexeme. attr may be NULL.
 	
 	node_t *node = (node_t*) malloc(sizeof(node_t)); if (!node) return NULL;
@@ -40,13 +40,13 @@ node_t* Nd(int tok, const char* label, const char* attr, ull_t _enc, int _line, 
 	}
 	node->label = newlabel;
 
-	node->enc = _enc; node->line = _line; node->column = _column;
+	node->enc = _enc; node->pos = pos;
 
 	return node;
 }
 
-node_t* nd(int tok, const char* label, ull_t _enc, int _line, int _column) {
-	return Nd(tok, label, NULL, _enc, _line, _column); // CAUTION: See for "strdup".
+node_t* nd(int tok, const char* label, ull_t _enc, loc_t pos) {
+	return Nd(tok, label, NULL, _enc, pos); // CAUTION: See for "strdup".
 }
 
 edge_t* Ej(node_t* node, const char* label, const char* attr) {
@@ -94,8 +94,7 @@ node_t* op(node_t *parent, int l, int r, ...) { // attr may be NULL
 	// TODO: some logical error here.
 	if (l > 0) {
 		node_t* firstChild = parent->ch(0);
-		// printf("%s: %d, %d\n", (parent->tok != RETURN) ? "-" : "RETURN", firstChild->line, firstChild->column);
-		parent->line = firstChild->line; parent->column = firstChild->column;
+		parent->pos.line = firstChild->pos.line; parent->pos.column = firstChild->pos.column;
 	}
 
 	return parent;
@@ -125,17 +124,18 @@ int IsEmpty() {
 }
 
 int accept(node_t *node) {
-	switch (node->tok)
-	{
+	switch (node->tok) {
 		case DECL_SPEC_LIST: return 0;
 		case PARAM_TYPE_LIST: return 0;
-		default: 	return 1;
+		default: return 1;
 	}
 }
 
 void AstToDot(std::ofstream &f, node_t *root) { // Do a DFS/BFS (BFS being done here)
 	if (!root) {
-		f << "digraph {\n\t0 [label=\"" << fileName << " (nothing useful)\",shape=none];" << endl << "}" << endl << "";
+		f << "digraph {" << endl;
+		f << "\t0 [label=\"" << fileName << " (nothing useful)\",shape=none];" << endl;
+		f << "}" << endl;
 		return;
 	}
 

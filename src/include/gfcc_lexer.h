@@ -83,7 +83,7 @@ typedef struct _node_t {
 	struct _node_t *parent;
 	int numChild;
 	struct _edge_t **edges;
-	int line, column; // for error reporting
+	loc_t pos;
 	ull_t enc; // type encoding - could use 'tok' itself
 
 	struct _node_t *ch(int); // getting child without much effort
@@ -97,9 +97,9 @@ typedef struct _edge_t {
 
 extern const char* TOKEN_NAME_ARRAY[]; // make this const
 
-extern int column, token_column, token_line, tab_len, colorize, bad_char_seen;
+extern int column, tab_len, bad_char_seen;
 
-extern loc_t pos; // position
+extern loc_t gpos; // global position in current file
 
 extern FILE *yyin, *yyout, *temp_out;
 
@@ -141,7 +141,9 @@ void comment(); // [DO NOT CHANGE NAME] for multi-line comment (MLC)
 
 int check_type();
 
-int isEqual(const char*, const char*, const char*); // check if first is equal to second ot third
+bool matches(const char*, std::string); // check if first is equal to second
+
+bool matches(const char*, std::string, std::string); // check if first is equal to second or third
 
 void handle_bad_char(); // to handle errors
 
@@ -160,10 +162,10 @@ extern "C" int yylex();
 ull_t newNode();
 
 // token_type, label, attr, encoding, line, column
-node_t* Nd(int, const char*, const char*, ull_t, int, int); // attr may be NULL
+node_t* Nd(int, const char*, const char*, ull_t, loc_t); // attr may be NULL
 
 // token_type, label, encoding, line, column
-node_t* nd(int, const char*, ull_t, int, int); // attr will be passed to Nd as NULL
+node_t* nd(int, const char*, ull_t, loc_t); // attr will be passed to Nd as NULL
 
 // child, label, attr
 edge_t* Ej(node_t*, const char*, const char*); // label and attr may be NULL

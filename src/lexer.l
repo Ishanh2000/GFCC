@@ -43,153 +43,137 @@ IS			(u|U|l|L)*
 
 %}
 
-/* %code requires {
-    class node_t {
-        public:
-        ull_t id;
-        int tok; // [ IDENTIFIER | CONSTANT | STRING_LITERAL | some other | -1 ] (else -1, usually for internal nodes)
-        const char *label;
-        const char *attr;
-        node_t *parent;
-        int numChild;
-        struct _edge_t **edges;
-        // std::vector<edge_t*> edge;
-        int line, column; // for error reporting
-        ull_t enc; // type encoding - could use 'tok' itself
-    };
-} */
-
 %%
 
 "//"([^\n\0])*		{ count(); }
 "/*"				{ comment(); }
 "#"([^\n\0])*		{ count(); }
 
-"auto"			{ count(); yylval.node = Nd(AUTO, "auto", strg_class_attr, 1 << short_b, token_line, token_column); return (AUTO); }
+"auto"			{ count(); yylval.node = Nd(AUTO, "auto", strg_class_attr, 1 << short_b, gpos); return (AUTO); }
 
-"break"			{ count(); yylval.node = Nd(BREAK, "break", jump_attr, 0, token_line, token_column); return (BREAK); }
+"break"			{ count(); yylval.node = Nd(BREAK, "break", jump_attr, 0, gpos); return (BREAK); }
 
-"case"			{ count(); yylval.node = Nd(CASE, "case", label_attr, 0, token_line, token_column); return (CASE); }
+"case"			{ count(); yylval.node = Nd(CASE, "case", label_attr, 0, gpos); return (CASE); }
 
-"char"			{ count(); yylval.node = Nd(CHAR, "char", type_spec_attr, 1 << char_b, token_line, token_column); return (CHAR); }
+"char"			{ count(); yylval.node = Nd(CHAR, "char", type_spec_attr, 1 << char_b, gpos); return (CHAR); }
 
-"const"			{ count(); yylval.node = Nd(CONST, "const", type_qual_attr, 1 << const_b, token_line, token_column); return (CONST); }
+"const"			{ count(); yylval.node = Nd(CONST, "const", type_qual_attr, 1 << const_b, gpos); return (CONST); }
 
-"continue"		{ count(); yylval.node = Nd(CONTINUE, "continue", jump_attr, 0, token_line, token_column); return (CONTINUE); }
+"continue"		{ count(); yylval.node = Nd(CONTINUE, "continue", jump_attr, 0, gpos); return (CONTINUE); }
 
-"default"		{ count(); yylval.node = Nd(DEFAULT, "default", label_attr, 0, token_line, token_column); return (DEFAULT); }
+"default"		{ count(); yylval.node = Nd(DEFAULT, "default", label_attr, 0, gpos); return (DEFAULT); }
 
-"do"			{ count(); yylval.node = Nd(DO_WHILE, "do-while", iter_attr, 0, token_line, token_column); return (DO); }
+"do"			{ count(); yylval.node = Nd(DO_WHILE, "do-while", iter_attr, 0, gpos); return (DO); }
 
-"double"		{ count(); yylval.node = Nd(DOUBLE, "double", type_spec_attr, 1 << double_b, token_line, token_column); return (DOUBLE); }
+"double"		{ count(); yylval.node = Nd(DOUBLE, "double", type_spec_attr, 1 << double_b, gpos); return (DOUBLE); }
 
-"else"			{ count(); yylval.node = Nd(IF_ELSE_STMT, "if-else-stmt", select_attr, 0, token_line, token_column); return (ELSE); }
+"else"			{ count(); yylval.node = Nd(IF_ELSE_STMT, "if-else-stmt", select_attr, 0, gpos); return (ELSE); }
 
-"enum"			{ count(); yylval.node = Nd(ENUM, "enum", type_spec_attr, 1 << enum_b, token_line, token_column); return (ENUM); }
+"enum"			{ count(); yylval.node = Nd(ENUM, "enum", type_spec_attr, 1 << enum_b, gpos); return (ENUM); }
 
-"extern"		{ count(); yylval.node = Nd(EXTERN, "extern", strg_class_attr, 1 << extern_b, token_line, token_column); return (EXTERN); }
+"extern"		{ count(); yylval.node = Nd(EXTERN, "extern", strg_class_attr, 1 << extern_b, gpos); return (EXTERN); }
 
-"float"			{ count(); yylval.node = Nd(FLOAT, "float", type_spec_attr, 1 << float_b, token_line, token_column); return (FLOAT); }
+"float"			{ count(); yylval.node = Nd(FLOAT, "float", type_spec_attr, 1 << float_b, gpos); return (FLOAT); }
 
-"for"			{ count(); yylval.node = Nd(FOR, "for", iter_attr, 0, token_line, token_column); return (FOR); }
+"for"			{ count(); yylval.node = Nd(FOR, "for", iter_attr, 0, gpos); return (FOR); }
 
-"FILE"			{ count(); yylval.node = Nd(FILE_OBJ, "FILE", type_spec_attr, 1 << file_b, token_line, token_column); return (FILE_OBJ); }
+"FILE"			{ count(); yylval.node = Nd(FILE_OBJ, "FILE", type_spec_attr, 1 << file_b, gpos); return (FILE_OBJ); }
 
-"goto"			{ count(); yylval.node = Nd(GOTO, "goto", jump_attr, 0, token_line, token_column); return (GOTO); }
+"goto"			{ count(); yylval.node = Nd(GOTO, "goto", jump_attr, 0, gpos); return (GOTO); }
 
-"if"			{ count(); yylval.node = Nd(IF_STMT, "if-stmt", select_attr, 0, token_line, token_column); return (IF); }
+"if"			{ count(); yylval.node = Nd(IF_STMT, "if-stmt", select_attr, 0, gpos); return (IF); }
 
-"int"			{ count(); yylval.node = Nd(INT, "int", type_spec_attr, 1 << int_b, token_line, token_column); return (INT); }
+"int"			{ count(); yylval.node = Nd(INT, "int", type_spec_attr, 1 << int_b, gpos); return (INT); }
 
-"long"			{ count(); yylval.node = Nd(LONG, "long", type_spec_attr, 1 << long_b, token_line, token_column); return (LONG); }
+"long"			{ count(); yylval.node = Nd(LONG, "long", type_spec_attr, 1 << long_b, gpos); return (LONG); }
 
-"register"		{ count(); yylval.node = Nd(REGISTER, "register", strg_class_attr, 1 << register_b, token_line, token_column); return (REGISTER); }
+"register"		{ count(); yylval.node = Nd(REGISTER, "register", strg_class_attr, 1 << register_b, gpos); return (REGISTER); }
 
-"return"		{ count(); yylval.node = Nd(RETURN, "return", jump_attr, 0, token_line, token_column); return (RETURN); }
+"return"		{ count(); yylval.node = Nd(RETURN, "return", jump_attr, 0, gpos); return (RETURN); }
 
-"short"			{ count(); yylval.node = Nd(SHORT, "short", type_spec_attr, 1 << short_b, token_line, token_column); return (SHORT); }
+"short"			{ count(); yylval.node = Nd(SHORT, "short", type_spec_attr, 1 << short_b, gpos); return (SHORT); }
 
-"signed"		{ count(); yylval.node = Nd(SIGNED, "signed", type_spec_attr, 1 << signed_b, token_line, token_column); return (SIGNED); }
+"signed"		{ count(); yylval.node = Nd(SIGNED, "signed", type_spec_attr, 1 << signed_b, gpos); return (SIGNED); }
 
-"sizeof"		{ count(); yylval.node = Nd(SIZEOF, "sizeof", sizeof_attr, 0, token_line, token_column); return (SIZEOF); }
+"sizeof"		{ count(); yylval.node = Nd(SIZEOF, "sizeof", sizeof_attr, 0, gpos); return (SIZEOF); }
 
-"static"		{ count(); yylval.node = Nd(STATIC, "static", strg_class_attr, 1 << static_b, token_line, token_column); return (STATIC); }
+"static"		{ count(); yylval.node = Nd(STATIC, "static", strg_class_attr, 1 << static_b, gpos); return (STATIC); }
 
-"struct"		{ count(); yylval.node = Nd(STRUCT, "struct", type_spec_attr, 1 << struct_b, token_line, token_column); return (STRUCT); }
+"struct"		{ count(); yylval.node = Nd(STRUCT, "struct", type_spec_attr, 1 << struct_b, gpos); return (STRUCT); }
 
-"switch"		{ count(); yylval.node = Nd(SWITCH, "switch", select_attr, 0, token_line, token_column); return (SWITCH); }
+"switch"		{ count(); yylval.node = Nd(SWITCH, "switch", select_attr, 0, gpos); return (SWITCH); }
 
-"typedef"		{ count(); yylval.node = Nd(TYPEDEF, "typedef", strg_class_attr, 1 << typedef_b, token_line, token_column); return (TYPEDEF); }
+"typedef"		{ count(); yylval.node = Nd(TYPEDEF, "typedef", strg_class_attr, 1 << typedef_b, gpos); return (TYPEDEF); }
 
-"union"			{ count(); yylval.node = Nd(UNION, "union", type_spec_attr, 1 << union_b, token_line, token_column); return (UNION); }
+"union"			{ count(); yylval.node = Nd(UNION, "union", type_spec_attr, 1 << union_b, gpos); return (UNION); }
 
-"unsigned"		{ count(); yylval.node = Nd(UNSIGNED, "unsigned", type_spec_attr, 1 << unsigned_b, token_line, token_column); return (UNSIGNED); }
+"unsigned"		{ count(); yylval.node = Nd(UNSIGNED, "unsigned", type_spec_attr, 1 << unsigned_b, gpos); return (UNSIGNED); }
 
-"void"			{ count(); yylval.node = Nd(VOID, "void", type_spec_attr, 1 << void_b, token_line, token_column); return (VOID); }
+"void"			{ count(); yylval.node = Nd(VOID, "void", type_spec_attr, 1 << void_b, gpos); return (VOID); }
 
-"volatile"		{ count(); yylval.node = Nd(VOLATILE, "volatile", type_qual_attr, 1 << volatile_b, token_line, token_column); return (VOLATILE); }
+"volatile"		{ count(); yylval.node = Nd(VOLATILE, "volatile", type_qual_attr, 1 << volatile_b, gpos); return (VOLATILE); }
 
-"while"			{ count(); yylval.node = Nd(WHILE, "while", iter_attr, 0, token_line, token_column); return (WHILE); }
+"while"			{ count(); yylval.node = Nd(WHILE, "while", iter_attr, 0, gpos); return (WHILE); }
 
-{L}({L}|{D})*	{ count(); yylval.node = nd(IDENTIFIER, strdup(yytext), 0, token_line, token_column); return (check_type()); /* returns IDENTIFIER */ }
+{L}({L}|{D})*	{ count(); yylval.node = nd(IDENTIFIER, strdup(yytext), 0, gpos); return (check_type()); /* returns IDENTIFIER */ }
 
 
-0[xX]{H}+{IS}?			{ count(); yylval.node = nd(CONSTANT, strdup(yytext), (1<<const_b) | (1<<int_b), token_line, token_column); return (CONSTANT); }
-0{D}+{IS}?				{ count(); yylval.node = nd(CONSTANT, strdup(yytext), (1<<const_b) | (1<<int_b), token_line, token_column); return (CONSTANT); }
-{D}+{IS}?				{ count(); yylval.node = nd(CONSTANT, strdup(yytext), (1<<const_b) | (1<<int_b), token_line, token_column); return (CONSTANT); }
-L?'(\\.|[^\\'])+'		{ count(); yylval.node = nd(CONSTANT, strdup(yytext), (1<<const_b) | (1<<char_b), token_line, token_column); return (CONSTANT); }
-{D}+{E}{FS}?			{ count(); yylval.node = nd(CONSTANT, strdup(yytext), (1<<const_b) | (1<<double_b), token_line, token_column); return (CONSTANT); }
-{D}*"."{D}+({E})?{FS}?	{ count(); yylval.node = nd(CONSTANT, strdup(yytext), (1<<const_b) | (1<<double_b), token_line, token_column); return (CONSTANT); }
-{D}+"."{D}*({E})?{FS}?	{ count(); yylval.node = nd(CONSTANT, strdup(yytext), (1<<const_b) | (1<<double_b), token_line, token_column); return (CONSTANT); }
+0[xX]{H}+{IS}?			{ count(); yylval.node = nd(CONSTANT, strdup(yytext), (1<<const_b) | (1<<int_b), gpos); return (CONSTANT); }
+0{D}+{IS}?				{ count(); yylval.node = nd(CONSTANT, strdup(yytext), (1<<const_b) | (1<<int_b), gpos); return (CONSTANT); }
+{D}+{IS}?				{ count(); yylval.node = nd(CONSTANT, strdup(yytext), (1<<const_b) | (1<<int_b), gpos); return (CONSTANT); }
+L?'(\\.|[^\\'])+'		{ count(); yylval.node = nd(CONSTANT, strdup(yytext), (1<<const_b) | (1<<char_b), gpos); return (CONSTANT); }
+{D}+{E}{FS}?			{ count(); yylval.node = nd(CONSTANT, strdup(yytext), (1<<const_b) | (1<<double_b), gpos); return (CONSTANT); }
+{D}*"."{D}+({E})?{FS}?	{ count(); yylval.node = nd(CONSTANT, strdup(yytext), (1<<const_b) | (1<<double_b), gpos); return (CONSTANT); }
+{D}+"."{D}*({E})?{FS}?	{ count(); yylval.node = nd(CONSTANT, strdup(yytext), (1<<const_b) | (1<<double_b), gpos); return (CONSTANT); }
 
-L?\"(\\.|[^\\"])*\"		{ count(); yylval.node = nd(STRING_LITERAL, strdup(yytext), 0, token_line, token_column); return (STRING_LITERAL); /* TODO: const char * */ }
+L?\"(\\.|[^\\"])*\"		{ count(); yylval.node = nd(STRING_LITERAL, strdup(yytext), 0, gpos); return (STRING_LITERAL); /* TODO: const char * */ }
 
-"..."			{ count(); yylval.node = nd(ELLIPSIS, "...", 0, token_line, token_column); return (ELLIPSIS); }
-">>="			{ count(); yylval.node = nd(RIGHT_ASSIGN, ">>=", 0, token_line, token_column); return (RIGHT_ASSIGN); }
-"<<="			{ count(); yylval.node = nd(LEFT_ASSIGN, "<<=", 0, token_line, token_column); return (LEFT_ASSIGN); }
-"+="			{ count(); yylval.node = nd(ADD_ASSIGN, "+=", 0, token_line, token_column); return (ADD_ASSIGN); }
-"-="			{ count(); yylval.node = nd(SUB_ASSIGN, "-=", 0, token_line, token_column); return (SUB_ASSIGN); }
-"*="			{ count(); yylval.node = nd(MUL_ASSIGN, "*=", 0, token_line, token_column); return (MUL_ASSIGN); }
-"/="			{ count(); yylval.node = nd(DIV_ASSIGN, "/=", 0, token_line, token_column); return (DIV_ASSIGN); }
-"%="			{ count(); yylval.node = nd(MOD_ASSIGN, "%=", 0, token_line, token_column); return (MOD_ASSIGN); }
-"&="			{ count(); yylval.node = nd(AND_ASSIGN, "&=", 0, token_line, token_column); return (AND_ASSIGN); }
-"^="			{ count(); yylval.node = nd(XOR_ASSIGN, "^=", 0, token_line, token_column); return (XOR_ASSIGN); }
-"|="			{ count(); yylval.node = nd(OR_ASSIGN, "|=", 0, token_line, token_column); return ( OR_ASSIGN); }
-">>"			{ count(); yylval.node = nd(RIGHT_OP, ">>", 0, token_line, token_column); return (RIGHT_OP); }
-"<<"			{ count(); yylval.node = nd(LEFT_OP, "<<", 0, token_line, token_column); return (LEFT_OP); }
-"++"			{ count(); yylval.node = nd(INC_OP, "++", 0, token_line, token_column); return (INC_OP); }
-"--"			{ count(); yylval.node = nd(DEC_OP, "--", 0, token_line, token_column); return (DEC_OP); }
-"->"			{ count(); yylval.node = nd(PTR_OP, "->", 0, token_line, token_column); return (PTR_OP); }
-"&&"			{ count(); yylval.node = nd(AND_OP, "&&", 0, token_line, token_column); return (AND_OP); }
-"||"			{ count(); yylval.node = nd(OR_OP, "||", 0, token_line, token_column); return (OR_OP); }
-"<="			{ count(); yylval.node = nd(LE_OP, "<=", 0, token_line, token_column); return (LE_OP); }
-">="			{ count(); yylval.node = nd(GE_OP, ">=", 0, token_line, token_column); return (GE_OP); }
-"=="			{ count(); yylval.node = nd(EQ_OP, "==", 0, token_line, token_column); return (EQ_OP); }
-"!="			{ count(); yylval.node = nd(NE_OP, "!=", 0, token_line, token_column); return (NE_OP); }
-";"				{ count(); yylval.node = Nd(';', "; [empty-stmt]", empty_attr, 0, token_line, token_column); return (';'); }
-("{"|"<%")		{ count(); yylval.node = Nd(EMPTY_BLOCK, "{ }", empty_attr, 0, token_line, token_column); return ('{'); }
+"..."			{ count(); yylval.node = nd(ELLIPSIS, "...", 0, gpos); return (ELLIPSIS); }
+">>="			{ count(); yylval.node = nd(RIGHT_ASSIGN, ">>=", 0, gpos); return (RIGHT_ASSIGN); }
+"<<="			{ count(); yylval.node = nd(LEFT_ASSIGN, "<<=", 0, gpos); return (LEFT_ASSIGN); }
+"+="			{ count(); yylval.node = nd(ADD_ASSIGN, "+=", 0, gpos); return (ADD_ASSIGN); }
+"-="			{ count(); yylval.node = nd(SUB_ASSIGN, "-=", 0, gpos); return (SUB_ASSIGN); }
+"*="			{ count(); yylval.node = nd(MUL_ASSIGN, "*=", 0, gpos); return (MUL_ASSIGN); }
+"/="			{ count(); yylval.node = nd(DIV_ASSIGN, "/=", 0, gpos); return (DIV_ASSIGN); }
+"%="			{ count(); yylval.node = nd(MOD_ASSIGN, "%=", 0, gpos); return (MOD_ASSIGN); }
+"&="			{ count(); yylval.node = nd(AND_ASSIGN, "&=", 0, gpos); return (AND_ASSIGN); }
+"^="			{ count(); yylval.node = nd(XOR_ASSIGN, "^=", 0, gpos); return (XOR_ASSIGN); }
+"|="			{ count(); yylval.node = nd(OR_ASSIGN, "|=", 0, gpos); return ( OR_ASSIGN); }
+">>"			{ count(); yylval.node = nd(RIGHT_OP, ">>", 0, gpos); return (RIGHT_OP); }
+"<<"			{ count(); yylval.node = nd(LEFT_OP, "<<", 0, gpos); return (LEFT_OP); }
+"++"			{ count(); yylval.node = nd(INC_OP, "++", 0, gpos); return (INC_OP); }
+"--"			{ count(); yylval.node = nd(DEC_OP, "--", 0, gpos); return (DEC_OP); }
+"->"			{ count(); yylval.node = nd(PTR_OP, "->", 0, gpos); return (PTR_OP); }
+"&&"			{ count(); yylval.node = nd(AND_OP, "&&", 0, gpos); return (AND_OP); }
+"||"			{ count(); yylval.node = nd(OR_OP, "||", 0, gpos); return (OR_OP); }
+"<="			{ count(); yylval.node = nd(LE_OP, "<=", 0, gpos); return (LE_OP); }
+">="			{ count(); yylval.node = nd(GE_OP, ">=", 0, gpos); return (GE_OP); }
+"=="			{ count(); yylval.node = nd(EQ_OP, "==", 0, gpos); return (EQ_OP); }
+"!="			{ count(); yylval.node = nd(NE_OP, "!=", 0, gpos); return (NE_OP); }
+";"				{ count(); yylval.node = Nd(';', "; [empty-stmt]", empty_attr, 0, gpos); return (';'); }
+("{"|"<%")		{ count(); yylval.node = Nd(EMPTY_BLOCK, "{ }", empty_attr, 0, gpos); return ('{'); }
 ("}"|"%>")		{ count(); yylval.node = NULL; /* NULL passed since '}' is not useful to parser. BE CAREFUL WHEN PASSING NULL */ return ('}'); }
-","				{ count(); yylval.node = nd(',', ",", 0, token_line, token_column); return (','); } //  TESTED OK
+","				{ count(); yylval.node = nd(',', ",", 0, gpos); return (','); } //  TESTED OK
 ":"				{ count(); yylval.node = NULL; /* NULL passed since ':' is not useful to parser. BE CAREFUL WHEN PASSING NULL */ return (':'); }
-"="				{ count(); yylval.node = nd('=', "=", 0, token_line, token_column); return ('='); }
-"("				{ count(); yylval.node = nd('(', "()", 0, token_line, token_column); /* Change 'tok' and 'label' depending upon context. */ return ('('); }
+"="				{ count(); yylval.node = nd('=', "=", 0, gpos); return ('='); }
+"("				{ count(); yylval.node = nd('(', "()", 0, gpos); /* Change 'tok' and 'label' depending upon context. */ return ('('); }
 ")"				{ count(); yylval.node = NULL; /* NULL passed since ':' is not useful to parser. BE CAREFUL WHEN PASSING NULL */ return (')'); }
-("["|"<:")		{ count(); yylval.node = nd(SUBSCRIPT, "[]", 0, token_line, token_column); return ('['); }
+("["|"<:")		{ count(); yylval.node = nd(SUBSCRIPT, "[]", 0, gpos); return ('['); }
 ("]"|":>")		{ count(); yylval.node = NULL; /* NULL passed since ']' is not useful to parser. BE CAREFUL WHEN PASSING NULL */ return (']'); }
-"."				{ count(); yylval.node = nd('.', ".", 0, token_line, token_column); return ('.'); }
-"&"				{ count(); yylval.node = nd('&', "&", 0, token_line, token_column); return ('&'); }
-"!"				{ count(); yylval.node = nd('!', "!", 0, token_line, token_column); return ('!'); }
-"~"				{ count(); yylval.node = nd('~', "~", 0, token_line, token_column); return ('~'); }
-"-"				{ count(); yylval.node = nd('-', "-", 0, token_line, token_column); return ('-'); }
-"+"				{ count(); yylval.node = nd('+', "+", 0, token_line, token_column); return ('+'); }
-"*"				{ count(); yylval.node = nd('*', "*", 0, token_line, token_column); /* Change 'tok' to DEREF if used as pointer. */ return ('*'); }
-"/"				{ count(); yylval.node = nd('/', "/", 0, token_line, token_column); return ('/'); }
-"%"				{ count(); yylval.node = nd('%', "%", 0, token_line, token_column); return ('%'); }
-"<"				{ count(); yylval.node = nd('<', "<", 0, token_line, token_column); return ('<'); }
-">"				{ count(); yylval.node = nd('>', ">", 0, token_line, token_column); return ('>'); }
-"^"				{ count(); yylval.node = nd('^', "^", 0, token_line, token_column); return ('^'); }
-"|"				{ count(); yylval.node = nd('|', "|", 0, token_line, token_column); return ('|'); }
-"?"				{ count(); yylval.node = nd(TERNARY_EXPR, "ternary expr (? :)", 0, token_line, token_column); return ('?'); }
+"."				{ count(); yylval.node = nd('.', ".", 0, gpos); return ('.'); }
+"&"				{ count(); yylval.node = nd('&', "&", 0, gpos); return ('&'); }
+"!"				{ count(); yylval.node = nd('!', "!", 0, gpos); return ('!'); }
+"~"				{ count(); yylval.node = nd('~', "~", 0, gpos); return ('~'); }
+"-"				{ count(); yylval.node = nd('-', "-", 0, gpos); return ('-'); }
+"+"				{ count(); yylval.node = nd('+', "+", 0, gpos); return ('+'); }
+"*"				{ count(); yylval.node = nd('*', "*", 0, gpos); /* Change 'tok' to DEREF if used as pointer. */ return ('*'); }
+"/"				{ count(); yylval.node = nd('/', "/", 0, gpos); return ('/'); }
+"%"				{ count(); yylval.node = nd('%', "%", 0, gpos); return ('%'); }
+"<"				{ count(); yylval.node = nd('<', "<", 0, gpos); return ('<'); }
+">"				{ count(); yylval.node = nd('>', ">", 0, gpos); return ('>'); }
+"^"				{ count(); yylval.node = nd('^', "^", 0, gpos); return ('^'); }
+"|"				{ count(); yylval.node = nd('|', "|", 0, gpos); return ('|'); }
+"?"				{ count(); yylval.node = nd(TERNARY_EXPR, "ternary expr (? :)", 0, gpos); return ('?'); }
 
 [ \t\v\n\f]		{ count(); }
 .				{ count(); handle_bad_char(); }
@@ -204,5 +188,3 @@ char lexInput() { return yyinput(); } // Transform #define to function
 void lexUnput(char c) { unput(c); } // Transform #define to function
 
 /* yywrap() { return 1; } */
-
-// See main.c for this part

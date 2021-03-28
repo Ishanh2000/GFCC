@@ -85,7 +85,7 @@ postfix_expression
 	;
 
 argument_expression_list
-	: assignment_expression									{ $$ = op( nd(ARG_EXPR_LIST, "arg-expr-list", 0, 0, 0), 0, 1, ej($1) ); }
+	: assignment_expression									{ $$ = op( nd(ARG_EXPR_LIST, "arg-expr-list", 0, { 0, 0 }), 0, 1, ej($1) ); }
 	| argument_expression_list ',' assignment_expression	{ $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
@@ -110,7 +110,7 @@ unary_operator
 cast_expression
 	: unary_expression { $$ = $1; }
 	| '(' type_name ')' cast_expression { $$ = op(
-		nd(CAST_EXPR, "cast_expression", 0, 0, 0), 0, 2, Ej($2, "type", NULL), Ej($4, "expression", NULL)
+		nd(CAST_EXPR, "cast_expression", 0, { 0, 0 }), 0, 2, Ej($2, "type", NULL), Ej($4, "expression", NULL)
 	); }
 	;
 
@@ -236,12 +236,12 @@ declaration
 			}
 			msg(SUCC) << c_node->label;
 
-			if (sr->lookup(c_node->label)) {
-				msg(ERR) << c_node->line << ":" << c_node->column << ":: Multiple declaration of \"" << c_node->label << "\". Previous declaration at location " << "sym mein daal dena.";
+			if (SymRoot->lookup(c_node->label)) {
+				msg(ERR) << c_node->pos.line << ":" << c_node->pos.column << ":: Multiple declaration of \"" << c_node->label << "\". Previous declaration at location " << "sym mein daal dena.";
 				exit(E_MULT_DECL);
 			} else msg(SUCC) << "Will insert \"" << c_node->label << "\".";
 			
-			sr->pushSym(c_node->label, enc); // ASUMPTION: success - can check that too
+			SymRoot->pushSym(c_node->label, enc); // ASUMPTION: success - can check that too
 		}
 
 		if (useful > 0) {
@@ -257,17 +257,17 @@ declaration
 // useless iff NULL
 // A list of three kinds of objects. Also, new child appends to the left.
 declaration_specifiers
-	: storage_class_specifier                        { $$ = op( nd(DECL_SPEC_LIST, "decl-specs", 0, 0, 0), 0, 1, ej($1) ); ($$)->enc = ($1)->enc; } // valid by default
+	: storage_class_specifier                        { $$ = op( nd(DECL_SPEC_LIST, "decl-specs", 0, { 0, 0 }), 0, 1, ej($1) ); ($$)->enc = ($1)->enc; } // valid by default
 	| storage_class_specifier declaration_specifiers { $$ = op( $2, 1, 0, ej($1) ); }
-	| type_specifier                                 { $$ = op( nd(DECL_SPEC_LIST, "decl-specs", 0, 0, 0), 0, 1, ej($1) ); ($$)->enc = ($1)->enc; } // valid by default
+	| type_specifier                                 { $$ = op( nd(DECL_SPEC_LIST, "decl-specs", 0, { 0, 0 }), 0, 1, ej($1) ); ($$)->enc = ($1)->enc; } // valid by default
 	| type_specifier declaration_specifiers          { $$ = op( $2, 1, 0, ej($1) ); }
-	| type_qualifier                                 { $$ = op( nd(DECL_SPEC_LIST, "decl-specs", 0, 0, 0), 0, 1, ej($1) ); ($$)->enc = ($1)->enc; } // valid by default
+	| type_qualifier                                 { $$ = op( nd(DECL_SPEC_LIST, "decl-specs", 0, { 0, 0 }), 0, 1, ej($1) ); ($$)->enc = ($1)->enc; } // valid by default
 	| type_qualifier declaration_specifiers          { $$ = op( $2, 1, 0, ej($1) ); }
 	;
 
 // useless iff NULL
 init_declarator_list
-	: init_declarator { $$ = op( nd(INIT_DECL_LIST, "var-list", 0, 0, 0), 0, 1, ej($1) ); }
+	: init_declarator { $$ = op( nd(INIT_DECL_LIST, "var-list", 0, { 0, 0 }), 0, 1, ej($1) ); }
 	| init_declarator_list ',' init_declarator { $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
@@ -313,30 +313,30 @@ struct_or_union
 	;
 
 struct_declaration_list 
-	: struct_declaration                         { $$ = op( nd(ALL_MEMBERS, "member-list", 0, 0, 0), 0, 1, ej($1) ); }
+	: struct_declaration                         { $$ = op( nd(ALL_MEMBERS, "member-list", 0, { 0, 0 }), 0, 1, ej($1) ); }
 	| struct_declaration_list struct_declaration { $$ = op( $1, 0, 1, ej($2) ); }
 	;
 
 struct_declaration
-	: specifier_qualifier_list struct_declarator_list ';' { $$ = op( nd(STRUCT_MEMBER, "member", 0, 0, 0), 0, 2, ej($1), ej($2) ); }
+	: specifier_qualifier_list struct_declarator_list ';' { $$ = op( nd(STRUCT_MEMBER, "member", 0, { 0, 0 }), 0, 2, ej($1), ej($2) ); }
 	;
 
 specifier_qualifier_list
 	: type_specifier specifier_qualifier_list { $$ = op( $2, 1, 0, ej($1) ); }
-	| type_specifier                          { $$ = op( nd(SPEC_QUAL_LIST, "spec-qual", 0, 0, 0), 0, 1, ej($1) ); }
+	| type_specifier                          { $$ = op( nd(SPEC_QUAL_LIST, "spec-qual", 0, { 0, 0 }), 0, 1, ej($1) ); }
 	| type_qualifier specifier_qualifier_list { $$ = op( $2, 1, 0, ej($1) ); }
-	| type_qualifier			              { $$ = op( nd(SPEC_QUAL_LIST, "spec-qual", 0, 0, 0), 0, 1, ej($1) ); }
+	| type_qualifier			              { $$ = op( nd(SPEC_QUAL_LIST, "spec-qual", 0, { 0, 0 }), 0, 1, ej($1) ); }
 	;
 
 struct_declarator_list
-	: struct_declarator                            { $$ = op( nd(INIT_DECL_LIST, "var-list", 0, 0, 0), 0, 1, ej($1) ); }
+	: struct_declarator                            { $$ = op( nd(INIT_DECL_LIST, "var-list", 0, { 0, 0 }), 0, 1, ej($1) ); }
 	| struct_declarator_list ',' struct_declarator { $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
 struct_declarator
 	: declarator              { $$ = $1; }
 	| ':' constant_expression { $$ = $2; }
-	| declarator ':' constant_expression { $$ = op( nd(STRUCT_DECL, "declarator", 0, 0, 0), 0, 2, ej($1), ej($3) ); }
+	| declarator ':' constant_expression { $$ = op( nd(STRUCT_DECL, "declarator", 0, { 0, 0 }), 0, 2, ej($1), ej($3) ); }
 	;
 
 enum_specifier
@@ -346,7 +346,7 @@ enum_specifier
 	;
 
 enumerator_list
-	: enumerator						{ $$ = op( nd(ENUM_LIST, "enum-list", 0, 0, 0), 0, 1, ej($1) ); }
+	: enumerator						{ $$ = op( nd(ENUM_LIST, "enum-list", 0, { 0, 0 }), 0, 1, ej($1) ); }
 	| enumerator_list ',' enumerator	{ $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
@@ -361,7 +361,7 @@ type_qualifier
 	;
 
 declarator
-	: pointer direct_declarator	{ $$ = op( nd(DECLARATOR, "var", 0, 0, 0), 0, 2, ej($1), ej($2) ); }
+	: pointer direct_declarator	{ $$ = op( nd(DECLARATOR, "var", 0, { 0, 0 }), 0, 2, ej($1), ej($2) ); }
 	| direct_declarator			{ $$ = $1; }
 	;
 
@@ -370,8 +370,8 @@ direct_declarator
 	| '(' declarator ')'							{ $$ = $2; }
 	| direct_declarator '[' constant_expression ']'	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); }
 	| direct_declarator '[' ']'						{ $$ = op( $2, 0, 1, ej($1) ); }
-	| direct_declarator '(' parameter_type_list ')'	{ $$ = $1; /* $$ = op( nd(FUNC_PTR, "() [func-ptr]", 0, 0, 0), 0, 2, ej($1), ej($3) ); */ }
-	| direct_declarator '(' identifier_list ')'		{ $$ = $1; /* $$ = op( nd(FUNC_PTR, "() [func-ptr]", 0, 0, 0), 0, 2, ej($1), ej($3) ); */ }
+	| direct_declarator '(' parameter_type_list ')'	{ $$ = $1; /* $$ = op( nd(FUNC_PTR, "() [func-ptr]", 0, { 0, 0 }), 0, 2, ej($1), ej($3) ); */ }
+	| direct_declarator '(' identifier_list ')'		{ $$ = $1; /* $$ = op( nd(FUNC_PTR, "() [func-ptr]", 0, { 0, 0 }), 0, 2, ej($1), ej($3) ); */ }
 	| direct_declarator '(' ')' { $2->tok = FUNC_PTR; $2->label = "() [func-ptr]"; $$ = op( $2, 0, 1, ej($1) ); }
 	;
 
@@ -383,7 +383,7 @@ pointer
 	;
 
 type_qualifier_list
-	: type_qualifier						{ $$ = op( nd(TYPE_QUAL_LIST, "type-quals", 0, 0, 0), 0, 1, ej($1) ); }
+	: type_qualifier						{ $$ = op( nd(TYPE_QUAL_LIST, "type-quals", 0, { 0, 0 }), 0, 1, ej($1) ); }
 	| type_qualifier_list type_qualifier	{ $$ = op( $1, 0, 1, ej($2) ); }
 	;
 
@@ -393,30 +393,30 @@ parameter_type_list
 	;
 
 parameter_list
-	: parameter_declaration						{ $$ = op( nd(PARAM_TYPE_LIST, "param-types", 0, 0, 0), 0, 1, ej($1) ); }
+	: parameter_declaration						{ $$ = op( nd(PARAM_TYPE_LIST, "param-types", 0, { 0, 0 }), 0, 1, ej($1) ); }
 	| parameter_list ',' parameter_declaration	{ $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
 parameter_declaration
-	: declaration_specifiers declarator            { $$ = op( nd(PARAM_DECL, "param-decl", 0, 0, 0), 0, 2, ej($1), ej($2) ); }
-	| declaration_specifiers abstract_declarator   { $$ = op( nd(PARAM_DECL, "param-decl", 0, 0, 0), 0, 2, ej($1), ej($2) ); }
+	: declaration_specifiers declarator            { $$ = op( nd(PARAM_DECL, "param-decl", 0, { 0, 0 }), 0, 2, ej($1), ej($2) ); }
+	| declaration_specifiers abstract_declarator   { $$ = op( nd(PARAM_DECL, "param-decl", 0, { 0, 0 }), 0, 2, ej($1), ej($2) ); }
 	| declaration_specifiers                       { $$ = $1; }
 	;
 
 identifier_list
-	: IDENTIFIER                       { $$ = op( nd(ID_LIST, "identifiers", 0, 0, 0), 0, 1, ej($1) ); }
+	: IDENTIFIER                       { $$ = op( nd(ID_LIST, "identifiers", 0, { 0, 0 }), 0, 1, ej($1) ); }
 	| identifier_list ',' IDENTIFIER   { $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
 type_name
-	: specifier_qualifier_list                        { $$ = op( nd(TYPE_NAME, "type-name", 0, 0, 0), 0, 1, ej($1) ); }
+	: specifier_qualifier_list                        { $$ = op( nd(TYPE_NAME, "type-name", 0, { 0, 0 }), 0, 1, ej($1) ); }
 	| specifier_qualifier_list abstract_declarator    { $$ = op( $1, 0, 1, ej($2) ); }
 	;
 
 abstract_declarator
 	: pointer                              { $$ = $1; }
 	| direct_abstract_declarator           { $$ = $1; }
-	| pointer direct_abstract_declarator   { $$ = op( nd(ABSTRACT_DECLARATOR, "abst-decl", 0, 0, 0), 0, 2, ej($1), ej($2) ); }
+	| pointer direct_abstract_declarator   { $$ = op( nd(ABSTRACT_DECLARATOR, "abst-decl", 0, { 0, 0 }), 0, 2, ej($1), ej($2) ); }
 	;
 
 direct_abstract_declarator
@@ -438,7 +438,7 @@ initializer
 	;
 
 initializer_list
-	: initializer						{ $$ = op( nd(INIT_LIST, "array", 0, 0, 0), 0, 1, ej($1) ); }
+	: initializer						{ $$ = op( nd(INIT_LIST, "array", 0, { 0, 0 }), 0, 1, ej($1) ); }
 	| initializer_list ',' initializer	{ $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
@@ -463,7 +463,7 @@ compound_statement
 	| '{' statement_list '}'                  { $$ = ($2) ? ($2) : ($1); }
 	| '{' declaration_list '}'                { $$ = ($2) ? ($2) : ($1); }
 	| '{' declaration_list statement_list '}' {
-		if (($2) && ($3)) { $$ = op( nd(GEN_BLOCK, "block", 0, 0, 0), 0, 2, ej($2), ej($3) ); }
+		if (($2) && ($3)) { $$ = op( nd(GEN_BLOCK, "block", 0, { 0, 0 }), 0, 2, ej($2), ej($3) ); }
 		else if ($2) { $$ = $2; } // only useful decl. list.
 		else if ($3) { $$ = $3; } // only useful stmt. list.
 		else { $$ = ( $1); } // empty block
@@ -472,17 +472,17 @@ compound_statement
 
 // useless iff NULL
 declaration_list
-	: declaration { $$ = ($1) ? op( nd(DECL_LIST, "declarations", 0, 0, 0), 0, 1, ej($1) ) : NULL; }
+	: declaration { $$ = ($1) ? op( nd(DECL_LIST, "declarations", 0, { 0, 0 }), 0, 1, ej($1) ) : NULL; }
 	| declaration_list declaration	{
 		if ($1 && $2) { $$ = op( $1, 0, 1, ej($2) ); } // both useful - simply append
 		else if ($1) { $$ = $1; } // new child not useful
-		else if ($2) { $$ = op( nd(DECL_LIST, "declarations", 0, 0, 0), 0, 1, ej($2) ); } // first useful child
+		else if ($2) { $$ = op( nd(DECL_LIST, "declarations", 0, { 0, 0 }), 0, 1, ej($2) ); } // first useful child
 		else { $$ = NULL; }
 	}
 	;
 
 statement_list
-	: statement                { $$ = op( nd(STMT_LIST, "stmt-list", 0, 0, 0), 0, 1, ej($1) ); }
+	: statement                { $$ = op( nd(STMT_LIST, "stmt-list", 0, { 0, 0 }), 0, 1, ej($1) ); }
 	| statement_list statement { $$ = op( $1, 0, 1, ej($2) ); }
 	;
 
@@ -527,11 +527,11 @@ jump_statement
 	;
 
 translation_unit
-	: external_declaration	{ AstRoot = ($$ = ($1) ? op( Nd(-1, fileName, file_name_attr, 0, 0, 0), 0, 1, ej($1) ) : NULL); } // Bad lincoln
+	: external_declaration	{ AstRoot = ($$ = ($1) ? op( Nd(-1, fileName, file_name_attr, 0, { 0, 0 }), 0, 1, ej($1) ) : NULL); } // Bad lincoln
 	| translation_unit external_declaration	{
 		if ($1 && $2) { $$ = op( $1, 0, 1, ej($2) ); }
 		else if ($1) { $$ = $1; } // new child useless
-		else if ($2) { $$ = op( Nd(-1, fileName, file_name_attr, 0, 0, 0), 0, 1, ej($2) ); } // Bad lincoln
+		else if ($2) { $$ = op( Nd(-1, fileName, file_name_attr, 0, { 0, 0 }), 0, 1, ej($2) ); } // Bad lincoln
 		else { $$ = NULL; }
 		AstRoot = $$;
 	}
@@ -545,16 +545,16 @@ external_declaration
 function_definition
 	: declaration_specifiers declarator declaration_list compound_statement {
 		$$ = ($3)
-		? op( nd(FUNC_DEF, "function_definition", 0, 0, 0), 0, 3, ej($2), ej($3), ej($4) )
-		: op( nd(FUNC_DEF, "function_definition", 0, 0, 0), 0, 2, ej($2), ej($4) );
+		? op( nd(FUNC_DEF, "function_definition", 0, { 0, 0 }), 0, 3, ej($2), ej($3), ej($4) )
+		: op( nd(FUNC_DEF, "function_definition", 0, { 0, 0 }), 0, 2, ej($2), ej($4) );
 	}
-	| declaration_specifiers declarator compound_statement { $$ = op( nd(FUNC_DEF, "function_definition", 0, 0, 0), 0, 2, ej($2), ej($3)); }
+	| declaration_specifiers declarator compound_statement { $$ = op( nd(FUNC_DEF, "function_definition", 0, { 0, 0 }), 0, 2, ej($2), ej($3)); }
 	| declarator declaration_list compound_statement {
 		$$ = ($2)
-		? op( nd(FUNC_DEF, "function_definition", 0, 0, 0), 0, 3, ej($1), ej($2), ej($3) )
-		: op( nd(FUNC_DEF, "function_definition", 0, 0, 0), 0, 2, ej($1), ej($3) );
+		? op( nd(FUNC_DEF, "function_definition", 0, { 0, 0 }), 0, 3, ej($1), ej($2), ej($3) )
+		: op( nd(FUNC_DEF, "function_definition", 0, { 0, 0 }), 0, 2, ej($1), ej($3) );
 	}
-	| declarator compound_statement { $$ = op( nd(FUNC_DEF, "function_definition", 0, 0, 0), 0, 2, ej($1), ej($2) ); }
+	| declarator compound_statement { $$ = op( nd(FUNC_DEF, "function_definition", 0, { 0, 0 }), 0, 2, ej($1), ej($2) ); }
 	;
 
 %%

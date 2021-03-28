@@ -13,16 +13,16 @@ using namespace std;
 // INITIALIZE ALL GLOBAL VARIABLES IN THIS FILE ONLY. DO NOT CHANGE
 // THEIR NAMES. SINCE THEY ARE SHARE ACROSS MULTIPLE FILES.
 
-int column = 1, token_column = 1, token_line = 1;
-loc_t pos = { 1, 1 };
-int colorize = 1; // [BOOLEAN ONLY] to colorize output (supported by modern terminals)
+int column = 1; // internally used by parser - DO NOT TOUCH!!!
+loc_t gpos = { 1, 1 }; // global position in current file
+
 FILE *temp_out = NULL; // if this is NULL, use stdout
 int tab_len = TAB_LEN;
 int bad_char_seen = 0; // to notify parser
 ull_t currNumNodes = 0; // invariant: currNumNodes > 0 for all existing nodes.
 node_t* AstRoot = NULL;
 char * fileName = NULL;
-symRoot *sr = NULL;
+symRoot *SymRoot = NULL;
 
 using namespace std;
 
@@ -37,17 +37,17 @@ int main (int argc , char *argv[]) {
 	}
 
 	// HELP - DO NOT CHECK FURTHER OPTIONS
-	if (isEqual(argv[1], "--help", "-h")) {	gfcc_lexer_help(); return 0; }
+	if (matches(argv[1], "--help", "-h")) {	gfcc_lexer_help(); return 0; }
 
 
 	// VERSION - DO NOT CHECK FURTHER OPTIONS
-	if (isEqual(argv[1], "--version", "-v")) { gfcc_lexer_version(); return 0; }
+	if (matches(argv[1], "--version", "-v")) { gfcc_lexer_version(); return 0; }
 
 
 	// CHECK FILE LIST AND ALSO SEARCH OPTION [--output|-o]
 	int start = 1, o_flag_index = -1;
 	for (int i = start; i < argc; i++) {
-		if (isEqual(argv[i], "--output", "-o")) {
+		if (matches(argv[i], "--output", "-o")) {
 			if (o_flag_index < 0) o_flag_index = i;
 			else {
 				msg(ERR) << "Option [--output|-o] specified twice. Use \"--help\" or \"-h\" for help.";
@@ -124,7 +124,7 @@ int main (int argc , char *argv[]) {
 
 		// PostScript OK. Try to adjust for actual PDF (although not required).
 
-		sr = new symRoot();
+		SymRoot = new symRoot();
 
 		int parse_return = yyparse(); // cout << "yyparse() = " << parse_return << endl;
 		
@@ -133,16 +133,14 @@ int main (int argc , char *argv[]) {
 
 			csv_out << "# File Name:, " << argv[_in] << endl << endl;
 			csv_out << "SYMBOL NAME , SYMBOL TYPE" << endl << endl; /// CSV HEADERS
-			sr->dump(csv_out);
+			SymRoot->dump(csv_out);
 		}
 
 		// PREPARE FOR NEXT FILE (ITERATION)
 		dot_out.close(); csv_out.close();
 		// Can free AstRoot too - later (if time permits)
-		delete sr; // frees the current symbol tables
-		
-		pos = { 1, 1 };
-		token_line = token_column = column = 1;
+		delete SymRoot; // frees the current symbol tables
+		column = 1; gpos = { 1, 1 };		
 
 		temp_out = NULL; // reset for next file
 	}
@@ -168,7 +166,7 @@ void comment() { // multi line comment (MLC)
 
     mlc_loop:
 	while ((c = lexInput()) != '*' && c != 0) { // normal characters in an MLC
-		token_column = column;
+		gpos.column = column;
 		update_location(c);
 	}
 
@@ -179,31 +177,32 @@ void comment() { // multi line comment (MLC)
 
 	if (c != 0) { // End of an MLC (but not due to EOF)
 		column++; // because we need to take ending '/' into account
-		token_column = column;
+		gpos.column = column;
 		update_location(c);
 	}
 }
 
 void count() {
-	token_column = column;
+	gpos.column = column;
 	for (int i = 0; yytext[i] != '\0'; i++) update_location(yytext[i]);
 	// ECHO;
 }
 
 void handle_bad_char() {
 	bad_char_seen = 1;
-	msg(ERR) << "Bad character (" << yytext << ") seen at line " << token_line << ", column " << token_column << "." << endl;
+	msg(ERR) << "Bad character (" << yytext << ") seen at line " << gpos.line << ", column " << gpos.column << "." << endl;
 }
 
-int isEqual(const char* option, const char* a, const char* b) { // return 1 iff option matched a OR b
-	if (!option || !(a || b)) return 0;
-	if (!a) return !strcmp(option, b); // compare with b if a not given
-	if (!b) return !strcmp(option, a);
-	return !strcmp(option, a) || !strcmp(option, b);
+bool matches(const char* option, string a) { // return 1 iff option matched a OR b
+	return !(a.compare(option));
+}
+
+bool matches(const char* option, string a, string b) { // return 1 iff option matched a OR b
+	return !( a.compare(option) && b.compare(option) );
 }
 
 void update_location (char c) {
-	if (c == '\n') { column = 1; token_line++; }
+	if (c == '\n') { column = 1; gpos.line++; }
 	else if (c == '\t') column += tab_len - ((column - 1) % tab_len);
 	else column++;
 }

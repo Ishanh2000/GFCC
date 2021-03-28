@@ -29,7 +29,7 @@ msg::~msg() {
 
 int yyerror(const char *s) {
 	fflush(stdout);
-	printf("\n%*s\n%d:%d:: %*s\n", column, "^", token_line, token_column, column, s);
+	printf("\n%*s\n%d:%d:: %*s\n", column, "^", gpos.line, gpos.column, column, s);
 	return -1; // check this later on
 }
 
@@ -37,7 +37,7 @@ void dotNode(std::ofstream &f, node_t* node) {
 	f << "\t" << node->id << " [label=\"";
 	if (node->tok == STRING_LITERAL) f << "\\\"" << node->label << "\\\"";
 	else f << node->label;
-	f << "\\n[" << node->line << ":" << node->column << "]";
+	f << "\\n[" << node->pos.line << ":" << node->pos.column << "]";
 	if (node->attr) f << "\"," << node->attr << "];" << endl;
 	else f << "\"];" << endl;
 }
@@ -60,20 +60,20 @@ void dotEdge(std::ofstream &f, node_t* parent, edge_t* e) { // just a wrapper fu
 void lex_err(const char* format, ...) { // [Deprecated] printing errors
 	va_list args;
 	va_start(args, format);
-	if (colorize && !temp_out) printf(_FORE_RED_);
+	if (!temp_out) printf(_FORE_RED_);
 	fprintf(temp_out ? temp_out : stdout, "ERROR: ");
 	vfprintf(temp_out ? temp_out : stdout, format, args);
-	if (colorize && !temp_out) printf(_C_NONE_);
+	if (!temp_out) printf(_C_NONE_);
 	va_end(args);
 }
 
 void lex_warn(const char* format, ...) { // [Deprecated] printing warnings
 	va_list args;
 	va_start(args, format);
-	if (colorize && !temp_out) printf(_FORE_YELLOW_);
+	if (!temp_out) printf(_FORE_YELLOW_);
 	fprintf(temp_out ? temp_out : stdout, "WARNING: ");
 	vfprintf(temp_out ? temp_out : stdout, format, args);
-	if (colorize && !temp_out) printf(_C_NONE_);
+	if (!temp_out) printf(_C_NONE_);
 	va_end(args);
 }
 
