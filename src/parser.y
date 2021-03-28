@@ -246,7 +246,7 @@ declaration
 				cout << "HER: " << c_node->pos.column << endl;
 				reportError(c_node->pos.line, c_node->pos.column, str2.str(), _FORE_CYAN_);
 				
-				exit(E_MULT_DECL); // should abort, not exit
+				/* exit(E_MULT_DECL); // should abort, not exit */
 			} else msg(SUCC) << "Will insert \"" << c_node->label << "\".";
 			
 			SymRoot->pushSym(c_node->label, enc); // ASUMPTION: success - can check that too

@@ -12,7 +12,6 @@
 #include <iostream>
 #include <string>
 #include <types.h>
-#include <cstdio>
 
 #ifdef DEBUG_SYM
 const bool dbg = true;
@@ -24,12 +23,12 @@ const bool dbg = false;
 type_expr::type_expr() {}
 
 bool type_expr::operator==(const type_expr & rtype) const{
-	if(dbg) printf("abstract comparision called\n");
-	if(dbg) printf("types == %d and %d\n", this->type, rtype.type);
 	if(this->type != rtype.type) return false;
+
 	if(rtype.basic_type) {
 		return true;
 	}
+	// not basic type
 	switch(this->type) {
 		case POINTER: {
 			return static_cast<const type_pointer*>(this) == \
@@ -39,6 +38,23 @@ bool type_expr::operator==(const type_expr & rtype) const{
 			return static_cast<const type_function*>(this) == \
 						 static_cast<const type_function*>(&rtype);
 		}
+		case ARRAY: {
+			return static_cast<const type_array*>(this) == \
+						 static_cast<const type_array*>(&rtype);
+		}
+		case STRUCT: {
+			return static_cast<const type_struct*>(this) == \
+						 static_cast<const type_struct*>(&rtype);
+		}
+		case ENUM: {
+			return static_cast<const type_enum*>(this) == \
+						 static_cast<const type_enum*>(&rtype);
+		}
+		case UNION: {
+			return static_cast<const type_union*>(this) == \
+						 static_cast<const type_union*>(&rtype);
+		}
+		// // default: {} TODO: throw error
 	}
 }
 
@@ -52,9 +68,7 @@ type_expr type_expr::operator+(const type_expr & rtype) const {
 	}
 
 	// for basic types
-	if(rtype.basic_type &&
-		 this->basic_type &&
-		 *this == rtype)
+	if(rtype.basic_type && this->basic_type && *this == rtype)
 	{
 		return *this;
 	}
@@ -63,6 +77,11 @@ type_expr type_expr::operator+(const type_expr & rtype) const {
 
 	// default
 	return type_error();
+}
+
+type_expr type_expr::operator-(const type_expr & rtype) const {
+	// ASSUMPTION: asssumed similar behaviour for now
+	return *this + rtype;
 }
 
 type_expr type_expr::operator*(const type_expr & rtype) const {
@@ -75,6 +94,7 @@ type_expr type_expr::operator/(const type_expr & rtype) const {
 	return *this + rtype;
 }
 
+
 type_void::type_void() {
 	type = VOID;
 	basic_type = true;
@@ -85,9 +105,33 @@ type_char::type_char() {
 	basic_type = true;
 }	
 
-
 type_int::type_int() {
 	type = INT;
+	basic_type = true;
+}
+
+type_long::type_long() {
+	type = LONG;
+	basic_type = true;
+}
+
+type_double::type_double() {
+	type = DOUBLE;
+	basic_type = true;
+}
+
+type_long_double::type_long_double() {
+	type = LONG_DOUBLE;
+	basic_type = true;
+}
+
+type_long_long::type_long_long() {
+	type = LONG_LONG;
+	basic_type = true;
+}
+
+type_short::type_short() {
+	type = SHORT;
 	basic_type = true;
 }
 
@@ -96,34 +140,15 @@ type_float::type_float() {
 	basic_type = true;
 }
 
-
 type_pointer::type_pointer(type_expr _type) {
 	basic_type = false;
 	type = POINTER;
 	pointer_type = _type;
-	if(dbg) printf("pointer_type- %d\n", _type.type);
-}
-
-type_array::type_array(type_expr _type, int n){
-	basic_type = false;
-	type = ARRAY;
-	base_type = _type;
-	num = n;
-	if(dbg) printf("Array_type- %d\n",_type.type);
-
 }
 
 bool type_pointer::operator==(const type_pointer & rtype) const {
-	if(dbg) printf("Pointer 2 Pointer comparision called\n");
-	printf("pointer_type: %d -- %d\n", this->pointer_type.type, rtype.pointer_type.type);
 	return this->pointer_type == rtype.pointer_type;
 }
-
-bool type_array::operator==(const type_array & rtype) const{
-	if(dbg) printf("Array 2 Array comparision called\n");
-        printf("array_type: %d -- %d\n", this->base_type.type, rtype.base_type.type);
-        return this->base_type == rtype.base_type;
-}	
 
 type_function::type_function(const std::vector<type_expr>& _params,const type_expr _return_type)
 {
@@ -143,6 +168,44 @@ bool type_function::operator==(const type_function & rtype) const {
 	return false;
 }
 
+// TODO: type_enum
+
+type_struct::type_struct(const std::string & _name, const std::vector<type_expr>& _members) {
+	basic_type = false;
+	type = STRUCT;
+	name = _name;
+	members = _members;
+}
+
+bool type_struct::operator==(const type_struct& rtype) const {
+	return (this->name == rtype.name && this->members == rtype.members);
+}
+
+type_union::type_union(const std::string & _name, const std::vector<type_expr>& _members) {
+	basic_type = false;
+	type = UNION;
+	name = _name;
+	members = _members;
+}
+
+bool type_union::operator==(const type_union& rtype) const {
+	return (this->name == rtype.name && this->members == rtype.members);
+}
+
+type_array::type_array(type_expr _type, int _num_dim, std::vector<int> _dim_sizes){
+	basic_type = false;
+	type = ARRAY;
+	base_type = _type;
+	num_dim = _num_dim;
+	dim_sizes = _dim_sizes;
+
+}
+
+bool type_array::operator==(const type_array & rtype) const{
+  return this->base_type == rtype.base_type;
+}	
+
+
 type_error::type_error(){
 			type = ERROR;
 			basic_type = false;
@@ -158,7 +221,7 @@ void sanity_checks() {
 
 	cout<< "b_int: "<< (b_int == b_int)<<"\texpected: "<<1<<endl;
 	cout<< "b_float: "<< (b_float == b_float)<<"\texpected: "<<1<<endl;
-	cout<< "p_in:t "<< (p_int == p_int)<<"\texpected: "<<1<<endl;
+	cout<< "p_in:t "<< (p_int == p_int) <<"\texpected: "<<1<<endl;
 	cout<< "b_int vs b_float: "<< (b_int == b_float) 
 		<< " "<< (b_float==b_int)<<"\texpected: "<<"0 0"<<endl;
 	cout<< "b_int vs p_int: "<< (b_int == p_int) 
@@ -212,7 +275,6 @@ void complex_tests() {
 	<< (b_float + b_float).type << "\n"		// 1 (FLOAT)
 	<< (b_int + p_int).type << "\n"			// 3 (ERROR)
 	<< (p_int + p_int).type << "\n";		// 3
-
 }
 int main(){
 	// sanity_checks();

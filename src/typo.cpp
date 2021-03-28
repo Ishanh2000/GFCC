@@ -39,7 +39,7 @@ int yyerror(const char *s) {
 	cout << lineToPrint << endl;
 	
 	// Now, place the '^'. 
-	cout << setw(column+1) << _C_BOLD_ << _FORE_RED_ << '^' << _C_NONE_ << endl;
+	cout << _C_BOLD_ << _FORE_RED_ << setw(column-1) << '^' << _C_NONE_ << endl;
 	// confusion in computing column - ask TEAM
 
 	return -1; // check this later on
@@ -56,7 +56,7 @@ void reportError(int _line, int _column, string str, const char* _color) { // ve
 	cout << lineToPrint << endl;
 	
 	// Now, place the '^'.
-	cout << setw(_column) << _C_BOLD_ << _color << '^' << _C_NONE_ << endl;
+	cout << _C_BOLD_ << _color << setw(_column) << '^' << _C_NONE_ << endl;
 }
 
 void dotNode(ofstream &f, node_t* node) {
