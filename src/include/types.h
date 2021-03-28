@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 // List types
-enum type_t {INT, FLOAT, VOID, ERROR, POINTER, FUNCTION};
+enum type_t {CHAR, INT, FLOAT, VOID, ERROR, ARRAY, POINTER, FUNCTION};
 
 // Base class --> this is exclusively what we will use
 class type_expr {
@@ -22,6 +22,12 @@ class type_expr {
 class type_void: public type_expr {
 	public:
 		type_void();
+};
+
+class type_char: public type_expr{
+	public:
+		type_char();
+
 };
 
 class type_int: public type_expr {
@@ -50,6 +56,17 @@ class type_function: public type_expr {
     bool operator==(const type_function &) const;
 };
 
+
+class type_array: public type_expr {
+	public:
+		type_expr base_type;
+		int num;
+		//TODO: This is just for a[10]. Not for b[10][10] etc..
+		// Can use num for checking out of bound array accesses. Or give warnings
+		type_array(const type_expr base_type, int n);
+		bool operator==(const type_array &) const;	
+
+};
 /** 
  * TODO: typerror should contain error details(string?),
  * [underlying types?], etc.

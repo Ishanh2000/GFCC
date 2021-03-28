@@ -80,6 +80,12 @@ type_void::type_void() {
 	basic_type = true;
 }
 
+type_char::type_char() {
+	type = CHAR;
+	basic_type = true;
+}	
+
+
 type_int::type_int() {
 	type = INT;
 	basic_type = true;
@@ -98,14 +104,28 @@ type_pointer::type_pointer(type_expr _type) {
 	if(dbg) printf("pointer_type- %d\n", _type.type);
 }
 
+type_array::type_array(type_expr _type, int n){
+	basic_type = false;
+	type = ARRAY;
+	base_type = _type;
+	num = n;
+	if(dbg) printf("Array_type- %d\n",_type.type);
+
+}
+
 bool type_pointer::operator==(const type_pointer & rtype) const {
 	if(dbg) printf("Pointer 2 Pointer comparision called\n");
 	printf("pointer_type: %d -- %d\n", this->pointer_type.type, rtype.pointer_type.type);
 	return this->pointer_type == rtype.pointer_type;
 }
 
-type_function::type_function(const std::vector<type_expr>& _params,
-														 const type_expr _return_type)
+bool type_array::operator==(const type_array & rtype) const{
+	if(dbg) printf("Array 2 Array comparision called\n");
+        printf("array_type: %d -- %d\n", this->base_type.type, rtype.base_type.type);
+        return this->base_type == rtype.base_type;
+}	
+
+type_function::type_function(const std::vector<type_expr>& _params,const type_expr _return_type)
 {
 	basic_type = false;
 	type = FUNCTION;
