@@ -188,7 +188,7 @@ bool symRoot::pushSym(string _name, ull _type) {
 }
 
 void symRoot::dump(ofstream &f) {
-  f << "###### Scope = Global ######," << endl;
+  // f << "###### Scope = Global ######," << endl;
   if (!root) return; // nothing to do
   root->dump(f, "");
 }

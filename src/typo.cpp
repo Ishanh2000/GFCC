@@ -33,28 +33,28 @@ int yyerror(const char *s) {
 	return -1; // check this later on
 }
 
-void dotNode(FILE *f_out, node_t* node) {
-	fprintf(f_out, "\t%lld [label=\"", node->id);
-	if (node->tok == STRING_LITERAL) fprintf(f_out, "\\\"%s\\\"", node->label);
-	else fprintf(f_out, "%s", node->label);
-	fprintf(f_out, "\\n[%d:%d]", node->line, node->column);
-	if (node->attr) fprintf(f_out, "\",%s];\n", node->attr);
-	else fprintf(f_out, "\"];\n");
+void dotNode(std::ofstream &f, node_t* node) {
+	f << "\t" << node->id << " [label=\"";
+	if (node->tok == STRING_LITERAL) f << "\\\"" << node->label << "\\\"";
+	else f << node->label;
+	f << "\\n[" << node->line << ":" << node->column << "]";
+	if (node->attr) f << "\"," << node->attr << "];" << endl;
+	else f << "\"];" << endl;
 }
 
-void dotEdge(FILE *f_out, node_t* parent, edge_t* e) { // just a wrapper function
-	fprintf(f_out, "\t%lld -> %lld", parent->id, e->node->id);
+void dotEdge(std::ofstream &f, node_t* parent, edge_t* e) { // just a wrapper function
+	f << "\t" << parent->id << " -> " << e->node->id;
 	const char *label = e->label, *attr = e->attr;
 
 	if (label || attr) {
-		fprintf(f_out, " [");
-		if (label) fprintf(f_out, "label=\"%s\"", label);
-		if (label && attr) fprintf(f_out, ",");
-		if (attr) fprintf(f_out, "%s", attr);
-		fprintf(f_out, "]");
+		f << " [";
+		if (label) f << "label=\"" << label << "\"";
+		if (label && attr) f << ",";
+		if (attr) f << attr;
+		f << "]";
 	}
 
-	fprintf(f_out, ";\n");
+	f << ";" << endl;
 }
 
 void lex_err(const char* format, ...) { // [Deprecated] printing errors

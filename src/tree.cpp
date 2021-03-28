@@ -1,6 +1,8 @@
 // AUM SHREEGANESHAAYA NAMAH|| (DIETY INVOCATION)
 // Find "ASSUMPTION" to see all assumptions made.
 
+#include <iostream>
+#include <fstream>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -9,6 +11,13 @@
 #include <gfcc_tree.h>
 #include <typo.h>
 #include <parser.tab.h>
+
+using namespace std;
+
+node_t* node_t::ch (int i) {
+	if ((!edges) || (i < 0) || (i >= numChild)) return NULL;
+	return edges[i]->node;
+}
 
 ull_t newNode() {
 	return ++currNumNodes;
@@ -84,7 +93,7 @@ node_t* op(node_t *parent, int l, int r, ...) { // attr may be NULL
 
 	// TODO: some logical error here.
 	if (l > 0) {
-		node_t* firstChild = parent->edges[0]->node;
+		node_t* firstChild = parent->ch(0);
 		// printf("%s: %d, %d\n", (parent->tok != RETURN) ? "-" : "RETURN", firstChild->line, firstChild->column);
 		parent->line = firstChild->line; parent->column = firstChild->column;
 	}
@@ -124,39 +133,35 @@ int accept(node_t *node) {
 	}
 }
 
-void AstToDot(FILE *f_out, node_t *root) { // Do a DFS/BFS (BFS being done here)
+void AstToDot(std::ofstream &f, node_t *root) { // Do a DFS/BFS (BFS being done here)
 	if (!root) {
-		fprintf(f_out, "digraph {\n\t0 [label=\"%s (nothing useful)\",shape=none];\n}\n", fileName);
+		f << "digraph {\n\t0 [label=\"" << fileName << " (nothing useful)\",shape=none];" << endl << "}" << endl << "";
 		return;
 	}
-	fprintf(f_out, "digraph {\n");
-	dotNode(f_out, root); // prints file name
+
+	f << "digraph {" << endl;
+	dotNode(f, root); // prints file name
 	Enqueue(root);
 
 	while (!IsEmpty()) {
 		node_t* curr = Dequeue(); // assume success
-		char enforceOrder[300] = ""; int enforceLen = 0;
+		string enforcer;
 
 		for (int i = 0; i < curr->numChild; i++) {
-			node_t* tmp_child = curr->edges[i]->node;
+			node_t* tmp_child = curr->ch(i);
 			if (accept(tmp_child)) {
-				dotNode(f_out, tmp_child);
-				dotEdge(f_out, curr, curr->edges[i]);
+				dotNode(f, tmp_child);
+				dotEdge(f, curr, curr->edges[i]);
 				Enqueue(tmp_child); // assume success
-
-				char arr[30]; int len = 0; ull_t copy = tmp_child->id;
-			        while (copy) { arr[len++] = (copy % 10) + '0'; copy /= 10; } // length found, arr[0 ... len-1] = reverse(child)
-			        for (int j = len - 1; j >= 0; j--) enforceOrder[enforceLen++] = arr[j];
-        			enforceOrder[enforceLen++] = ' '; enforceOrder[enforceLen++] = '-';
-        			enforceOrder[enforceLen++] = '>'; enforceOrder[enforceLen++] = ' ';
+				enforcer += to_string(tmp_child->id) + " -> ";
 			}
 		}
 
 		if (curr->numChild > 1) {
-			enforceOrder[enforceLen - 4] = '\0';
-			fprintf(f_out, "\t{ rank = same; %s [style = \"invis\"]; rankdir = LR; }\n", enforceOrder); // rank = same;
+			enforcer.erase(enforcer.find_last_of(" -> ") - 3);
+			f << "\t{ rank = same; " << enforcer << " [style = \"invis\"]; rankdir = LR; }" << endl;
 		}
 	}
 
-	fprintf(f_out, "}\n");
+	f << "}" << endl;
 }

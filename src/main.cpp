@@ -26,6 +26,9 @@ symRoot *sr = NULL;
 
 using namespace std;
 
+// CLA: <exec-name> [some options] in_1 in_2 ... in_N
+// CLA: <exec-name> [some options] in_1 in_2 ... in_N -o dot_1 csv_1 dot_2 csv_2 ... dot_n csv_n
+
 int main (int argc , char *argv[]) {
 	// ARGC TOO FEW
 	if (argc < 2) {
@@ -60,58 +63,64 @@ int main (int argc , char *argv[]) {
 		}
 	}
 
-	int total_files;
-	if (o_flag_index < 0) total_files = argc - start; // -o was never specified. Output on STDOUT
-	else if ((total_files = o_flag_index - start) != (argc - o_flag_index - 1)) { // check no. of input and output files are equal
-		msg(ERR) << "Number of input and files must be equal. Use \"--help\" or \"-h\" for help.";
+	int total_in_files;
+	if (o_flag_index < 0) total_in_files = argc - start; // -o was never specified. Output on STDOUT
+	else if (2 * (total_in_files = o_flag_index - start) != (argc - o_flag_index - 1)) {
+		// check no. of input and output files are equal
+		msg(ERR) << "Specify output files for each given input file. Use \"--help\" or \"-h\" for help.";
 		return E_NUM_IO_UNEQUAL;
 	}
 
-	if (total_files < 1) {
+	if (total_in_files < 1) {
 		msg(ERR) << "Specify at least one file as input. See \"--help\" or \"-h\" for help.";
 		return E_NO_FILES;
 	}
 
 	int file_failures = 0;
-	for (int i = 0; i < total_files; i++) {
-		yyin = fopen(argv[start + i], "r"); // OPEN FILE
-		if (!yyin) {
+
+	for (int i = 0; i < total_in_files; i++) {
+		int _in = start + i; // CLA index of input file
+
+		if (! (yyin = fopen(argv[_in], "r")) ) { // TRY TO OPEN FILE
 			if (i > 0) cout << endl;
-			msg(WARN) << "File \"" << argv[start + i] << "\" does not exist or problem reading it. Skipping it.";
+			msg(WARN) << "File \"" << argv[_in] << "\" does not exist or problem reading it. Skipping it.";
 			file_failures++;
 			continue;
 		}
 
+		ofstream dot_out, csv_out;
+
 		if ( o_flag_index >= 0 ) {
-			temp_out = fopen(argv[o_flag_index + i + 1], "w");
-			if (!temp_out) {
-				if (i > 0) cout << endl;
-				msg(WARN) << "Problem writing to file \"" << argv[o_flag_index + i + 1] << "\". Skipping it.";
-				file_failures++;
-				continue;
-			}
-			fileName = argv[o_flag_index + i + 1];
+			int _dot = o_flag_index + 1 + (2 * i), _csv = _dot + 1; // CLA index of dot and csv output files, if provided "-o"
+			
+			dot_out.open(argv[_dot]); // TODO: must gracefully handle errors
+			csv_out.open(argv[_csv]); // TODO: must gracefully handle errors
+
+			// if (! (dot_out = fopen(argv[_dot], "w")) ) {
+			// 	if (i > 0) cout << endl;
+			// 	msg(WARN) << "Problem writing to file \"" << argv[_dot] << "\". Skipping writing to it.";
+			// 	file_failures++;
+			// 	continue;
+			// }
 
 		} else {
-			int len = strlen(argv[start + i]);
-			char out_file_name[len + 5]; strcpy(out_file_name, argv[start + i]);
+			string dotName(argv[_in]), csvName(argv[_in]); // manipulate these copies to create .dot/.csv extensions
+			int d = dotName.find_last_of('.');
+			if (d >= 0) { dotName.erase(d); csvName.erase(d); }
+			dotName.append(".dot"); csvName.append(".csv");
 
-			// check if ".c" extension or not.
-			int _start = len + ((argv[start + i][len - 2] == '.' && argv[start + i][len - 1] == 'c') ? (-2) : 0);
-			out_file_name[_start] = '.'; out_file_name[_start + 1] = 'd';
-			out_file_name[_start + 2] = 'o'; out_file_name[_start + 3] = 't';
-			out_file_name[_start + 4] = '\0';
+			dot_out.open(dotName); // TODO: must gracefully handle errors
+			csv_out.open(csvName); // TODO: must gracefully handle errors
 
-			if ( !(temp_out = fopen(out_file_name, "w")) ) {
-				if (i > 0) cout << endl;
-				msg(WARN) << "Problem writing to file \"" << out_file_name << "\". Skipping it.";
-				file_failures++;
-				continue;
-			}
-
-			free(fileName);
-			fileName = strdup(argv[start + i]);
+			// if ( !(temp_out = fopen(out_file_name, "w")) ) {
+			// 	if (i > 0) cout << endl;
+			// 	msg(WARN) << "Problem writing to file \"" << out_file_name << "\". Skipping it.";
+			// 	file_failures++;
+			// 	continue;
+			// }
 		}
+
+		fileName = argv[_in];
 
 		// PostScript OK. Try to adjust for actual PDF (although not required).
 
@@ -120,23 +129,22 @@ int main (int argc , char *argv[]) {
 		int parse_return = yyparse(); // cout << "yyparse() = " << parse_return << endl;
 		
 		if (!parse_return) {
-			AstToDot(temp_out, AstRoot);
+			AstToDot(dot_out, AstRoot);
 
-			ofstream f("out.csv"); // TODO: will get/derive later
-			f << "# File Name: " << argv[start + i] << endl << endl;
-			f << "SYMBOL NAME , SYMBOL TYPE" << endl << endl;
-			sr->dump(f);
-			f.close();
+			csv_out << "# File Name:, " << argv[_in] << endl << endl;
+			csv_out << "SYMBOL NAME , SYMBOL TYPE" << endl << endl; /// CSV HEADERS
+			sr->dump(csv_out);
 		}
 
 		// PREPARE FOR NEXT FILE (ITERATION)
+		dot_out.close(); csv_out.close();
 		// Can free AstRoot too - later (if time permits)
 		delete sr; // frees the current symbol tables
-		temp_out = NULL; // reset for next file
+		
 		pos = { 1, 1 };
-		token_line = token_column = 1;
-		column = 1;
-				
+		token_line = token_column = column = 1;
+
+		temp_out = NULL; // reset for next file
 	}
 
 	return file_failures;

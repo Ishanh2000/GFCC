@@ -7,6 +7,7 @@
 ***********************************************************************/
 
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <gfcc_colors.h>
 #include <gfcc_lexer.h>
@@ -30,9 +31,9 @@ int yyerror(const char *);
 
 void dotStmt(const char*, ...);
 
-void dotNode(FILE *, node_t*);
+void dotNode(std::ofstream &, node_t*);
 
-void dotEdge(FILE *, node_t*, edge_t*);
+void dotEdge(std::ofstream &, node_t*, edge_t*);
 
 void lex_err(const char*, ...); // [Deprecated] printf wrapper for colorized output
 

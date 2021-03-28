@@ -4,6 +4,7 @@
 
 #include <cstdio>
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <gfcc_meta.h>
 #include <gfcc_colors.h>
@@ -75,7 +76,6 @@ typedef struct _loc_t { // location type
 } loc_t;
 
 typedef struct _node_t {
-	public:
 	ull_t id;
 	int tok; // [ IDENTIFIER | CONSTANT | STRING_LITERAL | some other | -1 ] (else -1, usually for internal nodes)
 	const char *label;
@@ -85,6 +85,8 @@ typedef struct _node_t {
 	struct _edge_t **edges;
 	int line, column; // for error reporting
 	ull_t enc; // type encoding - could use 'tok' itself
+
+	struct _node_t *ch(int); // getting child without much effort
 } node_t;
 
 typedef struct _edge_t {
@@ -180,6 +182,6 @@ int IsEmpty();
 
 int accept(node_t *node);
 
-void AstToDot(FILE *, node_t *);
+void AstToDot(std::ofstream &, node_t *);
 
 #endif

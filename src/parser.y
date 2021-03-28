@@ -229,9 +229,9 @@ declaration
 
 		// single pass over variables
 		for (int i = 0; i < len_idl; i++) { // first check that there is no var in scope
-			node_t *c_node = (ch_idl[i]->node); // "concerned node" - get directly
+			node_t *c_node = idl->ch(i); // "concerned node" - get directly
 			if (c_node->tok == '=') {
-				c_node = (c_node->edges[0]->node); // get from "declarator" part - risky - doesnot take into acount pointer like stuff
+				c_node = c_node->ch(0); // get from "declarator" part - risky - doesnot take into acount pointer like stuff
 				useful++;
 			}
 			msg(SUCC) << c_node->label;
