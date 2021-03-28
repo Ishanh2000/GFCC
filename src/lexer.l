@@ -10,6 +10,7 @@ IS			(u|U|l|L)*
 #include <cstdio>
 #include <parser.tab.h>
 #include <gfcc_lexer.h>
+#include <typo.h>
 
 // type_specifier
 #define void_b          0     // 0x00000001
@@ -42,6 +43,22 @@ IS			(u|U|l|L)*
 
 %}
 
+/* %code requires {
+    class node_t {
+        public:
+        ull_t id;
+        int tok; // [ IDENTIFIER | CONSTANT | STRING_LITERAL | some other | -1 ] (else -1, usually for internal nodes)
+        const char *label;
+        const char *attr;
+        node_t *parent;
+        int numChild;
+        struct _edge_t **edges;
+        // std::vector<edge_t*> edge;
+        int line, column; // for error reporting
+        ull_t enc; // type encoding - could use 'tok' itself
+    };
+} */
+
 %%
 
 "//"([^\n\0])*		{ count(); }
@@ -52,7 +69,7 @@ IS			(u|U|l|L)*
 
 "break"			{ count(); yylval.node = Nd(BREAK, "break", jump_attr, 0, token_line, token_column); return (BREAK); }
 
-"case"			{ count(); yylval.node = Nd(CASE, "case", "style=filled,fillcolor=magenta", 0, token_line, token_column); return (CASE); }
+"case"			{ count(); yylval.node = Nd(CASE, "case", label_attr, 0, token_line, token_column); return (CASE); }
 
 "char"			{ count(); yylval.node = Nd(CHAR, "char", type_spec_attr, 1 << char_b, token_line, token_column); return (CHAR); }
 
@@ -60,7 +77,7 @@ IS			(u|U|l|L)*
 
 "continue"		{ count(); yylval.node = Nd(CONTINUE, "continue", jump_attr, 0, token_line, token_column); return (CONTINUE); }
 
-"default"		{ count(); yylval.node = Nd(DEFAULT, "default", "style=filled,fillcolor=magenta", 0, token_line, token_column); return (DEFAULT); }
+"default"		{ count(); yylval.node = Nd(DEFAULT, "default", label_attr, 0, token_line, token_column); return (DEFAULT); }
 
 "do"			{ count(); yylval.node = Nd(DO_WHILE, "do-while", iter_attr, 0, token_line, token_column); return (DO); }
 
@@ -155,7 +172,7 @@ L?\"(\\.|[^\\"])*\"		{ count(); yylval.node = nd(STRING_LITERAL, strdup(yytext),
 ","				{ count(); yylval.node = nd(',', ",", 0, token_line, token_column); return (','); } //  TESTED OK
 ":"				{ count(); yylval.node = NULL; /* NULL passed since ':' is not useful to parser. BE CAREFUL WHEN PASSING NULL */ return (':'); }
 "="				{ count(); yylval.node = nd('=', "=", 0, token_line, token_column); return ('='); }
-"("				{ count(); yylval.node = nd('(', "()", 0, token_line, token_column); /* Change 'tok_type' and 'label' depending upon context. */ return ('('); }
+"("				{ count(); yylval.node = nd('(', "()", 0, token_line, token_column); /* Change 'tok' and 'label' depending upon context. */ return ('('); }
 ")"				{ count(); yylval.node = NULL; /* NULL passed since ':' is not useful to parser. BE CAREFUL WHEN PASSING NULL */ return (')'); }
 ("["|"<:")		{ count(); yylval.node = nd(SUBSCRIPT, "[]", 0, token_line, token_column); return ('['); }
 ("]"|":>")		{ count(); yylval.node = NULL; /* NULL passed since ']' is not useful to parser. BE CAREFUL WHEN PASSING NULL */ return (']'); }
@@ -165,7 +182,7 @@ L?\"(\\.|[^\\"])*\"		{ count(); yylval.node = nd(STRING_LITERAL, strdup(yytext),
 "~"				{ count(); yylval.node = nd('~', "~", 0, token_line, token_column); return ('~'); }
 "-"				{ count(); yylval.node = nd('-', "-", 0, token_line, token_column); return ('-'); }
 "+"				{ count(); yylval.node = nd('+', "+", 0, token_line, token_column); return ('+'); }
-"*"				{ count(); yylval.node = nd('*', "*", 0, token_line, token_column); /* Change 'tok_type' to DEREF if used as pointer. */ return ('*'); }
+"*"				{ count(); yylval.node = nd('*', "*", 0, token_line, token_column); /* Change 'tok' to DEREF if used as pointer. */ return ('*'); }
 "/"				{ count(); yylval.node = nd('/', "/", 0, token_line, token_column); return ('/'); }
 "%"				{ count(); yylval.node = nd('%', "%", 0, token_line, token_column); return ('%'); }
 "<"				{ count(); yylval.node = nd('<', "<", 0, token_line, token_column); return ('<'); }
@@ -182,9 +199,9 @@ L?\"(\\.|[^\\"])*\"		{ count(); yylval.node = nd(STRING_LITERAL, strdup(yytext),
 // SYMBOLS DEFINED BY FLEX/LEX USING #define HAVE BEEN PUT INSIDE A WRAPPER.
 // SO FUNCTION-LIKE SYMBOL IS ACTUALLY A FUNCTION.
 
-char lexInput() { return yyinput(); } // #define to function
+char lexInput() { return yyinput(); } // Transform #define to function
 
-void lexUnput(char c) { unput(c); } // #define to function
+void lexUnput(char c) { unput(c); } // Transform #define to function
 
 /* yywrap() { return 1; } */
 

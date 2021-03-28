@@ -26,6 +26,7 @@ const char sizeof_attr[] = "style=filled,fillcolor=lightgreen";
 const char empty_attr[] = "style=filled,fillcolor=gray"; // empty statment ';' / empty block '{}'
 const char file_name_attr[] = "shape=box";
 const char func_call_attr[] = "shape=box";
+const char label_attr[] = "style=filled,fillcolor=magenta"; // labeled statemets like "abc : func();", "case 34 : func();", "default : func()".
 
 char lexer_help[] = "\
 Usage: <exec-name> [options] files... [--output|-o] output-files...\n\

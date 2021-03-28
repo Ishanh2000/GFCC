@@ -3,6 +3,8 @@
 #define __GFCC_LEXER__
 
 #include <cstdio>
+#include <iostream>
+#include <vector>
 #include <gfcc_meta.h>
 #include <gfcc_colors.h>
 
@@ -67,16 +69,22 @@ typedef struct _token_t {
 	int column;
 } token_t;
 
+typedef struct _loc_t { // location type
+	unsigned int line;
+	unsigned int column;
+} loc_t;
+
 typedef struct _node_t {
+	public:
 	ull_t id;
-	int tok_type; // [ IDENTIFIER | CONSTANT | STRING_LITERAL | some other | -1 ] (else -1, usually for internal nodes)
-	const char* label;
-	const char* attr;
+	int tok; // [ IDENTIFIER | CONSTANT | STRING_LITERAL | some other | -1 ] (else -1, usually for internal nodes)
+	const char *label;
+	const char *attr;
 	struct _node_t *parent;
 	int numChild;
 	struct _edge_t **edges;
 	int line, column; // for error reporting
-	ull_t enc; // type encoding - could use tok_type itself
+	ull_t enc; // type encoding - could use 'tok' itself
 } node_t;
 
 typedef struct _edge_t {
@@ -88,6 +96,8 @@ typedef struct _edge_t {
 extern const char* TOKEN_NAME_ARRAY[]; // make this const
 
 extern int column, token_column, token_line, tab_len, colorize, bad_char_seen;
+
+extern loc_t pos; // position
 
 extern FILE *yyin, *yyout, *temp_out;
 
@@ -116,7 +126,8 @@ extern const char
 	sizeof_attr[],
 	empty_attr[],
 	file_name_attr[],
-	func_call_attr[];
+	func_call_attr[],
+	label_attr[];
 
 void lexUnput(char);
 
@@ -129,10 +140,6 @@ void comment(); // [DO NOT CHANGE NAME] for multi-line comment (MLC)
 int check_type();
 
 int isEqual(const char*, const char*, const char*); // check if first is equal to second ot third
-
-void lex_err(const char*, ...); // printf wrapper for colorized output
-
-void lex_warn(const char*, ...); // printf wrapper for colorized output
 
 void handle_bad_char(); // to handle errors
 
@@ -147,14 +154,6 @@ void update_location(char);
 // int yywrap();
 
 extern "C" int yylex();
-
-int yyerror(const char*);
-
-void dotStmt(const char*, ...);
-
-void dotNode(FILE *, node_t*);
-
-void dotEdge(FILE *, node_t*, edge_t*);
 
 ull_t newNode();
 

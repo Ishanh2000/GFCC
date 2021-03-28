@@ -1,63 +1,31 @@
+// AUM SHREEGANESHAAYA NAMAH|| (DIETY INVOCATION)
+// Find "ASSUMPTION" to see all assumptions made.
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <cstdarg>
 #include <gfcc_lexer.h>
 #include <gfcc_tree.h>
+#include <typo.h>
 #include <parser.tab.h>
-
-// Find "ASSUMPTION" to see all assumptions made.
-
-int yyerror(const char *s) {
-	fflush(stdout);
-	printf("\n%*s\n%d:%d:: %*s\n", column, "^", token_line, token_column, column, s);
-	return -1; // check this later on
-}
-
-void dotNode(FILE *f_out, node_t* node) {
-	fprintf(f_out, "\t%lld [label=\"", node->id);
-	if (node->tok_type == STRING_LITERAL) fprintf(f_out, "\\\"%s\\\"", node->label);
-	else fprintf(f_out, "%s", node->label);
-	fprintf(f_out, "\\n[%d:%d]", node->line, node->column);
-	if (node->attr) fprintf(f_out, "\",%s];\n", node->attr);
-	else fprintf(f_out, "\"];\n");
-}
-
-void dotEdge(FILE *f_out, node_t* parent, edge_t* e) { // just a wrapper function
-	fprintf(f_out, "\t%lld -> %lld", parent->id, e->node->id);
-	const char *label = e->label, *attr = e->attr;
-
-	if (label || attr) {
-		fprintf(f_out, " [");
-		if (label) fprintf(f_out, "label=\"%s\"", label);
-		if (label && attr) fprintf(f_out, ",");
-		if (attr) fprintf(f_out, "%s", attr);
-		fprintf(f_out, "]");
-	}
-
-	fprintf(f_out, ";\n");
-}
 
 ull_t newNode() {
 	return ++currNumNodes;
 }
 
-/*******************************************************************************/
-/******************************* OKAY ABOVE THIS *******************************/
-/*******************************************************************************/
-
-node_t* Nd(int tok_type, const char* label, const char* attr, ull_t _enc, int _line, int _column) {
+node_t* Nd(int tok, const char* label, const char* attr, ull_t _enc, int _line, int _column) {
 	// label is lexeme. attr may be NULL.
 	
 	node_t *node = (node_t*) malloc(sizeof(node_t)); if (!node) return NULL;
 
-	node->id = newNode(); node->tok_type = tok_type;
+	node->id = newNode(); node->tok = tok;
 	node->attr = attr; // no need to copy since not mutating (Heap | Read-Only)
 	node->parent = NULL; node->edges = NULL; node->numChild = 0;
 
 	// A STRING_LITERAL label will have "" included
 	char * newlabel = strdup(label); // "label", in itself probabbly lies in read-only memory region.
-	if (tok_type == STRING_LITERAL) { // assured that label lies in HEAP
+	if (tok == STRING_LITERAL) { // assured that label lies in HEAP
 		int end = 0; while(newlabel[end]) end++; newlabel[end - 1] = '\0'; // latter "
 		newlabel += 1; // former "
 	}
@@ -68,8 +36,8 @@ node_t* Nd(int tok_type, const char* label, const char* attr, ull_t _enc, int _l
 	return node;
 }
 
-node_t* nd(int tok_type, const char* label, ull_t _enc, int _line, int _column) {
-	return Nd(tok_type, label, NULL, _enc, _line, _column); // CAUTION: See for "strdup".
+node_t* nd(int tok, const char* label, ull_t _enc, int _line, int _column) {
+	return Nd(tok, label, NULL, _enc, _line, _column); // CAUTION: See for "strdup".
 }
 
 edge_t* Ej(node_t* node, const char* label, const char* attr) {
@@ -117,7 +85,7 @@ node_t* op(node_t *parent, int l, int r, ...) { // attr may be NULL
 	// TODO: some logical error here.
 	if (l > 0) {
 		node_t* firstChild = parent->edges[0]->node;
-		// printf("%s: %d, %d\n", (parent->tok_type != RETURN) ? "-" : "RETURN", firstChild->line, firstChild->column);
+		// printf("%s: %d, %d\n", (parent->tok != RETURN) ? "-" : "RETURN", firstChild->line, firstChild->column);
 		parent->line = firstChild->line; parent->column = firstChild->column;
 	}
 
@@ -148,7 +116,7 @@ int IsEmpty() {
 }
 
 int accept(node_t *node) {
-	switch (node->tok_type)
+	switch (node->tok)
 	{
 		case DECL_SPEC_LIST: return 0;
 		case PARAM_TYPE_LIST: return 0;

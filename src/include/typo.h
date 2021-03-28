@@ -9,6 +9,7 @@
 #include <iostream>
 #include <sstream>
 #include <gfcc_colors.h>
+#include <gfcc_lexer.h>
 
 #ifndef __GFCC_TYPO__
 #define __GFCC_TYPO__
@@ -18,20 +19,23 @@
 #define ERR 3
 
 class msg : public std::stringstream {
-	int gfcc_type = 0;
+	int msg_type = 0;
 	public:
-		msg() { }
-
-		msg(int _type) : gfcc_type(_type) { }
-
-		~msg() {
-			switch (gfcc_type) {
-				case SUCC: std::cout << _C_BOLD_ << _FORE_GREEN_ << this->str() << _C_NONE_ << std::endl; break; // can use prefix "SUCCESS: "
-				case WARN: std::cout << _C_BOLD_ << _FORE_YELLOW_ << "WARNING: " << this->str() << _C_NONE_ << std::endl; break;
-				case ERR : std::cout << _C_BOLD_ << _FORE_RED_ << "ERROR: " << this->str() << _C_NONE_ << std::endl; break;
-				default  : std::cout << this->str() << std::endl;
-			}
-		}
+		msg();
+		msg(int);
+		~msg();
 };
+
+int yyerror(const char *);
+
+void dotStmt(const char*, ...);
+
+void dotNode(FILE *, node_t*);
+
+void dotEdge(FILE *, node_t*, edge_t*);
+
+void lex_err(const char*, ...); // [Deprecated] printf wrapper for colorized output
+
+void lex_warn(const char*, ...); // [Deprecated] printf wrapper for colorized output
 
 #endif

@@ -1,13 +1,12 @@
 // AUM SHREEGANESHAAYA NAMAH|| // DIETY INVOCATION
-#include <cstdio>
 #include <cstring>
-#include <cstdarg>
-#include <cstdlib>
+#include <iostream>
+#include <fstream>
+
 #include <parser.tab.h>
 #include <gfcc_lexer.h>
 #include <symtab.h>
-#include <iostream>
-#include <fstream>
+#include <typo.h>
 
 using namespace std;
 
@@ -15,6 +14,7 @@ using namespace std;
 // THEIR NAMES. SINCE THEY ARE SHARE ACROSS MULTIPLE FILES.
 
 int column = 1, token_column = 1, token_line = 1;
+loc_t pos = { 1, 1 };
 int colorize = 1; // [BOOLEAN ONLY] to colorize output (supported by modern terminals)
 FILE *temp_out = NULL; // if this is NULL, use stdout
 int tab_len = TAB_LEN;
@@ -24,10 +24,12 @@ node_t* AstRoot = NULL;
 char * fileName = NULL;
 symRoot *sr = NULL;
 
+using namespace std;
+
 int main (int argc , char *argv[]) {
 	// ARGC TOO FEW
 	if (argc < 2) {
-		lex_err("Too few arguments. Use \"--help\" or \"-h\" for help.\n");
+		msg(ERR) << "Too few arguments. Use \"--help\" or \"-h\" for help.";
 		return E_TOO_FEW_ARGS;
 	}
 
@@ -45,7 +47,7 @@ int main (int argc , char *argv[]) {
 		if (isEqual(argv[i], "--output", "-o")) {
 			if (o_flag_index < 0) o_flag_index = i;
 			else {
-				lex_err("Option [--output|-o] specified twice. Use \"--help\" or \"-h\" for help.\n");
+				msg(ERR) << "Option [--output|-o] specified twice. Use \"--help\" or \"-h\" for help.";
 				return E_O_FLAG_TWICE;
 			}
 			continue;
@@ -53,7 +55,7 @@ int main (int argc , char *argv[]) {
 
 
 		if (argv[i][0] == '-') {
-			lex_err("Invalid option \"%s\". Use \"--help\" or \"-h\" for help.\n", argv[i]);
+			msg(ERR) << "Invalid option \"" << argv[i] << "\". Use \"--help\" or \"-h\" for help.\n";
 			return E_INV_OPTION;
 		}
 	}
@@ -61,39 +63,36 @@ int main (int argc , char *argv[]) {
 	int total_files;
 	if (o_flag_index < 0) total_files = argc - start; // -o was never specified. Output on STDOUT
 	else if ((total_files = o_flag_index - start) != (argc - o_flag_index - 1)) { // check no. of input and output files are equal
-		lex_err("Number of input and files must be equal. Use \"--help\" or \"-h\" for help.\n");
+		msg(ERR) << "Number of input and files must be equal. Use \"--help\" or \"-h\" for help.";
 		return E_NUM_IO_UNEQUAL;
 	}
 
 	if (total_files < 1) {
-		lex_err("Specify at least one file as input. See \"--help\" or \"-h\" for help.\n");
+		msg(ERR) << "Specify at least one file as input. See \"--help\" or \"-h\" for help.";
 		return E_NO_FILES;
 	}
 
 	int file_failures = 0;
 	for (int i = 0; i < total_files; i++) {
-		// OPEN FILE	
-		yyin = fopen(argv[start + i], "r");
+		yyin = fopen(argv[start + i], "r"); // OPEN FILE
 		if (!yyin) {
-			printf(i > 0 ? "\n" : "");
-			lex_warn("File \"%s\" does not exist or problem reading it. Skipping it.\n", argv[start + i]);
+			if (i > 0) cout << endl;
+			msg(WARN) << "File \"" << argv[start + i] << "\" does not exist or problem reading it. Skipping it.";
 			file_failures++;
 			continue;
 		}
 
 		if ( o_flag_index >= 0 ) {
-
 			temp_out = fopen(argv[o_flag_index + i + 1], "w");
-			if(!temp_out){
-			printf(i > 0 ? "\n" : "");
-			lex_warn("Problem writing to file \"%s\". Skipping it.\n", argv[o_flag_index + i + 1]);
-			file_failures++;
-			continue;}
-
+			if (!temp_out) {
+				if (i > 0) cout << endl;
+				msg(WARN) << "Problem writing to file \"" << argv[o_flag_index + i + 1] << "\". Skipping it.";
+				file_failures++;
+				continue;
+			}
 			fileName = argv[o_flag_index + i + 1];
-		} 
-		else 
-		{
+
+		} else {
 			int len = strlen(argv[start + i]);
 			char out_file_name[len + 5]; strcpy(out_file_name, argv[start + i]);
 
@@ -104,8 +103,8 @@ int main (int argc , char *argv[]) {
 			out_file_name[_start + 4] = '\0';
 
 			if ( !(temp_out = fopen(out_file_name, "w")) ) {
-				printf(i > 0 ? "\n" : "");
-				lex_warn("Problem writing to file \"%s\". Skipping it.\n", out_file_name);
+				if (i > 0) cout << endl;
+				msg(WARN) << "Problem writing to file \"" << out_file_name << "\". Skipping it.";
 				file_failures++;
 				continue;
 			}
@@ -118,9 +117,7 @@ int main (int argc , char *argv[]) {
 
 		sr = new symRoot();
 
-		int parse_return = yyparse();
-
-		// printf("yyparse() = %d\n", parse_return);
+		int parse_return = yyparse(); // cout << "yyparse() = " << parse_return << endl;
 		
 		if (!parse_return) {
 			AstToDot(temp_out, AstRoot);
@@ -136,6 +133,7 @@ int main (int argc , char *argv[]) {
 		// Can free AstRoot too - later (if time permits)
 		delete sr; // frees the current symbol tables
 		temp_out = NULL; // reset for next file
+		pos = { 1, 1 };
 		token_line = token_column = 1;
 		column = 1;
 				
@@ -186,7 +184,7 @@ void count() {
 
 void handle_bad_char() {
 	bad_char_seen = 1;
-	lex_err("Bad character (%s) seen at line %d, column %d.\n", yytext, token_line, token_column);
+	msg(ERR) << "Bad character (" << yytext << ") seen at line " << token_line << ", column " << token_column << "." << endl;
 }
 
 int isEqual(const char* option, const char* a, const char* b) { // return 1 iff option matched a OR b
@@ -194,26 +192,6 @@ int isEqual(const char* option, const char* a, const char* b) { // return 1 iff 
 	if (!a) return !strcmp(option, b); // compare with b if a not given
 	if (!b) return !strcmp(option, a);
 	return !strcmp(option, a) || !strcmp(option, b);
-}
-
-void lex_err(const char* format, ...) {
-	va_list args;
-	va_start(args, format);
-	if (colorize && !temp_out) printf(_FORE_RED_);
-	fprintf(temp_out ? temp_out : stdout, "ERROR: ");
-	vfprintf(temp_out ? temp_out : stdout, format, args);
-	if (colorize && !temp_out) printf(_C_NONE_);
-	va_end(args);
-}
-
-void lex_warn(const char* format, ...) {
-	va_list args;
-	va_start(args, format);
-	if (colorize && !temp_out) printf(_FORE_YELLOW_);
-	fprintf(temp_out ? temp_out : stdout, "WARNING: ");
-	vfprintf(temp_out ? temp_out : stdout, format, args);
-	if (colorize && !temp_out) printf(_C_NONE_);
-	va_end(args);
 }
 
 void update_location (char c) {

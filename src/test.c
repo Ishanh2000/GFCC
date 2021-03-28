@@ -1,2 +1,0 @@
-short int;
-void char;

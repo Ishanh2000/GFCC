@@ -6,21 +6,20 @@
  * See include files for usage/syntax of "nd", "ej" and "op".
 **************************************************************************/
 
-#include <cstdio>
 #include <cstdlib>
+
 #include <gfcc_lexer.h>
 #include <symtab.h>
 #include <typo.h>
 
 %}
 
-%union {
-	struct _node_t *node; // pointer to node
-	int tmp;
+%union { // Add more if required (but carefully, as type conversions may be required).
+	struct _node_t *node;
 }
 
 /* Terminals: Don't change this order. */
-%token <node> IDENTIFIER CONSTANT STRING_LITERAL // only these three types shall be terminals
+%token <node> IDENTIFIER CONSTANT STRING_LITERAL
 %token <node> SIZEOF FILE_OBJ
 %token <node> PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token <node> AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
@@ -49,10 +48,7 @@
 %type <node> unary_expression unary_operator
 
 // Provide types to fixed literals (to avoid warnings)
-%type <node> '(' ')' '[' ']' '{' '}'
-%type <node> '+' '-' '=' '*' '/' '%'
-%type <node> '&' '~' '!' '>' '<' '|' '^'
-%type <node> ',' ';' ':' '.' '?'
+%type <node> '(' ')' '[' ']' '{' '}' '+' '-' '=' '*' '/' '%' '&' '~' '!' '>' '<' '|' '^' ',' ';' ':' '.' '?'
 
 // Start symbol
 %start translation_unit
@@ -75,11 +71,11 @@ postfix_expression
 	: primary_expression									{ $$ = $1; }
 	| postfix_expression '[' expression ']'					{ $$ = op( $2, 0, 2, ej($1), ej($3) ); }
 	| postfix_expression '(' ')' {
-		$2->tok_type = FUNC_CALL; $2->label = "() [func-call]"; $2->attr = func_call_attr;
+		$2->tok = FUNC_CALL; $2->label = "() [func-call]"; $2->attr = func_call_attr;
 		$$ = op( $2, 0, 1, ej($1) );
 	}
 	| postfix_expression '(' argument_expression_list ')' {
-		$2->tok_type = FUNC_CALL; $2->label = "() [func-call]"; $2->attr = func_call_attr;
+		$2->tok = FUNC_CALL; $2->label = "() [func-call]"; $2->attr = func_call_attr;
 		$$ = op( $2, 0, 2, ej($1), ej($3) );
 	}
 	| postfix_expression '.' IDENTIFIER						{ $$ = op( $2, 0, 2, ej($1), ej($3) ); }
@@ -185,7 +181,7 @@ conditional_expression
 
 assignment_expression
 	: conditional_expression { $$ = $1; }
-	| unary_expression assignment_operator assignment_expression { printf("HERE THERE!!!\n"); $$ = op( $2, 0, 2, ej($1), ej($3) ); }
+	| unary_expression assignment_operator assignment_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); }
 	;
 
 assignment_operator
@@ -202,24 +198,21 @@ assignment_operator
 	| OR_ASSIGN		{ $$ = $1; }
 	;
 
+// Here, comma is an operator, and is not treated like a list delimiter
 expression
 	: assignment_expression { $$ = $1; }
 	| expression ',' assignment_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); }
-	// Here, comma is an operator, and is not treated like a list delimiter
 	;
 
 constant_expression
 	: conditional_expression { $$ = $1; }
 	;
 
-// EVERYTHING ABOVE THIS COMMENT HAS BEEN TESTED.
-
 /************************************************************************************************/
 /************************************* EXPRESSIONS COMPLETE *************************************/
 /************************************** DECLARATIONS BEGIN **************************************/
 /************************************************************************************************/
 
-// TESTED OK
 // useless iff NULL
 declaration
 	: declaration_specifiers ';' { $$ = NULL; } // { $$ = $1; }
@@ -237,7 +230,7 @@ declaration
 		// single pass over variables
 		for (int i = 0; i < len_idl; i++) { // first check that there is no var in scope
 			node_t *c_node = (ch_idl[i]->node); // "concerned node" - get directly
-			if (c_node->tok_type == '=') {
+			if (c_node->tok == '=') {
 				c_node = (c_node->edges[0]->node); // get from "declarator" part - risky - doesnot take into acount pointer like stuff
 				useful++;
 			}
@@ -253,15 +246,15 @@ declaration
 
 		if (useful > 0) {
 			edge_t **tmp = (edge_t **) malloc(useful * sizeof(edge_t *)); int curr = 0;
-			for (int i = 0; i < len_idl; i++) if (ch_idl[i]->node->tok_type == '=') tmp[curr++] = ch_idl[i];
+			for (int i = 0; i < len_idl; i++) if (ch_idl[i]->node->tok == '=') tmp[curr++] = ch_idl[i];
 			free(ch_idl); idl->edges = tmp; idl->numChild = useful;
 			$$ = $2;
 		} else $$ = NULL;
 
 	}
 	;
-// int
-// TESTED OK - useless iff NULL
+
+// useless iff NULL
 // A list of three kinds of objects. Also, new child appends to the left.
 declaration_specifiers
 	: storage_class_specifier                        { $$ = op( nd(DECL_SPEC_LIST, "decl-specs", 0, 0, 0), 0, 1, ej($1) ); ($$)->enc = ($1)->enc; } // valid by default
@@ -272,19 +265,18 @@ declaration_specifiers
 	| type_qualifier declaration_specifiers          { $$ = op( $2, 1, 0, ej($1) ); }
 	;
 
-// TESTED OK - useless iff NULL
+// useless iff NULL
 init_declarator_list
 	: init_declarator { $$ = op( nd(INIT_DECL_LIST, "var-list", 0, 0, 0), 0, 1, ej($1) ); }
 	| init_declarator_list ',' init_declarator { $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
-// TESTED OK - useless iff NULL
+// useless iff NULL
 init_declarator
 	: declarator                 { $$ = $1; } // handle uselessness at "declaration"
 	| declarator '=' initializer { $$ = op( $2, 0, 2, ej($1), ej($3) ); }
 	;
 
-// TESTED OK
 storage_class_specifier
 	: TYPEDEF	{ $$ = $1; }
 	| EXTERN	{ $$ = $1; }
@@ -305,7 +297,7 @@ type_specifier
 	| UNSIGNED						{ $$ = $1; }
 	| FILE_OBJ						{ $$ = $1; }
 	| struct_or_union_specifier		{ $$ = $1; }
-	| enum_specifier				{ $$ = $1; } // TESTED OK
+	| enum_specifier				{ $$ = $1; }
 	| TYPE_NAME						{ $$ = $1; } // never encountered in ANSI C (just a user defined type)
 	;
 
@@ -315,7 +307,6 @@ struct_or_union_specifier
 	| struct_or_union IDENTIFIER                                 { $$ = op( $1, 0, 1, ej($2) ); }
 	;
 
-// TESTED OK
 struct_or_union
 	: STRUCT	{ $$ = $1; }
 	| UNION		{ $$ = $1; }
@@ -348,38 +339,32 @@ struct_declarator
 	| declarator ':' constant_expression { $$ = op( nd(STRUCT_DECL, "declarator", 0, 0, 0), 0, 2, ej($1), ej($3) ); }
 	;
 
-// TESTED OK
 enum_specifier
 	: ENUM '{' enumerator_list '}'				{ $$ = op( $1, 0, 1, ej($3) ); }
 	| ENUM IDENTIFIER '{' enumerator_list '}'	{ $$ = op( $1, 0, 2, ej($2), ej($4) ); }
 	| ENUM IDENTIFIER							{ $$ = op( $1, 0, 1, ej($2) ); }
 	;
 
-// TESTED OK
 enumerator_list
 	: enumerator						{ $$ = op( nd(ENUM_LIST, "enum-list", 0, 0, 0), 0, 1, ej($1) ); }
 	| enumerator_list ',' enumerator	{ $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
-// TESTED OK
 enumerator
 	: IDENTIFIER							{ $$ = $1; }
 	| IDENTIFIER '=' constant_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); }
 	;
 
-// TESTE OK
 type_qualifier
 	: CONST		{ $$ = $1; }
 	| VOLATILE	{ $$ = $1; }
 	;
 
-// TESTED OK
 declarator
 	: pointer direct_declarator	{ $$ = op( nd(DECLARATOR, "var", 0, 0, 0), 0, 2, ej($1), ej($2) ); }
 	| direct_declarator			{ $$ = $1; }
 	;
 
-// TESTED OK
 direct_declarator
 	: IDENTIFIER									{ $$ = $1; }
 	| '(' declarator ')'							{ $$ = $2; }
@@ -387,30 +372,26 @@ direct_declarator
 	| direct_declarator '[' ']'						{ $$ = op( $2, 0, 1, ej($1) ); }
 	| direct_declarator '(' parameter_type_list ')'	{ $$ = $1; /* $$ = op( nd(FUNC_PTR, "() [func-ptr]", 0, 0, 0), 0, 2, ej($1), ej($3) ); */ }
 	| direct_declarator '(' identifier_list ')'		{ $$ = $1; /* $$ = op( nd(FUNC_PTR, "() [func-ptr]", 0, 0, 0), 0, 2, ej($1), ej($3) ); */ }
-	| direct_declarator '(' ')' { $2->tok_type = FUNC_PTR; $2->label = "() [func-ptr]"; $$ = op( $2, 0, 1, ej($1) ); }
+	| direct_declarator '(' ')' { $2->tok = FUNC_PTR; $2->label = "() [func-ptr]"; $$ = op( $2, 0, 1, ej($1) ); }
 	;
 
-// TESTED OK
 pointer
-	: '*'								{ ($1)->tok_type = DEREF; $$ = $1; }
-	| '*' type_qualifier_list			{ ($1)->tok_type = DEREF; $$ = $1; /* $$ = op( $1, 0, 1, ej($2) ); */ }
-	| '*' pointer						{ ($1)->tok_type = DEREF; $$ = op( $1, 0, 1, ej($2) ); }
-	| '*' type_qualifier_list pointer	{ ($1)->tok_type = DEREF; $$ = op( $1, 0, 1, ej($3) ); /* $$ = op( $1, 0, 2, ej($2), ej($3) ); */ }
+	: '*'								{ ($1)->tok = DEREF; $$ = $1; }
+	| '*' type_qualifier_list			{ ($1)->tok = DEREF; $$ = $1; /* $$ = op( $1, 0, 1, ej($2) ); */ }
+	| '*' pointer						{ ($1)->tok = DEREF; $$ = op( $1, 0, 1, ej($2) ); }
+	| '*' type_qualifier_list pointer	{ ($1)->tok = DEREF; $$ = op( $1, 0, 1, ej($3) ); /* $$ = op( $1, 0, 2, ej($2), ej($3) ); */ }
 	;
 
-// TESTED OK
 type_qualifier_list
 	: type_qualifier						{ $$ = op( nd(TYPE_QUAL_LIST, "type-quals", 0, 0, 0), 0, 1, ej($1) ); }
 	| type_qualifier_list type_qualifier	{ $$ = op( $1, 0, 1, ej($2) ); }
 	;
 
-// TESTED OK
 parameter_type_list
 	: parameter_list				{ $$ = $1; }
 	| parameter_list ',' ELLIPSIS	{ $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
-// TESTED OK
 parameter_list
 	: parameter_declaration						{ $$ = op( nd(PARAM_TYPE_LIST, "param-types", 0, 0, 0), 0, 1, ej($1) ); }
 	| parameter_list ',' parameter_declaration	{ $$ = op( $1, 0, 1, ej($3) ); }
@@ -444,38 +425,21 @@ direct_abstract_declarator
 	| '[' constant_expression ']'                                { $$ = op( $1, 0, 1, ej($2)); }
 	| direct_abstract_declarator '[' ']'                         { $$ = op( $2, 0, 1, ej($1) ); }
 	| direct_abstract_declarator '[' constant_expression ']'     { $$ = op( $2, 0, 2, ej($1), ej($3) ); }
-	| '(' ')'                                                    { $1->tok_type = ABST_DCLN; $1->label = "() abst-dcln"; $$ = $1; }
-	| '(' parameter_type_list ')'                                { $1->tok_type = ABST_DCLN; $1->label = "() abst-dcln"; $$ = op( $1, 0, 1, ej($2) ); } // ! Will handle
-	| direct_abstract_declarator '(' ')'                         { $2->tok_type = ABST_DCLN; $2->label = "() abst-dcln"; $$ = op( $2, 0, 1, ej($1) ); }
-	| direct_abstract_declarator '(' parameter_type_list ')'     { $2->tok_type = ABST_DCLN; $2->label = "() abst-dcln"; $$ = op( $2, 0, 2, ej($1), ej($3) ); }
+	| '(' ')'                                                    { $1->tok = ABST_DCLN; $1->label = "() abst-dcln"; $$ = $1; }
+	| '(' parameter_type_list ')'                                { $1->tok = ABST_DCLN; $1->label = "() abst-dcln"; $$ = op( $1, 0, 1, ej($2) ); } // ! Will handle
+	| direct_abstract_declarator '(' ')'                         { $2->tok = ABST_DCLN; $2->label = "() abst-dcln"; $$ = op( $2, 0, 1, ej($1) ); }
+	| direct_abstract_declarator '(' parameter_type_list ')'     { $2->tok = ABST_DCLN; $2->label = "() abst-dcln"; $$ = op( $2, 0, 2, ej($1), ej($3) ); }
 	;
 
-// TESTED OK
 initializer
 	: assignment_expression			{ $$ = $1; }
 	| '{' initializer_list '}'		{ $$ = $2; }
 	| '{' initializer_list ',' '}'	{ $$ = $2; }
 	;
 
-// TESTED OK
 initializer_list
 	: initializer						{ $$ = op( nd(INIT_LIST, "array", 0, 0, 0), 0, 1, ej($1) ); }
-	| initializer_list ',' initializer	{ $$ = op( $1, 0, 1, ej($3) );
-		/* THIS CODE WORKS, BUT USE ONLY WHEN SIMULTANEOUS PRINTING IS NOT GOING ON */
-		// if (($3)->tok_type == INIT_LIST) { // array within an array
-		// 	node_t* parent = $3, *tmp = $1;
-		// 	int n = parent->numChild;
-		// 	for (int i = 0; i < n; i++) {
-		// 		tmp = op( tmp, 0, 1, ej(parent->edges[i]->node) );
-		// 		// hide edge - ineffective (this code adds NEW invisible edges, but doesn't hide old ones)
-		// 		fprintf(temp_out, "\t%lld -> %lld [style = \"invis\"];\n", parent->id, parent->edges[i]->node->id);
-		// 	}
-		// 	fprintf(temp_out, "\t%lld [style = \"invis\"];\n", parent->id); // hide parent
-		// 	free(parent->edges); parent->edges = NULL;
-		// 	$$ = tmp;
-		// } else $$ = op( $1, 0, 1, ej($3) );
-		
-	}
+	| initializer_list ',' initializer	{ $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
 statement
@@ -487,14 +451,13 @@ statement
 	| jump_statement       { $$ = $1; }
 	;
 
-// TESTED OK
 labeled_statement
-	: IDENTIFIER ':' statement                { ($1)->attr = "style=filled,fillcolor=magenta"; $$ = op( $1, 0, 1, ej($3) ); }
+	: IDENTIFIER ':' statement                { ($1)->attr = label_attr; $$ = op( $1, 0, 1, ej($3) ); }
 	| CASE constant_expression ':' statement  { $$ = op( $1, 0, 2, ej($2), ej($4) ); }
 	| DEFAULT ':' statement                   { $$ = op( $1 , 0, 1, ej($3) ); }
 	;
 
-// TESTED OK - useless iff EMPTY_BLOCK (can't substitute NULL, since EMPTY_BLOCK is still a valid function definition)
+// useless iff EMPTY_BLOCK (can't substitute NULL, since EMPTY_BLOCK is still a valid function definition)
 compound_statement
 	: '{' '}'                                 { $$ = $1; }
 	| '{' statement_list '}'                  { $$ = ($2) ? ($2) : ($1); }
@@ -507,7 +470,7 @@ compound_statement
 	}
 	;
 
-// TESTED OK - useless iff NULL
+// useless iff NULL
 declaration_list
 	: declaration { $$ = ($1) ? op( nd(DECL_LIST, "declarations", 0, 0, 0), 0, 1, ej($1) ) : NULL; }
 	| declaration_list declaration	{
@@ -518,19 +481,16 @@ declaration_list
 	}
 	;
 
-// TESTED OK
 statement_list
 	: statement                { $$ = op( nd(STMT_LIST, "stmt-list", 0, 0, 0), 0, 1, ej($1) ); }
 	| statement_list statement { $$ = op( $1, 0, 1, ej($2) ); }
 	;
 
-// TESTED OK
 expression_statement
 	: ';'				{ $$ = $1; }
 	| expression ';'	{ $$ = $1; }
 	;
 
-// TESTED OK
 selection_statement
 	: IF '(' expression ')' statement { $$ = op( $1, 0, 2,
 		Ej($3, "cond", NULL), Ej($5, "stmts", NULL)
