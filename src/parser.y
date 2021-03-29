@@ -63,9 +63,15 @@ using namespace std;
 /***********************************************************************************************/
 
 primary_expression
-	: IDENTIFIER			{ $$ = $1; }
-	| CONSTANT				{ $$ = $1; }
-	// get sematic number (means 0x56 = 86, 0227 = 151, etc) during semantic analysis - but ENCODE HERE ITSELF
+	: IDENTIFIER			{ $$ = $1;
+		sym* ret = SymRoot->gLookup($1->label);
+		if (ret) $$->type = new Type(); // success - start by making a copy of type. // $1->type
+		else {
+			repErr($1->pos, "Undeclared variable found... (will set variable to \"error\" type)", _FORE_RED_);
+			Type* tp = $$->type = new Type(); tp->base = ERROR_B;
+		}
+	}
+	| CONSTANT				{ $$ = $1; } // get sematic number (means 0x56 = 86, 0227 = 151, etc) during semantic analysis - but ENCODE HERE ITSELF
 	| STRING_LITERAL		{ $$ = $1; } // encode as (const char *) - or some other appropriate enc.
 	| '(' expression ')'	{ $$ = $2; }
 	;
@@ -88,7 +94,7 @@ postfix_expression
 	;
 
 argument_expression_list
-	: assignment_expression									{ $$ = op( nd(ARG_EXPR_LIST, "arg-expr-list", 0, { 0, 0 }), 0, 1, ej($1) ); }
+	: assignment_expression									{ $$ = op( nd(ARG_EXPR_LIST, "arg-expr-list", { 0, 0 }), 0, 1, ej($1) ); }
 	| argument_expression_list ',' assignment_expression	{ $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
@@ -113,7 +119,7 @@ unary_operator
 cast_expression
 	: unary_expression { $$ = $1; }
 	| '(' type_name ')' cast_expression { $$ = op(
-		nd(CAST_EXPR, "cast_expression", 0, { 0, 0 }), 0, 2, Ej($2, "type", NULL), Ej($4, "expression", NULL)
+		nd(CAST_EXPR, "cast_expression", { 0, 0 }), 0, 2, Ej($2, "type", NULL), Ej($4, "expression", NULL)
 	); }
 	;
 
@@ -226,31 +232,39 @@ declaration
 		int len_ds = ds->numChild, len_idl = idl->numChild;
 
 		// construct type encoding from list of declaration_specifiers
-		ull_t enc = 0; for (int i = 0; i < len_ds; i++) { enc |= (ch_ds[i]->node->enc); msg(SUCC) << ch_ds[i]->node->label; } // simplicity for now.
+		/* ull_t enc = 0; for (int i = 0; i < len_ds; i++) { enc |= (ch_ds[i]->node->enc); msg(SUCC) << ch_ds[i]->node->label; } // simplicity for now. */
 
 		int useful = 0;
+		Type *tp1 = $1->type;
 
 		// single pass over variables
 		for (int i = 0; i < len_idl; i++) { // first check that there is no var in scope
-			node_t *c_node = idl->ch(i); // "concerned node" - get directly
-			if (c_node->tok == '=') {
-				c_node = c_node->ch(0); // get from "declarator" part - risky - doesnot take into acount pointer like stuff
-				useful++;
-			}
-			msg(SUCC) << c_node->label;
+			node_t *cnode = idl->ch(i); // "concerned node" - get directly
 
-			if (SymRoot->lookup(c_node->label)) {
-				stringstream str1; str1 << "Multiple declarations of \"" << c_node->label << "\".";
-				reportError(c_node->pos.line, c_node->pos.column, str1.str(), _FORE_RED_);
-				stringstream str2; str2 << "Previous declaration at location sym mein daal dena.";
-				cout << "HER: " << c_node->pos.column << endl;
-				reportError(c_node->pos.line, c_node->pos.column, str2.str(), _FORE_CYAN_);
-				
-				/* exit(E_MULT_DECL); // should abort, not exit */
-			} else msg(SUCC) << "Will insert \"" << c_node->label << "\".";
-			
-			SymRoot->pushSym(c_node->label, enc); // ASUMPTION: success - can check that too
+			// pass down tree $2 until name & position found.
+			if (cnode->tok == '=') { cnode = cnode->ch(0); useful++; } // "init_declarator"
+
+			while (cnode->tok != IDENTIFIER) { // pass down from "direct_declarator"
+				if (cnode->tok == DECLARATOR) cnode = cnode->ch(1); // "decl" + rule 2 of "direct_decl"
+				else cnode = cnode->ch(0); // rules 3 - 7 of "direct_decl"
+			}
+			// cnode->tok == IDENTIFIER
+
+			sym* retval = SymRoot->lookup(cnode->label);
+			if (retval) {
+				stringstream str1; str1 << "Multiple declarations of \"" << cnode->label << "\" (will set variable to \"error\" type)"; repErr(cnode->pos, str1.str(), _FORE_RED_);
+				repErr(retval->pos, "Previous declaration given here...", _FORE_CYAN_);
+				retval->type->base = ERROR_B;
+			} else {
+				Type *tp2 = $2->ch(i)->type; // copy tp1 into tp2 (partially), delete tp1 (easier to copy tp1 than tp2).
+				tp2->base = tp1->base; tp2->qual = tp1->qual; tp2->sign = tp1->sign; tp2->strg = tp1->strg;
+				tp2->enumDef = tp1->enumDef; tp2->unionDef = tp1->unionDef; tp2->structDef = tp1->structDef;
+
+				SymRoot->pushSym(cnode->label, tp2, cnode->pos); // ASUMPTION: success - can check that too
+			}
 		}
+
+		delete tp1;
 
 		if (useful > 0) {
 			edge_t **tmp = (edge_t **) malloc(useful * sizeof(edge_t *)); int curr = 0;
@@ -261,27 +275,87 @@ declaration
 	}
 	;
 
+// DONE - TEST IT
+// TODO: handle storage class "typedef"
 // useless iff NULL
 // A list of three kinds of objects. Also, new child appends to the left.
 declaration_specifiers
-	: storage_class_specifier                        { $$ = op( nd(DECL_SPEC_LIST, "decl-specs", 0, { 0, 0 }), 0, 1, ej($1) ); ($$)->enc = ($1)->enc; } // valid by default
-	| storage_class_specifier declaration_specifiers { $$ = op( $2, 1, 0, ej($1) ); }
-	| type_specifier                                 { $$ = op( nd(DECL_SPEC_LIST, "decl-specs", 0, { 0, 0 }), 0, 1, ej($1) ); ($$)->enc = ($1)->enc; } // valid by default
-	| type_specifier declaration_specifiers          { $$ = op( $2, 1, 0, ej($1) ); }
-	| type_qualifier                                 { $$ = op( nd(DECL_SPEC_LIST, "decl-specs", 0, { 0, 0 }), 0, 1, ej($1) ); ($$)->enc = ($1)->enc; } // valid by default
-	| type_qualifier declaration_specifiers          { $$ = op( $2, 1, 0, ej($1) ); }
+	: storage_class_specifier                        { $$ = op( nd(DECL_SPEC_LIST, "decl-specs", { 0, 0 }), 0, 1, ej($1) );
+		Type* tp = $$->type = new Type();
+		switch ($1->tok) { case AUTO : tp->strg = AUTO_S; break;
+			case EXTERN : tp->strg = EXTERN_S; break; case REGISTER : tp->strg = REGISTER_S; break;
+			case STATIC : tp->strg = STATIC_S; break; case TYPEDEF : tp->strg = TYPEDEF_S;
+		}
+	}
+	| storage_class_specifier declaration_specifiers { $$ = op( $2, 1, 0, ej($1) ); Type* tp = $$->type;
+		bool isStrg = (tp->strg != NONE_S);
+		string stdErs = "more than required or incompatible storage class specifiers given (will set variable to \"error\" type)";
+		switch ($1->tok) {
+			case AUTO : if (!isStrg) tp->strg = AUTO_S; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
+			case EXTERN : if (!isStrg) tp->strg = EXTERN_S; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
+			case REGISTER : if (!isStrg) tp->strg = REGISTER_S; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
+			case STATIC : if (!isStrg) tp->strg = STATIC_S; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
+			case TYPEDEF : if (!isStrg) tp->strg = TYPEDEF_S; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
+		}
+	}
+	| type_specifier                                 { $$ = op( nd(DECL_SPEC_LIST, "decl-specs", { 0, 0 }), 0, 1, ej($1) ); // FILE_OBJ and TYPE_NAME not taken into account
+		Type* tp = $$->type = new Type();
+		switch ($1->tok) {
+			case VOID : tp->base = VOID_B; break; case CHAR : tp->base = CHAR_B; break;
+			case SHORT : tp->base = SHORT_B; break; case INT : tp->base = INT_B; break;
+			case LONG : tp->base = LONG_B; break; case FLOAT : tp->base = FLOAT_B; break;
+			case DOUBLE : tp->base = DOUBLE_B; break; case STRUCT : tp->base = STRUCT_B; break;
+			case UNION : tp->base = UNION_B; break; case ENUM : tp->base = ENUM_B; break;
+			case SIGNED : tp->sign = SIGNED_X; break; case UNSIGNED : tp->sign = UNSIGNED_X; break; // sign changes, not type (type may be decided later)
+		}
+	}
+	| type_specifier declaration_specifiers          { $$ = op( $2, 1, 0, ej($1) ); Type* tp = $$->type;
+		bool isSpec = (tp->base != NONE_B); // see whether already specified a basic type
+		bool signGiven = (tp->sign != NONE_X); // see whether already specified a sign
+		base_type_t base = tp->base;
+		string stdErs = "more than required or incompatible type specifiers given (will set variable to \"error\" type)";
+		switch ($1->tok) {
+			case VOID : if (!isSpec) tp->base = VOID_B; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
+			case CHAR : if (!isSpec) tp->base = CHAR_B; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
+			case INT :  if (!isSpec) tp->base = INT_B; else if (base == SHORT_B) tp->base = SHORT_B; else if (base == LONG_B) tp->base = LONG_B;
+						else if (base == LONG_LONG_B) tp->base = LONG_B; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
+			case SHORT : if (!isSpec || (base == INT_B)) tp->base = SHORT_B; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
+			case LONG : if (!isSpec || (base == INT_B)) tp->base = LONG_B; else if (base == LONG_B) tp->base = LONG_LONG_B;
+						else if (base == DOUBLE_B) tp->base = LONG_DOUBLE_B; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
+			case FLOAT : if (!isSpec) tp->base = FLOAT_B; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
+			case DOUBLE : if (!isSpec) tp->base = DOUBLE_B; else if (base == LONG_B) tp->base = LONG_DOUBLE_B; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
+			case SIGNED : if (!signGiven && (base == CHAR_B || base == SHORT_B || base == INT_B || base == LONG_B || base == LONG_LONG_B)) tp->sign = SIGNED_X; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
+			case UNSIGNED : if (!signGiven && (base == CHAR_B || base == SHORT_B || base == INT_B || base == LONG_B || base == LONG_LONG_B)) tp->sign = UNSIGNED_X; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
+			case STRUCT : if (!isSpec) tp->base = STRUCT_B; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
+			case UNION : if (!isSpec) tp->base = UNION_B; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
+			case ENUM : if (!isSpec) tp->base = ENUM_B; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; }
+		}
+	}
+	| type_qualifier                                 { $$ = op( nd(DECL_SPEC_LIST, "decl-specs", { 0, 0 }), 0, 1, ej($1) );
+		Type* tp = $$->type = new Type();
+		switch ($1->tok) { case CONST : tp->qual.isConst = true; break; case VOLATILE: tp->qual.isVolatile = true; }
+	}
+	| type_qualifier declaration_specifiers          { $$ = op( $2, 1, 0, ej($1) ); Type* tp = $$->type;
+		if (tp->qual.isConst && ($1->tok == CONST)) { repErr($1->pos, "const specified twice (will set variable to \"error\" type)", _FORE_RED_); tp->base = ERROR_B; }
+		if (tp->qual.isVolatile && ($1->tok == VOLATILE)) { repErr($1->pos, "volatile specified twice (will set variable to \"error\" type)", _FORE_RED_); tp->base = ERROR_B; }
+	}
 	;
 
+// DONE
 // useless iff NULL
 init_declarator_list
-	: init_declarator { $$ = op( nd(INIT_DECL_LIST, "var-list", 0, { 0, 0 }), 0, 1, ej($1) ); }
+	: init_declarator { $$ = op( nd(INIT_DECL_LIST, "var-list", { 0, 0 }), 0, 1, ej($1) ); }
 	| init_declarator_list ',' init_declarator { $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
+// PARTIALLY DONE - TEST RULE 1
 // useless iff NULL
 init_declarator
-	: declarator                 { $$ = $1; } // handle uselessness at "declaration"
-	| declarator '=' initializer { $$ = op( $2, 0, 2, ej($1), ej($3) ); }
+	: declarator                 { $$ = $1;	} // handle uselessness at "declaration"
+	| declarator '=' initializer { $$ = op( $2, 0, 2, ej($1), ej($3) );
+		$$->type = $1->type;
+		// TODO: Check assignment compatibility of declarator with intializer.
+	}
 	;
 
 storage_class_specifier
@@ -320,30 +394,30 @@ struct_or_union
 	;
 
 struct_declaration_list 
-	: struct_declaration                         { $$ = op( nd(ALL_MEMBERS, "member-list", 0, { 0, 0 }), 0, 1, ej($1) ); }
+	: struct_declaration                         { $$ = op( nd(ALL_MEMBERS, "member-list", { 0, 0 }), 0, 1, ej($1) ); }
 	| struct_declaration_list struct_declaration { $$ = op( $1, 0, 1, ej($2) ); }
 	;
 
 struct_declaration
-	: specifier_qualifier_list struct_declarator_list ';' { $$ = op( nd(STRUCT_MEMBER, "member", 0, { 0, 0 }), 0, 2, ej($1), ej($2) ); }
+	: specifier_qualifier_list struct_declarator_list ';' { $$ = op( nd(STRUCT_MEMBER, "member", { 0, 0 }), 0, 2, ej($1), ej($2) ); }
 	;
 
 specifier_qualifier_list
 	: type_specifier specifier_qualifier_list { $$ = op( $2, 1, 0, ej($1) ); }
-	| type_specifier                          { $$ = op( nd(SPEC_QUAL_LIST, "spec-qual", 0, { 0, 0 }), 0, 1, ej($1) ); }
+	| type_specifier                          { $$ = op( nd(SPEC_QUAL_LIST, "spec-qual", { 0, 0 }), 0, 1, ej($1) ); }
 	| type_qualifier specifier_qualifier_list { $$ = op( $2, 1, 0, ej($1) ); }
-	| type_qualifier			              { $$ = op( nd(SPEC_QUAL_LIST, "spec-qual", 0, { 0, 0 }), 0, 1, ej($1) ); }
+	| type_qualifier			              { $$ = op( nd(SPEC_QUAL_LIST, "spec-qual", { 0, 0 }), 0, 1, ej($1) ); }
 	;
 
 struct_declarator_list
-	: struct_declarator                            { $$ = op( nd(INIT_DECL_LIST, "var-list", 0, { 0, 0 }), 0, 1, ej($1) ); }
+	: struct_declarator                            { $$ = op( nd(INIT_DECL_LIST, "var-list", { 0, 0 }), 0, 1, ej($1) ); }
 	| struct_declarator_list ',' struct_declarator { $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
 struct_declarator
 	: declarator              { $$ = $1; }
 	| ':' constant_expression { $$ = $2; }
-	| declarator ':' constant_expression { $$ = op( nd(STRUCT_DECL, "declarator", 0, { 0, 0 }), 0, 2, ej($1), ej($3) ); }
+	| declarator ':' constant_expression { $$ = op( nd(STRUCT_DECL, "declarator", { 0, 0 }), 0, 2, ej($1), ej($3) ); }
 	;
 
 enum_specifier
@@ -353,7 +427,7 @@ enum_specifier
 	;
 
 enumerator_list
-	: enumerator						{ $$ = op( nd(ENUM_LIST, "enum-list", 0, { 0, 0 }), 0, 1, ej($1) ); }
+	: enumerator						{ $$ = op( nd(ENUM_LIST, "enum-list", { 0, 0 }), 0, 1, ej($1) ); }
 	| enumerator_list ',' enumerator	{ $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
@@ -367,31 +441,81 @@ type_qualifier
 	| VOLATILE	{ $$ = $1; }
 	;
 
+// DONE - TEST IT
 declarator
-	: pointer direct_declarator	{ $$ = op( nd(DECLARATOR, "var", 0, { 0, 0 }), 0, 2, ej($1), ej($2) ); }
+	: pointer direct_declarator	{ $$ = op( nd(DECLARATOR, "var", { 0, 0 }), 0, 2, ej($1), ej($2) ); // copy pointers to direct_declarator
+		Type* tp = $$->type = $2->type;
+		tp->ptrs = $1->type->ptrs; // copied pointers
+		delete $1->type; $1->type = NULL;
+	}
 	| direct_declarator			{ $$ = $1; }
 	;
 
+// TODO: Complete rules 5, 6, 7. Check if rule 2 relates to function pointers.
 direct_declarator
-	: IDENTIFIER									{ $$ = $1; }
+	: IDENTIFIER									{ $$ = $1; $1->type = new Type(); }
 	| '(' declarator ')'							{ $$ = $2; }
-	| direct_declarator '[' constant_expression ']'	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); }
-	| direct_declarator '[' ']'						{ $$ = op( $2, 0, 1, ej($1) ); }
-	| direct_declarator '(' parameter_type_list ')'	{ $$ = $1; /* $$ = op( nd(FUNC_PTR, "() [func-ptr]", 0, { 0, 0 }), 0, 2, ej($1), ej($3) ); */ }
-	| direct_declarator '(' identifier_list ')'		{ $$ = $1; /* $$ = op( nd(FUNC_PTR, "() [func-ptr]", 0, { 0, 0 }), 0, 2, ej($1), ej($3) ); */ }
-	| direct_declarator '(' ')' { $2->tok = FUNC_PTR; $2->label = "() [func-ptr]"; $$ = op( $2, 0, 1, ej($1) ); }
+	| direct_declarator '[' constant_expression ']'	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = $1->type;
+		Type* type = $$->type;
+		if (type->isFunc) {
+			repErr($1->pos, "function returns an array (will set variable to \"error\" type)", _FORE_RED_); // coordi
+			type->base = ERROR_B;
+		} else $$->type->newArrBnd($3);
+	}
+	| direct_declarator '[' ']'						{ $$ = op( $2, 0, 1, ej($1) ); $$->type = $1->type;
+		Type* type = $$->type;
+		if (type->isFunc) {
+			repErr($1->pos, "function returns an array (will set variable to \"error\" type)", _FORE_RED_); // coordi
+			type->base = ERROR_B;
+		} else if (type->isArr()) {
+			repErr($1->pos, "incomplete array bound: all bounds except first must be specified (will se variable to \"error\" type", _FORE_RED_); // coordi
+			type->base = ERROR_B;
+		} else type->newArrBnd();
+	}
+	| direct_declarator '(' parameter_type_list ')'	{ $$ = $1; // TODO: REFINE CODE
+		$$->type->isFunc = true;
+		/* $$ = op( nd(FUNC_PTR, "() [func-ptr]", { 0, 0 }), 0, 2, ej($1), ej($3) ); */
+	}
+	| direct_declarator '(' identifier_list ')'	{ $$ = $1;  // TODO: REFINE CODE
+		$$->type->isFunc = true;
+		/* $$ = op( nd(FUNC_PTR, "() [func-ptr]", { 0, 0 }), 0, 2, ej($1), ej($3) ); */
+	}
+	| direct_declarator '(' ')' { $$ = op( $2, 0, 1, ej($1) ); $$->type = $1->type; // TODO: REFINE CODE
+		$$->type->isFunc = true;
+		$$->tok = FUNC_PTR;	$$->label = "() [func-ptr]";
+	}
 	;
 
+// TESTED OK
+// USE PRASKR METHOD (p_p_...base) - MORE FAVOURABLE
 pointer
-	: '*'								{ ($1)->tok = DEREF; $$ = $1; }
-	| '*' type_qualifier_list			{ ($1)->tok = DEREF; $$ = $1; /* $$ = op( $1, 0, 1, ej($2) ); */ }
-	| '*' pointer						{ ($1)->tok = DEREF; $$ = op( $1, 0, 1, ej($2) ); }
-	| '*' type_qualifier_list pointer	{ ($1)->tok = DEREF; $$ = op( $1, 0, 1, ej($3) ); /* $$ = op( $1, 0, 2, ej($2), ej($3) ); */ }
+	: '*'								{ ($1)->tok = DEREF; $$ = $1; $$->type = new Type(); $$->type->ptrs.push_back(qual_t()); }
+	| '*' type_qualifier_list			{ ($1)->tok = DEREF; $$ = $1; /* $$ = op( $1, 0, 1, ej($2) ); */
+		bool isConst = false, isVoltl = false; bool err = false;
+		for (int i = 0; i < $2->numChild; i++) {
+			int tok = $2->ch(i)->tok;
+			if (tok == CONST) if (!isConst) isConst = true; else { repErr($1->pos, "const specified twice (will set variable to \"error\" type)", _FORE_RED_); err = true; }
+			if (tok == VOLATILE) if (!isVoltl) isVoltl = true; else { repErr($1->pos, "volatile specified twice (will set variable to \"error\" type)", _FORE_RED_); err = true; }
+		}
+		Type* tp = $$->type = new Type(); if (err) tp->base = ERROR_B; else tp->ptrs.push_back(qual_t(isConst, isVoltl));
+	}
+	| '*' pointer						{ ($1)->tok = DEREF; $$ = op( $1, 0, 1, ej($2) ); Type* tp = $$->type = $2->type; tp->ptrs.insert(tp->ptrs.begin(), qual_t());	}
+	| '*' type_qualifier_list pointer	{ ($1)->tok = DEREF; $$ = op( $1, 0, 1, ej($3) ); /* $$ = op( $1, 0, 2, ej($2), ej($3) ); */
+		Type* tp = $$->type = $3->type;
+		bool isConst = false, isVoltl = false; bool err = false;
+		for (int i = 0; i < $2->numChild; i++) {
+			int tok = $2->ch(i)->tok;
+			if (tok == CONST) if (!isConst) isConst = true; else { repErr($1->pos, "const specified twice (will set variable to \"error\" type)", _FORE_RED_); err = true; }
+			if (tok == VOLATILE) if (!isVoltl) isVoltl = true; else { repErr($1->pos, "volatile specified twice (will set variable to \"error\" type)", _FORE_RED_); err = true; }
+		}
+		if (err) tp->base = ERROR_B; else tp->ptrs.insert(tp->ptrs.begin(), qual_t(isConst, isVoltl));	
+	}
 	;
 
 type_qualifier_list
-	: type_qualifier						{ $$ = op( nd(TYPE_QUAL_LIST, "type-quals", 0, { 0, 0 }), 0, 1, ej($1) ); }
-	| type_qualifier_list type_qualifier	{ $$ = op( $1, 0, 1, ej($2) ); }
+	: type_qualifier						{ $$ = op( nd(TYPE_QUAL_LIST, "type-quals", { 0, 0 }), 0, 1, ej($1) );
+	}
+	| type_qualifier_list type_qualifier	{ $$ = op( $1, 0, 1, ej($2) );  }
 	;
 
 parameter_type_list
@@ -400,30 +524,30 @@ parameter_type_list
 	;
 
 parameter_list
-	: parameter_declaration						{ $$ = op( nd(PARAM_TYPE_LIST, "param-types", 0, { 0, 0 }), 0, 1, ej($1) ); }
+	: parameter_declaration						{ $$ = op( nd(PARAM_TYPE_LIST, "param-types", { 0, 0 }), 0, 1, ej($1) ); }
 	| parameter_list ',' parameter_declaration	{ $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
 parameter_declaration
-	: declaration_specifiers declarator            { $$ = op( nd(PARAM_DECL, "param-decl", 0, { 0, 0 }), 0, 2, ej($1), ej($2) ); }
-	| declaration_specifiers abstract_declarator   { $$ = op( nd(PARAM_DECL, "param-decl", 0, { 0, 0 }), 0, 2, ej($1), ej($2) ); }
+	: declaration_specifiers declarator            { $$ = op( nd(PARAM_DECL, "param-decl", { 0, 0 }), 0, 2, ej($1), ej($2) ); }
+	| declaration_specifiers abstract_declarator   { $$ = op( nd(PARAM_DECL, "param-decl", { 0, 0 }), 0, 2, ej($1), ej($2) ); }
 	| declaration_specifiers                       { $$ = $1; }
 	;
 
 identifier_list
-	: IDENTIFIER                       { $$ = op( nd(ID_LIST, "identifiers", 0, { 0, 0 }), 0, 1, ej($1) ); }
+	: IDENTIFIER                       { $$ = op( nd(ID_LIST, "identifiers", { 0, 0 }), 0, 1, ej($1) ); }
 	| identifier_list ',' IDENTIFIER   { $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
 type_name
-	: specifier_qualifier_list                        { $$ = op( nd(TYPE_NAME, "type-name", 0, { 0, 0 }), 0, 1, ej($1) ); }
+	: specifier_qualifier_list                        { $$ = op( nd(TYPE_NAME, "type-name", { 0, 0 }), 0, 1, ej($1) ); }
 	| specifier_qualifier_list abstract_declarator    { $$ = op( $1, 0, 1, ej($2) ); }
 	;
 
 abstract_declarator
 	: pointer                              { $$ = $1; }
 	| direct_abstract_declarator           { $$ = $1; }
-	| pointer direct_abstract_declarator   { $$ = op( nd(ABSTRACT_DECLARATOR, "abst-decl", 0, { 0, 0 }), 0, 2, ej($1), ej($2) ); }
+	| pointer direct_abstract_declarator   { $$ = op( nd(ABSTRACT_DECLARATOR, "abst-decl", { 0, 0 }), 0, 2, ej($1), ej($2) ); }
 	;
 
 direct_abstract_declarator
@@ -445,7 +569,7 @@ initializer
 	;
 
 initializer_list
-	: initializer						{ $$ = op( nd(INIT_LIST, "array", 0, { 0, 0 }), 0, 1, ej($1) ); }
+	: initializer						{ $$ = op( nd(INIT_LIST, "array", { 0, 0 }), 0, 1, ej($1) ); }
 	| initializer_list ',' initializer	{ $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
@@ -470,7 +594,7 @@ compound_statement
 	| '{' statement_list '}'                  { $$ = ($2) ? ($2) : ($1); }
 	| '{' declaration_list '}'                { $$ = ($2) ? ($2) : ($1); }
 	| '{' declaration_list statement_list '}' {
-		if (($2) && ($3)) { $$ = op( nd(GEN_BLOCK, "block", 0, { 0, 0 }), 0, 2, ej($2), ej($3) ); }
+		if (($2) && ($3)) { $$ = op( nd(GEN_BLOCK, "block", { 0, 0 }), 0, 2, ej($2), ej($3) ); }
 		else if ($2) { $$ = $2; } // only useful decl. list.
 		else if ($3) { $$ = $3; } // only useful stmt. list.
 		else { $$ = ( $1); } // empty block
@@ -479,20 +603,22 @@ compound_statement
 
 // useless iff NULL
 declaration_list
-	: declaration { $$ = ($1) ? op( nd(DECL_LIST, "declarations", 0, { 0, 0 }), 0, 1, ej($1) ) : NULL; }
+	: declaration { $$ = ($1) ? op( nd(DECL_LIST, "declarations", { 0, 0 }), 0, 1, ej($1) ) : NULL; }
 	| declaration_list declaration	{
 		if ($1 && $2) { $$ = op( $1, 0, 1, ej($2) ); } // both useful - simply append
 		else if ($1) { $$ = $1; } // new child not useful
-		else if ($2) { $$ = op( nd(DECL_LIST, "declarations", 0, { 0, 0 }), 0, 1, ej($2) ); } // first useful child
+		else if ($2) { $$ = op( nd(DECL_LIST, "declarations", { 0, 0 }), 0, 1, ej($2) ); } // first useful child
 		else { $$ = NULL; }
 	}
 	;
 
+// DONE
 statement_list
-	: statement                { $$ = op( nd(STMT_LIST, "stmt-list", 0, { 0, 0 }), 0, 1, ej($1) ); }
+	: statement                { $$ = op( nd(STMT_LIST, "stmt-list", { 0, 0 }), 0, 1, ej($1) ); }
 	| statement_list statement { $$ = op( $1, 0, 1, ej($2) ); }
 	;
 
+// DONE
 expression_statement
 	: ';'				{ $$ = $1; }
 	| expression ';'	{ $$ = $1; }
@@ -534,11 +660,11 @@ jump_statement
 	;
 
 translation_unit
-	: external_declaration	{ AstRoot = ($$ = ($1) ? op( Nd(-1, fileName, file_name_attr, 0, { 0, 0 }), 0, 1, ej($1) ) : NULL); } // Bad lincoln
+	: external_declaration	{ AstRoot = ($$ = ($1) ? op( Nd(-1, fileName, file_name_attr, { 0, 0 }), 0, 1, ej($1) ) : NULL); } // Bad lincoln
 	| translation_unit external_declaration	{
 		if ($1 && $2) { $$ = op( $1, 0, 1, ej($2) ); }
 		else if ($1) { $$ = $1; } // new child useless
-		else if ($2) { $$ = op( Nd(-1, fileName, file_name_attr, 0, { 0, 0 }), 0, 1, ej($2) ); } // Bad lincoln
+		else if ($2) { $$ = op( Nd(-1, fileName, file_name_attr, { 0, 0 }), 0, 1, ej($2) ); } // Bad lincoln
 		else { $$ = NULL; }
 		AstRoot = $$;
 	}
@@ -552,16 +678,16 @@ external_declaration
 function_definition
 	: declaration_specifiers declarator declaration_list compound_statement {
 		$$ = ($3)
-		? op( nd(FUNC_DEF, "function_definition", 0, { 0, 0 }), 0, 3, ej($2), ej($3), ej($4) )
-		: op( nd(FUNC_DEF, "function_definition", 0, { 0, 0 }), 0, 2, ej($2), ej($4) );
+		? op( nd(FUNC_DEF, "function_definition", { 0, 0 }), 0, 3, ej($2), ej($3), ej($4) )
+		: op( nd(FUNC_DEF, "function_definition", { 0, 0 }), 0, 2, ej($2), ej($4) );
 	}
-	| declaration_specifiers declarator compound_statement { $$ = op( nd(FUNC_DEF, "function_definition", 0, { 0, 0 }), 0, 2, ej($2), ej($3)); }
+	| declaration_specifiers declarator compound_statement { $$ = op( nd(FUNC_DEF, "function_definition", { 0, 0 }), 0, 2, ej($2), ej($3)); }
 	| declarator declaration_list compound_statement {
 		$$ = ($2)
-		? op( nd(FUNC_DEF, "function_definition", 0, { 0, 0 }), 0, 3, ej($1), ej($2), ej($3) )
-		: op( nd(FUNC_DEF, "function_definition", 0, { 0, 0 }), 0, 2, ej($1), ej($3) );
+		? op( nd(FUNC_DEF, "function_definition", { 0, 0 }), 0, 3, ej($1), ej($2), ej($3) )
+		: op( nd(FUNC_DEF, "function_definition", { 0, 0 }), 0, 2, ej($1), ej($3) );
 	}
-	| declarator compound_statement { $$ = op( nd(FUNC_DEF, "function_definition", 0, { 0, 0 }), 0, 2, ej($1), ej($2) ); }
+	| declarator compound_statement { $$ = op( nd(FUNC_DEF, "function_definition", { 0, 0 }), 0, 2, ej($1), ej($2) ); }
 	;
 
 %%

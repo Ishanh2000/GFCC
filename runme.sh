@@ -24,8 +24,14 @@ function build {
 }
 
 function clean {
+    if [[ $1 = "tests" ]] && [[ -d "tests" ]]; then
+        echo "Cleaning tests..."
+        rm -f tests/*.csv tests/*.dot tests/*.ps
+        return
+    fi
+
     echo "Cleaning..."
-    
+
     if [[ -d "build" ]]; then
         rm -r build
     fi
@@ -62,10 +68,13 @@ cmd="$(tr [A-Z] [a-z] <<< $1)"
 
 case $cmd in
 
-    build | clean | rebuild)
+    build | rebuild)
         $cmd
         ;;
 
+    clean)
+        $cmd $2
+        ;;
 
     pdf | ps)
         d$1 $2

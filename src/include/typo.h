@@ -30,7 +30,8 @@ class msg : public std::stringstream {
 
 int yyerror(const char *);
 
-void reportError(int, int, std::string, const char *); // very similar to yyerror
+// report error
+void repErr(loc_t &, std::string, const char *); // very similar to yyerror
 
 void dotStmt(const char*, ...);
 

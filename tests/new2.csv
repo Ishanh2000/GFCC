@@ -1,0 +1,8 @@
+# File Name:, tests/new2.c
+
+NAME , LOCATION
+
+###### Scope = Global ######,
+f , 2:10
+m , 2:19
+x , 3:30

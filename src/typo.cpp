@@ -45,18 +45,18 @@ int yyerror(const char *s) {
 	return -1; // check this later on
 }
 
-void reportError(int _line, int _column, string str, const char* _color) { // very similar to yyerror
+void repErr(loc_t &_pos, string str, const char* _color) { // very similar to yyerror
 	// cout << fflush << endl;
-	cout << _C_BOLD_ << "GFCC : " << fileName << ':' << _line << ':' << _column << ": ";
-	cout << _color << setw(_column) << str << " [approx. positions indicated.]" << _C_NONE_ << endl;
+	cout << _C_BOLD_ << "GFCC : " << fileName << ':' << _pos.line << ':' << _pos.column << ": [approx. positions indicated] ";
+	cout << _color << setw(_pos.column) << str << _C_NONE_ << endl;
 
 	// Here, print from offsets[line-1] till '\n'
-	in_file.seekg(offsets[_line - 1]);
+	in_file.seekg(offsets[_pos.line - 1]);
 	string lineToPrint; getline(in_file, lineToPrint);
 	cout << lineToPrint << endl;
 	
 	// Now, place the '^'.
-	cout << _C_BOLD_ << _color << setw(_column) << '^' << _C_NONE_ << endl;
+	cout << _C_BOLD_ << _color << setw(_pos.column) << '^' << _C_NONE_ << endl;
 }
 
 void dotNode(ofstream &f, node_t* node) {

@@ -131,7 +131,7 @@ int main (int argc , char *argv[]) {
 
 		offsets.push_back(0); // line 1 starts at offsets[0] = 0
 
-		int parse_return = yyparse(); // cout << "yyparse() = " << parse_return << endl;
+		int parse_return = yyparse(); cout << "yyparse() = " << parse_return << endl;
 		
 		if (!parse_return) {
 			// AST to DOT conversion
@@ -142,7 +142,7 @@ int main (int argc , char *argv[]) {
 
 			// Symbol table to CSV conversion
 			csv_out << "# File Name:, " << argv[_in] << endl << endl;
-			csv_out << "SYMBOL NAME , SYMBOL TYPE" << endl << endl; /// CSV HEADERS
+			csv_out << csvHeaders << endl << endl; /// CSV HEADERS
 			SymRoot->dump(csv_out);
 		}
 

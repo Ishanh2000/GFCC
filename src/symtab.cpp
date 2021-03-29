@@ -15,6 +15,7 @@
 #include <unordered_map>
 
 #include <symtab.h>
+#include <types.h>
 #include <typo.h>
 
 #ifdef DEBUG_SYM
@@ -27,25 +28,40 @@ typedef unsigned long int ull;
 
 using namespace std;
 
+string csvHeaders = "NAME , LOCATION";
 
-bool acceptType(ull type) {
+bool acceptType(Type* type) {
   // analyze type properly. eg: return 0 if "auto static int"
   // TODO
   return true;
 }
 
+// bool acceptType(type_expr* type) {
+//   // analyze type properly. eg: return 0 if "auto static int"
+//   // TODO
+//   return true;
+// }
+
 /*************************************/
 /************ CLASS "sym" ************/
 /*************************************/
 // TODO: see how to prevent instantiation if acceptType(type) == false
-sym::sym(string _name, ull _type) : name(_name), type(_type) {
+sym::sym(string _name, Type* _type, loc_t _pos) : name(_name), pos(_pos) {
   if (_name == "" || !acceptType(_type)) {
-    if (dbg) msg(ERR) << "Invalid name \"" << _name << "\" or type \"" << _type << "\" passed!";
+    if (dbg) msg(ERR) << "Invalid name \"" << _name << "\" or type \"" << _type->str() << "\" passed!";
+    return;
   }
 }
 
+// TODO: see how to prevent instantiation if acceptType(type) == false
+// sym::sym(string _name, type_expr* _type, loc_t pos) : name(_name), tp(_type), pos(_pos) {
+//   if (_name == "" || !acceptType(_type)) {
+//     if (dbg) msg(ERR) << "Invalid name \"" << _name << "\" or type passed!";
+//   }
+// }
+
 void sym::dump(ofstream &f) {
-  f << name << " , " << type << endl; // decode type later on
+  f << name << " , " << pos.line << ":" << pos.column << endl; // decode type later on
 }
 
 
@@ -95,18 +111,31 @@ bool symtab::pushSym(sym* newSym) {
   return true;
 }
 
-bool symtab::pushSym(string _name, ull _type) {
+bool symtab::pushSym(string _name, Type* _type, loc_t _pos) {
   if (_name == "" || !acceptType(_type) || srchSym(_name)) {
     if (dbg) msg(WARN) << "Could not push \"" << _name << "\" in current scope.";
     return false;
   }
-  return pushSym(new sym(_name, _type));
+  return pushSym(new sym(_name, _type, _pos));
   // sym* newSym = new sym(_name, _type);
   // if (!newSym) return false;
   // if (dbg) cout << "inserting " << _name << endl;
   // syms.push_back(newSym);
   // return true;
 }
+
+// bool symtab::pushSym(string _name, type_expr* _type) {
+//   if (_name == "" || !acceptType(_type) || srchSym(_name)) {
+//     if (dbg) msg(WARN) << "Could not push \"" << _name << "\" in current scope.";
+//     return false;
+//   }
+//   return pushSym(new sym(_name, _type));
+//   // sym* newSym = new sym(_name, _type);
+//   // if (!newSym) return false;
+//   // if (dbg) cout << "inserting " << _name << endl;
+//   // syms.push_back(newSym);
+//   // return true;
+// }
 
 void symtab::dump(ofstream &f, string scopePath) {
   f << "###### Scope = " << scopePath << name << " ######," << endl;
@@ -182,10 +211,15 @@ bool symRoot::pushSym(sym* newSym) {
   return currScope->pushSym(newSym);
 }
 
-bool symRoot::pushSym(string _name, ull _type) {
+bool symRoot::pushSym(string _name, Type* _type, loc_t _pos) {
   if (!currScope) return false;
-  return currScope->pushSym(_name, _type);
+  return currScope->pushSym(_name, _type, _pos);
 }
+
+// bool symRoot::pushSym(string _name, type_expr* _type, loc_t _pos) {
+//   if (!currScope) return false;
+//   return currScope->pushSym(_name, _type, _pos);
+// }
 
 void symRoot::dump(ofstream &f) {
   // f << "###### Scope = Global ######," << endl;
@@ -199,16 +233,16 @@ void symRoot::dump(ofstream &f) {
 /******************************************************************/
 
 void testSym() {
-  sym("main", 00);
-  sym("", 00);
+  sym("main", NULL, { 0, 0 });
+  sym("", NULL, { 0, 0 });
 }
 
 void testSymTab() {
   symtab _st;
   _st.srchSym("");
-  _st.pushSym(new sym("praskr", 123));
-  _st.pushSym("deba", 456);
-  _st.pushSym(new sym("praskr", 123));
+  _st.pushSym(new sym("praskr", NULL, { 0, 0 }));
+  _st.pushSym("deba", NULL, { 0, 0 });
+  _st.pushSym(new sym("praskr", NULL, { 0, 0 }));
   _st.srchSym("padnda");
   _st.srchSym("deba");
   _st.srchSym("priyanag");
@@ -216,19 +250,19 @@ void testSymTab() {
 
 void testSymRoot() {
   symRoot _sr;
-  _sr.pushSym("main", 0);
+  _sr.pushSym("main", NULL, { 0, 0 });
   _sr.newScope();
-  _sr.pushSym("x", 45);
+  _sr.pushSym("x", NULL, { 0, 0 });
   _sr.lookup("x");
   _sr.lookup("y");
-  _sr.pushSym("x", 45);
+  _sr.pushSym("x", NULL, { 0, 0 });
   _sr.newScope(); _sr.newScope("for_loop"); _sr.newScope();
   _sr.newScope(); _sr.newScope();
   _sr.newScope(); _sr.closeScope(); _sr.newScope(); _sr.closeScope();
   _sr.closeScope(); _sr.closeScope(); _sr.closeScope(); _sr.closeScope();
   _sr.closeScope(); _sr.closeScope(); _sr.closeScope(); _sr.closeScope();
-  _sr.pushSym("main", 0);
-  _sr.pushSym("maina", 0);
+  _sr.pushSym("main", NULL, { 0, 0 });
+  _sr.pushSym("maina", NULL, { 0, 0 });
   
   ofstream f("out.csv");
   f << "# File Name: <must_get_somehow>" << endl << endl;

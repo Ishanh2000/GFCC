@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <gfcc_meta.h>
+#include <types.h>
 
 // TAB LENGTH
 #define TAB_LEN 4 // TODO: must change later
@@ -84,7 +85,8 @@ typedef struct _node_t {
 	int numChild;
 	struct _edge_t **edges;
 	loc_t pos;
-	ull_t enc; // type encoding - could use 'tok' itself
+	class Type* type;
+	// class type_expr tp;
 
 	struct _node_t *ch(int); // getting child without much effort
 } node_t;
@@ -163,11 +165,11 @@ extern "C" int yylex();
 
 ull_t newNode();
 
-// token_type, label, attr, encoding, line, column
-node_t* Nd(int, const char*, const char*, ull_t, loc_t); // attr may be NULL
+// token_type, label, attr, line, column
+node_t* Nd(int, const char*, const char*, loc_t); // attr may be NULL
 
-// token_type, label, encoding, line, column
-node_t* nd(int, const char*, ull_t, loc_t); // attr will be passed to Nd as NULL
+// token_type, label, line, column
+node_t* nd(int, const char*, loc_t); // attr will be passed to Nd as NULL
 
 // child, label, attr
 edge_t* Ej(node_t*, const char*, const char*); // label and attr may be NULL

@@ -9,6 +9,7 @@
 
 #include <gfcc_lexer.h>
 #include <gfcc_tree.h>
+#include <types.h>
 #include <typo.h>
 #include <parser.tab.h>
 
@@ -23,7 +24,7 @@ ull_t newNode() {
 	return ++currNumNodes;
 }
 
-node_t* Nd(int tok, const char* label, const char* attr, ull_t _enc, loc_t pos) {
+node_t* Nd(int tok, const char* label, const char* attr, loc_t pos) {
 	// label is lexeme. attr may be NULL.
 
 	node_t *node = new node_t; if (!node) return NULL;
@@ -40,13 +41,13 @@ node_t* Nd(int tok, const char* label, const char* attr, ull_t _enc, loc_t pos) 
 	}
 	node->label = newlabel;
 
-	node->enc = _enc; node->pos = pos;
+	node->pos = pos; node->type = NULL; // node->tp = type_int();
 
 	return node;
 }
 
-node_t* nd(int tok, const char* label, ull_t _enc, loc_t pos) {
-	return Nd(tok, label, NULL, _enc, pos); // CAUTION: See for "strdup".
+node_t* nd(int tok, const char* label, loc_t pos) {
+	return Nd(tok, label, NULL, pos); // CAUTION: See for "strdup".
 }
 
 edge_t* Ej(node_t* node, const char* label, const char* attr) {

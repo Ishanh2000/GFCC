@@ -14,7 +14,12 @@
 #include <vector>
 #include <unordered_map>
 
+#include <gfcc_lexer.h>
+#include <types.h>
+
 typedef unsigned long int ull;
+
+extern std::string csvHeaders;
 
 // See later if this works (if time permits)
 // #define NULL_SYM (-1)
@@ -23,11 +28,14 @@ typedef unsigned long int ull;
 class sym { // SYMBOL
   public:
     std::string name;
-    ull type;
+    Type* type = NULL;
+    loc_t pos; // there can be two positions - last defined / last declared - later, if time permits
+    // type_expr* tp;
     // Derive a scheme: type must store attributes: isFunc, isStatic, isVolatile, isConst, etc. (must discover with progress)
 
     // Constructor + Destructors
-    sym(std::string, ull);
+    sym(std::string, Type*, loc_t);
+    // sym(std::string, type_expr*, loc_t);
     void dump(std::ofstream &); // dump all info into (opened writable) file
 };
 
@@ -51,7 +59,8 @@ class symtab { //  SYMBOL TABLE
     
     // push a symbol (if name and type is proper, and symbol did not pre-exist)
     bool pushSym(sym*);
-    bool pushSym(std::string, ull);
+    bool pushSym(std::string, Type*, loc_t);
+    // bool pushSym(std::string, type_expr*, loc_t);
 
     void dump(std::ofstream &, std::string); // dump all info into (opened writable) file, scopePath
 };
@@ -73,11 +82,13 @@ class symRoot {
     sym* lookup(std::string);
     sym* gLookup(std::string);
     bool pushSym(sym*);
-    bool pushSym(std::string, ull);
+    bool pushSym(std::string, Type*, loc_t);
+    // bool pushSym(std::string, type_expr*, loc_t);
     void dump(std::ofstream &); // dump all info into (opened writable) file
 };
 
-bool acceptType(ull); // check if the given (encoded) type is actually valid
+bool acceptType(Type*); // check if the given (encoded) type is actually valid
+// bool acceptType(type_expr*); // check if the given (encoded) type is actually valid
 
 extern symRoot *SymRoot;
 
