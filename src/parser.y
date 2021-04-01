@@ -65,9 +65,9 @@ using namespace std;
 primary_expression
 	: IDENTIFIER			{ $$ = $1;
 		sym* ret = SymRoot->gLookup($1->label);
-		if (ret) $$->type = new Type(); // success - start by making a copy of type. // $1->type
+		if (ret) { $$->type = new Type(); *($$->type) = *($1->type); } // success - start by making a copy of type.
 		else {
-			repErr($1->pos, "Undeclared variable found... (will set variable to \"error\" type)", _FORE_RED_);
+			repErr($1->pos, "variable undeclared in this scope (will set variable to \"error\" type)", _FORE_RED_);
 			Type* tp = $$->type = new Type(); tp->base = ERROR_B;
 		}
 	}
@@ -224,42 +224,34 @@ constant_expression
 
 // useless iff NULL
 declaration
-	: declaration_specifiers ';' { $$ = NULL; } // { $$ = $1; }
-	| declaration_specifiers init_declarator_list ';' { /* $$ = ($2) ? ($2) : NULL; */
-
-		node_t *ds = $1, *idl = $2;
-		edge_t **ch_ds = ds->edges, **ch_idl = idl->edges;
-		int len_ds = ds->numChild, len_idl = idl->numChild;
-
-		// construct type encoding from list of declaration_specifiers
-		/* ull_t enc = 0; for (int i = 0; i < len_ds; i++) { enc |= (ch_ds[i]->node->enc); msg(SUCC) << ch_ds[i]->node->label; } // simplicity for now. */
-
-		int useful = 0;
+	: declaration_specifiers ';' { $$ = NULL; }
+	| declaration_specifiers init_declarator_list ';' {
+		edge_t **ch1 = $1->edges, **ch2 = $2->edges;
+		int l1 = $1->numChild, l2 = $2->numChild, useful = 0;
 		Type *tp1 = $1->type;
 
 		// single pass over variables
-		for (int i = 0; i < len_idl; i++) { // first check that there is no var in scope
-			node_t *cnode = idl->ch(i); // "concerned node" - get directly
+		for (int i = 0; i < l2; i++) { // first check that there is no var in scope
+			node_t *cnode = $2->ch(i); // "concerned node" - get directly
+			Type *tp2 = cnode->type;
 
 			// pass down tree $2 until name & position found.
 			if (cnode->tok == '=') { cnode = cnode->ch(0); useful++; } // "init_declarator"
-
 			while (cnode->tok != IDENTIFIER) { // pass down from "direct_declarator"
 				if (cnode->tok == DECLARATOR) cnode = cnode->ch(1); // "decl" + rule 2 of "direct_decl"
 				else cnode = cnode->ch(0); // rules 3 - 7 of "direct_decl"
-			}
-			// cnode->tok == IDENTIFIER
+			} // cnode->tok == IDENTIFIER
 
 			sym* retval = SymRoot->lookup(cnode->label);
+			// TODO: handle "extern"
 			if (retval) {
-				stringstream str1; str1 << "Multiple declarations of \"" << cnode->label << "\" (will set variable to \"error\" type)"; repErr(cnode->pos, str1.str(), _FORE_RED_);
-				repErr(retval->pos, "Previous declaration given here...", _FORE_CYAN_);
+				stringstream str1; str1 << "multiple declarations of \"" << cnode->label << "\" (will set variable to \"error\" type)"; repErr(cnode->pos, str1.str(), _FORE_RED_);
+				repErr(retval->pos, "previous declaration given here...", _FORE_CYAN_);
 				retval->type->base = ERROR_B;
-			} else {
-				Type *tp2 = $2->ch(i)->type; // copy tp1 into tp2 (partially), delete tp1 (easier to copy tp1 than tp2).
-				tp2->base = tp1->base; tp2->qual = tp1->qual; tp2->sign = tp1->sign; tp2->strg = tp1->strg;
+			} else { // copy tp1 into tp2 (partially), delete tp1 (easier to copy tp1 than tp2).
+				if (tp2->base != ERROR_B) tp2->base = tp1->base;
+				tp2->qual = tp1->qual; tp2->sign = tp1->sign; tp2->strg = tp1->strg;
 				tp2->enumDef = tp1->enumDef; tp2->unionDef = tp1->unionDef; tp2->structDef = tp1->structDef;
-
 				SymRoot->pushSym(cnode->label, tp2, cnode->pos); // ASUMPTION: success - can check that too
 			}
 		}
@@ -268,8 +260,8 @@ declaration
 
 		if (useful > 0) {
 			edge_t **tmp = (edge_t **) malloc(useful * sizeof(edge_t *)); int curr = 0;
-			for (int i = 0; i < len_idl; i++) if (ch_idl[i]->node->tok == '=') tmp[curr++] = ch_idl[i];
-			free(ch_idl); idl->edges = tmp; idl->numChild = useful;
+			for (int i = 0; i < l2; i++) if (ch2[i]->node->tok == '=') tmp[curr++] = ch2[i];
+			free(ch2); $2->edges = tmp; $2->numChild = useful;
 			$$ = $2;
 		} else $$ = NULL;
 	}
@@ -590,14 +582,15 @@ labeled_statement
 
 // useless iff EMPTY_BLOCK (can't substitute NULL, since EMPTY_BLOCK is still a valid function definition)
 compound_statement
-	: '{' '}'                                 { $$ = $1; }
-	| '{' statement_list '}'                  { $$ = ($2) ? ($2) : ($1); }
-	| '{' declaration_list '}'                { $$ = ($2) ? ($2) : ($1); }
+	: '{' '}'                                 { $$ = $1; SymRoot->closeScope(); }
+	| '{' statement_list '}'                  { $$ = ($2) ? ($2) : ($1); SymRoot->closeScope(); }
+	| '{' declaration_list '}'                { $$ = ($2) ? ($2) : ($1); SymRoot->closeScope(); }
 	| '{' declaration_list statement_list '}' {
 		if (($2) && ($3)) { $$ = op( nd(GEN_BLOCK, "block", { 0, 0 }), 0, 2, ej($2), ej($3) ); }
 		else if ($2) { $$ = $2; } // only useful decl. list.
 		else if ($3) { $$ = $3; } // only useful stmt. list.
 		else { $$ = ( $1); } // empty block
+		SymRoot->closeScope();
 	}
 	;
 

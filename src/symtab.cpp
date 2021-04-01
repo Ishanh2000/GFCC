@@ -46,7 +46,7 @@ bool acceptType(Type* type) {
 /************ CLASS "sym" ************/
 /*************************************/
 // TODO: see how to prevent instantiation if acceptType(type) == false
-sym::sym(string _name, Type* _type, loc_t _pos) : name(_name), pos(_pos) {
+sym::sym(string _name, Type* _type, loc_t _pos) : name(_name), type(_type), pos(_pos) {
   if (_name == "" || !acceptType(_type)) {
     if (dbg) msg(ERR) << "Invalid name \"" << _name << "\" or type \"" << _type->str() << "\" passed!";
     return;

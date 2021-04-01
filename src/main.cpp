@@ -150,7 +150,7 @@ int main (int argc , char *argv[]) {
 		in_file.close(); dot_out.close(); csv_out.close();
 		purgeAST(AstRoot); // frees the current AST
 		delete SymRoot; // frees the current symbol tables
-		column = 1; gpos = { 1, 1 };
+		column = 1; gpos = { 1, 1 }; offsets.clear();
 		temp_out = NULL; // reset for next file
 	}
 

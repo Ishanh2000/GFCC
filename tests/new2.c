@@ -5,7 +5,10 @@ int main(){
     // int a;
     // int a,b;
     int (*f)(int, char) = func;
+    // {
+        int f = 0;
+    // }
     
 }
 
-int func(int g, char x) { ... }
+int func(int g, char x) { }

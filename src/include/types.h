@@ -81,8 +81,6 @@ class Type { public :
 	// insert new array bound
 	bool newArrBnd(); // abst decl
 	bool newArrBnd(struct _node_t*); // normal decl
-
-	// TODO: make a copy constructor - to be used in expression evaluation (starting from "primary_expression")
 };
 
 // will work on this later

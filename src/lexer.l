@@ -13,6 +13,7 @@ IS			(u|U|l|L)*
 
 #include <parser.tab.h>
 #include <gfcc_lexer.h>
+#include <symtab.h>
 #include <types.h>
 #include <typo.h>
 
@@ -134,7 +135,7 @@ L?\"(\\.|[^\\"])*\"		{ count(); node_t* n = yylval.node = nd(STRING_LITERAL, str
 "=="			{ count(); yylval.node = nd(EQ_OP, "==", gpos); return (EQ_OP); }
 "!="			{ count(); yylval.node = nd(NE_OP, "!=", gpos); return (NE_OP); }
 ";"				{ count(); yylval.node = Nd(';', "; [empty-stmt]", empty_attr, gpos); return (';'); }
-("{"|"<%")		{ count(); yylval.node = Nd(EMPTY_BLOCK, "{ }", empty_attr, gpos); return ('{'); }
+("{"|"<%")		{ count(); yylval.node = Nd(EMPTY_BLOCK, "{ }", empty_attr, gpos); if (SymRoot) SymRoot->newScope(); return ('{'); }
 ("}"|"%>")		{ count(); yylval.node = NULL; /* NULL passed since '}' is not useful to parser. BE CAREFUL WHEN PASSING NULL */ return ('}'); }
 ","				{ count(); yylval.node = nd(',', ",", gpos); return (','); } //  TESTED OK
 ":"				{ count(); yylval.node = NULL; /* NULL passed since ':' is not useful to parser. BE CAREFUL WHEN PASSING NULL */ return (':'); }
