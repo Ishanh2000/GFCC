@@ -56,15 +56,6 @@ class arrBnd {
 		bool exists(); // false iff abstract
 };
 
-// class DirDecl { public :
-// 	class DirDecl *subDecl = NULL; // 
-// 	std::vector<arrBnd*> arrBnds; // array bounds
-	
-// 	// function / function pointer
-// 	class Type* retType = NULL; // function iff !NULL
-// 	std::vector<Type*> funcParams;
-// };
-
 extern bool expectSub; // signifies whether brackets were put around a declarator earlier
 
 class Type { public :
