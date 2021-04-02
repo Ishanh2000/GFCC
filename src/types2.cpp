@@ -24,21 +24,6 @@ using namespace std;
 
 bool brackPut = false;
 
-static void replace(string &str, const string &a, const string &b) {
-    // Replace the instance of a (in str) with b. Only one instance guaranteed.
-    int _start = str.find(a);
-    if (_start >= 0) str.replace(_start, a.size(), b);
-}
-
-static void rm(string &str, const string &a) { // remove all instances of a in str.
-    int la = a.size(), _start;
-    while ((_start = str.find(a)) >= 0) str.replace(_start, la, "");
-}
-
-static void btfy(string &str) { // beautify
-    rm(str, "<p>"); rm(str, "<ab>"); rm(str, "<ad>"); rm(str, "<fb>"); rm(str, "<fp>");
-}
-
 /******************************************************/
 /****************** struct "_qual_t" ******************/
 /******************************************************/
@@ -101,52 +86,84 @@ grp_t Arr::grp() { return ARR_G; }
 
 Func::Func(class Type *_retType) : retType(_retType) { }
 
-void Func::newParam(class Type *t) {
-    params.push_back(t);
-}
+void Func::newParam(class Type *t) { params.push_back(t); }
 
 grp_t Func::grp() { return FUNC_G; }
 
-/***************************************************/
-/****************** "str" methods ******************/
-/***************************************************/
+
+/****************************************************/
+/****************** string methods ******************/
+/****************************************************/
+
+static void replace(string &str, const string &a, const string &b) {
+    // Replace the instance of a (in str) with b. Only one instance guaranteed.
+    int _start = str.find(a);
+    if (_start >= 0) str.replace(_start, a.size(), b);
+}
+
+static void rm(string &str, const string &a) { // remove all instances of a in str.
+    int la = a.size(), _start;
+    while ((_start = str.find(a)) >= 0) str.replace(_start, la, "");
+}
+
+string str(class Type *t) { // beautify
+    if (!t) return "";
+    string str = t->_str();
+    
+    rm(str, "<p>"); rm(str, "<ab>"); rm(str, "<ad>");
+    rm(str, "<fb>"); rm(str, "<fp>");
+    rm(str, "  ");
+    
+    // undesired : "( ", " )", add more ...
+    int _start;
+    while ((_start = str.find("( ")) >= 0) str.replace(_start, 2, "(");
+    while ((_start = str.find(" )")) >= 0) str.replace(_start, 2, ")");
+    while ((_start = str.find(" ,")) >= 0) str.replace(_start, 2, ",");
+    
+    // NOTE: Assured that all double spaces ("  ") removed.
+    if (str[0] == ' ') str.erase(0, 1);
+    if (str.back() == ' ') str.pop_back();
+    
+    return str;
+}
 
 string Base::_str() {
-    string s;
-    if (isConst) s += "const";
-    if (isVoltl) s += "volatile";
-    s += " ";
-    switch (strg) {
-        case AUTO_S : s += "auto"; break;
-        case EXTERN_S : s += "extern"; break;
-        case REGISTER_S : s += "register"; break;
-        case STATIC_S : s += "static"; break;
-        case TYPEDEF_S : s += "typedef"; break;
-    }
-    s += " ";
-    switch (sign) {
-        case SIGNED_X : s += "signed"; break;
-        case UNSIGNED_X : s += "unsigned"; break;
-    }
-    s += " ";
-    switch (base) {
-        case ERROR_B : s += "error_type"; break;
-        case VOID_B : s += "void"; break;
-        case CHAR_B : s += "char"; break;
-        case SHORT_B : s += "short int"; break;
-        case INT_B : s += "int"; break;
-        case FLOAT_B : s += "float"; break;
-        case LONG_B : s += "long int"; break;
-        case LONG_LONG_B : s += "long long int"; break;
-        case DOUBLE_B : s += "double"; break;
-        case LONG_DOUBLE_B : s += "long double"; break;
-        // case ENUM_B : s += "enum"; break;
-        // case STRUCT_B : s += "struct"; break;
-        // case UNION_B : s += "union"; break;
-        case ELLIPSIS_B : s += "..."; break;
-    }
-    return s + " <p><ab><ad><fb><fp>"; // return according to expectations of others
+    vector<string> sv;
+    if (isConst) sv.push_back("const");
+    if (isVoltl) sv.push_back("volatile");
     
+    switch (strg) {
+        case AUTO_S : sv.push_back("auto"); break;
+        case EXTERN_S : sv.push_back("extern"); break;
+        case REGISTER_S : sv.push_back("register"); break;
+        case STATIC_S : sv.push_back("static"); break;
+        case TYPEDEF_S : sv.push_back("typedef"); break;
+    }
+    
+    switch (sign) {
+        case SIGNED_X : sv.push_back("signed"); break;
+        case UNSIGNED_X : sv.push_back("unsigned"); break;
+    }
+    
+    switch (base) {
+        case ERROR_B : sv.push_back("error_type"); break;
+        case VOID_B : sv.push_back("void"); break;
+        case CHAR_B : sv.push_back("char"); break;
+        case SHORT_B : sv.push_back("short int"); break;
+        case INT_B : sv.push_back("int"); break;
+        case FLOAT_B : sv.push_back("float"); break;
+        case LONG_B : sv.push_back("long int"); break;
+        case LONG_LONG_B : sv.push_back("long long int"); break;
+        case DOUBLE_B : sv.push_back("double"); break;
+        case LONG_DOUBLE_B : sv.push_back("long double"); break;
+        // case ENUM_B : sv.push_back("enum"); break;
+        // case STRUCT_B : sv.push_back("struct"); break;
+        // case UNION_B : sv.push_back("union"); break;
+        case ELLIPSIS_B : sv.push_back("..."); break;
+    }
+    string s; int l = sv.size();
+    for (int i = 0; i < l; i++) s = s + sv[i] + " ";
+    return s + "<p><ab><ad><fb><fp>"; // return according to expectations of others
 }
 
 string Ptr::_str() {
@@ -157,8 +174,7 @@ string Ptr::_str() {
         p += "*";
         if (ptrs[i].isConst) p += " const ";
         if (ptrs[i].isVoltl) p += " volatile ";
-    }
-    // p is the string to replace <ptr> in incoming string.
+    } // p is the string to replace <p> in incoming string.
 
     p += "<ab><ad><fb><fp>";
     if (pt->grp() == ARR_G) { p.insert(0, "("); p.push_back(')'); }
@@ -211,7 +227,6 @@ std::string Func::_str() {
 #define MAX_TESTNAME_WIDTH 12
 
 void testOut(string testName, string testResult) {
-    btfy(testResult);
     cout << _C_BOLD_ << _FORE_GREEN_ << setw(MAX_TESTNAME_WIDTH) << testName << " :";
     cout << _C_NONE_ << " \"" << testResult << "\"" << endl;
 }
@@ -221,7 +236,7 @@ void testBase() { // const unsigned int volatile static;
     b->base = INT_B; b->sign = UNSIGNED_X; b->strg = STATIC_S; b->isConst = true; b->isVoltl = true;
     
     Type* t = b;
-    if (t->grp() == BASE_G) testOut("base class", t->_str());
+    if (t->grp() == BASE_G) testOut("base class", str(t));
 }
 
 void testPtr() { // const int ** const *volatile;
@@ -229,7 +244,7 @@ void testPtr() { // const int ** const *volatile;
     Ptr* p = new Ptr(b); p->newPtr(true, false); p->newPtr(false, true);
 
     Type* t = p;
-    if (t->grp() == PTR_G) testOut("ptr class", t->_str());
+    if (t->grp() == PTR_G) testOut("ptr class", str(t));
 }
 
 void testArr() { // const double [][][];
@@ -237,7 +252,7 @@ void testArr() { // const double [][][];
     Arr *a = new Arr(b); a->newDim(NULL); a->newDim();
 
     Type *t = a;
-    if (t->grp() == ARR_G) testOut("arr class", t->_str());
+    if (t->grp() == ARR_G) testOut("arr class", str(t));
 }
 
 void testFunc() { // void ()(unsigned char, ...);
@@ -247,7 +262,7 @@ void testFunc() { // void ()(unsigned char, ...);
     Func *f = new Func(b); f->newParam(b1); f->newParam(b2);
     
     Type *t = f;
-    if (t->grp() == FUNC_G) testOut("func class", t->_str());
+    if (t->grp() == FUNC_G) testOut("func class", str(t));
 }
 
 void testComplex_1() { // int *const (* volatile f)(); // surprisingly, a "const" (pointer or value) can be returned.
@@ -257,7 +272,7 @@ void testComplex_1() { // int *const (* volatile f)(); // surprisingly, a "const
     Ptr *p = new Ptr(f, false, true);
 
     Type *t = p;
-    if (t->grp() == PTR_G) testOut("complex_1", t->_str());
+    if (t->grp() == PTR_G) testOut("complex_1", str(t));
 }
 
 void testComplex_2() { // float (*f)[4][5][6];
@@ -266,7 +281,7 @@ void testComplex_2() { // float (*f)[4][5][6];
     Ptr *p = new Ptr(a);
 
     Type *t = p;
-    if (t->grp() == PTR_G) testOut("complex_2", t->_str());
+    if (t->grp() == PTR_G) testOut("complex_2", str(t));
 }
 
 void testComplex_3() { // int *** (*(*)(char))[]
@@ -278,12 +293,7 @@ void testComplex_3() { // int *** (*(*)(char))[]
     Ptr *pf = new Ptr(f); // int *** (*(*)(char))[]
 
     Type *t = pf;
-    if (t->grp() == PTR_G) {
-        string _s = t->_str();
-        rm(_s, "<p>"); rm(_s, "<ab>"); rm(_s, "<ad>"); rm(_s, "<fb>"); rm(_s, "<fp>");
-        cout << _s.find("<ab>") << endl;
-        cout << _s << endl;
-    }
+    if (t->grp() == PTR_G) testOut("complex_3", str(t));
 }
 
 void testComplex_4() { // int *(*(*(*(*(*(*[])[])[])[])[])[])[]
@@ -304,41 +314,31 @@ void testComplex_4() { // int *(*(*(*(*(*(*[])[])[])[])[])[])[]
     Arr *a7 = new Arr(p7); // int *(*(*(*(*(*(*[])[])[])[])[])[])[]
 
     Type *t = a7;
-    if (t->grp() == ARR_G) {
-        string _s = t->_str();
-        cout << _s << endl;
-    }
+    if (t->grp() == ARR_G) testOut("complex_4", str(t));
 }
 
 void testComplex_5() { // int *** (*(*)(char))()
-    cout << "Here" << endl;
     Base *b = new Base(INT_B); // int
-    testOut("1", b->_str());
     Ptr *p = new Ptr(b); p->newPtr(); p->newPtr(); // int ***
-    testOut("2", p->_str());
     Func *f = new Func(p); // int*** ()()
-    testOut("3", f->_str());
     Ptr *pf = new Ptr(f); // int *** (*) ()
-    testOut("4", pf->_str());
     Func *ff = new Func(pf); ff->newParam(new Base(CHAR_B)); // int *** (*()(char)) ()
-    testOut("5", ff->_str());
     Ptr *pff = new Ptr(ff); // int *** (*(*)(char))()
-    testOut("6", pff->_str());
 
-    // Type *t = pff;
-    // if (t->grp() == PTR_G) testOut("complex_5", t->_str());    
+    Type *t = pff;
+    if (t->grp() == PTR_G) testOut("complex_5", str(t));    
 }
 
 int main(){
-	// testBase();
-	// testPtr();
-	// testArr();
-	// testFunc();
+	testBase();
+	testPtr();
+	testArr();
+	testFunc();
 
-    // testComplex_1();
-    // testComplex_2();
-    // testComplex_3();
-    // testComplex_4();
+    testComplex_1();
+    testComplex_2();
+    testComplex_3();
+    testComplex_4();
     testComplex_5();
 	
 	return 0;	
