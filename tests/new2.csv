@@ -3,8 +3,4 @@
 NAME , LOCATION
 
 ###### Scope = Global ######,
-###### Scope = Global >> _unnamed_0 ######,
-f , 2:10
-m , 2:19
-x , 3:30
-###### Scope = Global >> _unnamed_1 ######,
+f , 15:7

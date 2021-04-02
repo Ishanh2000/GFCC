@@ -21,6 +21,8 @@ const bool dbg = false;
 
 using namespace std;
 
+bool expectSub = false;
+
 _qual_t::_qual_t () { }
 
 _qual_t::_qual_t (bool _c, bool _v) { isConst = _c; isVolatile = _v; }
@@ -53,6 +55,14 @@ bool Type::isArr() {
 	return (arrBnds.size() > 0);
 }
 
+bool Type::isPtr() {
+	return (ptrs.size() > 0);
+}
+
+bool Type::isFunc() {
+	return (funcParams.size() > 0);
+}
+
 bool Type::newArrBnd(node_t* _evalNode) {
 	arrBnd* ab = new arrBnd(_evalNode);
 	if (!ab) return false;
@@ -62,6 +72,10 @@ bool Type::newArrBnd(node_t* _evalNode) {
 
 bool Type::newArrBnd() {
 	return newArrBnd(NULL);
+}
+
+void Type::newFuncParam(Type* t) {
+	funcParams.push_back(t);
 }
 
 /*******************************************************/

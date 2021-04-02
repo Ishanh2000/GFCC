@@ -18,26 +18,26 @@ enum base_type_t {
 	NONE_B, ERROR_B, // primitive useless types
 	VOID_B, CHAR_B, SHORT_B, INT_B, FLOAT_B, LONG_B, LONG_LONG_B, DOUBLE_B, LONG_DOUBLE_B, // primitive useful types
 	ENUM_B, STRUCT_B, UNION_B, // compound types // TODO: think about ENUM_B, UNION_B, STRUCT_B
+	ELLIPSIS_B,
 };
-	
 
+// sign types	
 enum sign_t { NONE_X, SIGNED_X, UNSIGNED_X };
-
-// Tolerance to other types specifiers
-// VOID_B : NONE,
-// CHAR_B : NONE
-// SHORT_B: INT -> SHORT
-// INT_B: SHORT -> SHORT, LONG -> LONG, LONG_LONG -> LONG_LONG
-// FLOAT_B : NONE
-// LONG_B : INT -> LONG, LONG -> LONG_LONG, DOUBLE -> LONG_DOUBLE
-// LONG_LONG_B: INT -> LONG_LONG
-// DOUBLE_B : LONG -> LONG_DOUBLE
-// LONG_DOUBLE_B: NONE
-
-
 
 // storage class specifiers
 enum strg_t { NONE_S, AUTO_S, EXTERN_S, REGISTER_S, STATIC_S, TYPEDEF_S };
+
+/* Tolerance to other types specifiers
+ * VOID : NONE
+ * CHAR : NONE
+ * SHORT: INT -> SHORT
+ * INT: SHORT -> SHORT, LONG -> LONG, LONG_LONG -> LONG_LONG
+ * FLOAT : NONE
+ * LONG : INT -> LONG, LONG -> LONG_LONG, DOUBLE -> LONG_DOUBLE
+ * LONG_LONG: INT -> LONG_LONG
+ * DOUBLE : LONG -> LONG_DOUBLE
+ * LONG_DOUBLE: NONE
+ */
 
 typedef struct _qual_t { // type for "type qualifiers" - not humongous (2 bytes only)
 	bool isConst = false; // default: variables NOT constant
@@ -56,31 +56,44 @@ class arrBnd {
 		bool exists(); // false iff abstract
 };
 
+// class DirDecl { public :
+// 	class DirDecl *subDecl = NULL; // 
+// 	std::vector<arrBnd*> arrBnds; // array bounds
+	
+// 	// function / function pointer
+// 	class Type* retType = NULL; // function iff !NULL
+// 	std::vector<Type*> funcParams;
+// };
+
+extern bool expectSub; // signifies whether brackets were put around a declarator earlier
+
 class Type { public :
 	base_type_t base = NONE_B; // default: set to INT_T upon checking "declaration"
 	sign_t sign = NONE_X; // default: set to SIGNED_S upon checking "declaration". To be ignored if incompatible type
 	qual_t qual; // defualt: !constant, !volatile
 	strg_t strg = NONE_S; // default: set to AUTO_S upon checking "declaration";
 
-	// manage "pointers" (const | volatile) - same order as given in input file
-	std::vector<qual_t> ptrs; // Could use separate arrays for "const" and "volatile" too.
-
 	void* enumDef; // will decide type later
 	void* unionDef; // will decide type later
 	void* structDef; // will decide type later
 
+	std::vector<qual_t> ptrs; // pointers (const | volatile) - same order as in input file
+
 	std::vector<arrBnd*> arrBnds; // array bounds
 	
-	// function / function pointer
-	bool isFunc = false;
-	std::vector<Type*> funcParams; // size() > 0 iff [type related to a function and non-void arguments]
+	std::vector<Type*> funcParams; // (function related) - size() > 0 iff related to a function
 	
+	class Type *sub = NULL;
+
 	std::string str(); // converts class info (type info) to a string - errors/warnings, etc.
 	bool isArr(); // tells if type is an array.
+	bool isPtr(); // tells if there is a pointer attached.
+	bool isFunc(); // tells if type is related to a function.
 
 	// insert new array bound
 	bool newArrBnd(); // abst decl
 	bool newArrBnd(struct _node_t*); // normal decl
+	void newFuncParam(Type*);
 };
 
 // will work on this later

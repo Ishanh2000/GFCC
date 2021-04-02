@@ -267,7 +267,6 @@ declaration
 	}
 	;
 
-// DONE - TEST IT
 // TODO: handle storage class "typedef"
 // useless iff NULL
 // A list of three kinds of objects. Also, new child appends to the left.
@@ -324,16 +323,17 @@ declaration_specifiers
 		}
 	}
 	| type_qualifier                                 { $$ = op( nd(DECL_SPEC_LIST, "decl-specs", { 0, 0 }), 0, 1, ej($1) );
-		Type* tp = $$->type = new Type();
-		switch ($1->tok) { case CONST : tp->qual.isConst = true; break; case VOLATILE: tp->qual.isVolatile = true; }
+		Type* t = $$->type = new Type();
+		switch ($1->tok) { case CONST : t->qual.isConst = true; break; case VOLATILE : t->qual.isVolatile = true; }
 	}
-	| type_qualifier declaration_specifiers          { $$ = op( $2, 1, 0, ej($1) ); Type* tp = $$->type;
-		if (tp->qual.isConst && ($1->tok == CONST)) { repErr($1->pos, "const specified twice (will set variable to \"error\" type)", _FORE_RED_); tp->base = ERROR_B; }
-		if (tp->qual.isVolatile && ($1->tok == VOLATILE)) { repErr($1->pos, "volatile specified twice (will set variable to \"error\" type)", _FORE_RED_); tp->base = ERROR_B; }
+	| type_qualifier declaration_specifiers          { $$ = op( $2, 1, 0, ej($1) ); Type* t = $$->type;
+		switch ($1->tok) {
+			case CONST : if (t->qual.isConst) { repErr($2->pos, "const specified twice", _FORE_RED_); t->base = ERROR_B; } else t->qual.isConst = true; break;
+			case VOLATILE : if (t->qual.isVolatile) { repErr($2->pos, "volatile specified twice", _FORE_RED_); t->base = ERROR_B; } else t->qual.isVolatile = true;
+		}
 	}
 	;
 
-// DONE
 // useless iff NULL
 init_declarator_list
 	: init_declarator { $$ = op( nd(INIT_DECL_LIST, "var-list", { 0, 0 }), 0, 1, ej($1) ); }
@@ -433,7 +433,6 @@ type_qualifier
 	| VOLATILE	{ $$ = $1; }
 	;
 
-// DONE - TEST IT
 declarator
 	: pointer direct_declarator	{ $$ = op( nd(DECLARATOR, "var", { 0, 0 }), 0, 2, ej($1), ej($2) ); // copy pointers to direct_declarator
 		Type* tp = $$->type = $2->type;
@@ -443,76 +442,119 @@ declarator
 	| direct_declarator			{ $$ = $1; }
 	;
 
-// TODO: Complete rules 5, 6, 7. Check if rule 2 relates to function pointers.
+// Check existence of "IDENTIFIER" later
+// check whether all bounds given if not in parameter list - declaration level
+// do not lookup variable if in parameter list
 direct_declarator
 	: IDENTIFIER									{ $$ = $1; $1->type = new Type(); }
-	| '(' declarator ')'							{ $$ = $2; }
-	| direct_declarator '[' constant_expression ']'	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = $1->type;
-		Type* type = $$->type;
-		if (type->isFunc) {
-			repErr($1->pos, "function returns an array (will set variable to \"error\" type)", _FORE_RED_); // coordi
-			type->base = ERROR_B;
-		} else $$->type->newArrBnd($3);
+	| '(' declarator ')'							{ $$ = $2; expectSub = true; }
+	| direct_declarator '[' constant_expression ']'	{ $$ = op( $2, 0, 2, ej($1), ej($3) );
+		Type *t, *t1 = $1->type; bool _good = false;
+		if (expectSub && t1->isPtr()) { t = $$->type = new Type(); t->sub = t1; _good = true; }
+		else if (t1->isFunc()) repErr($1->pos, "function returns an array (will set variable to \"error\" type)", _FORE_RED_);
+		else { t = $$->type = t1; _good = true; }
+		expectSub = false;
+		
+		// check $3's type -> must be acceptable as array bound -> set _good accordingly
+
+		if (_good) t->newArrBnd($3);
+		else { t = $$->type = t1; t->base = ERROR_B; }
 	}
-	| direct_declarator '[' ']'						{ $$ = op( $2, 0, 1, ej($1) ); $$->type = $1->type;
-		Type* type = $$->type;
-		if (type->isFunc) {
-			repErr($1->pos, "function returns an array (will set variable to \"error\" type)", _FORE_RED_); // coordi
-			type->base = ERROR_B;
-		} else if (type->isArr()) {
-			repErr($1->pos, "incomplete array bound: all bounds except first must be specified (will se variable to \"error\" type", _FORE_RED_); // coordi
-			type->base = ERROR_B;
-		} else type->newArrBnd();
+	| direct_declarator '[' ']'						{ $$ = op( $2, 0, 1, ej($1) );
+		Type *t, *t1 = $1->type; bool _good = false;
+		if (expectSub && t1->isPtr()) { t = $$->type = new Type(); t->sub = t1; _good = true; }
+		else if (t1->isFunc()) repErr($1->pos, "function returns an array (will set variable to \"error\" type)", _FORE_RED_);
+		else if (t1->isArr()) repErr($1->pos, "incomplete array bound: all bounds except first must be specified (will set variable to \"error\" type)", _FORE_RED_); // unspecified non-first bound
+		else { t = $$->type = t1; _good = true; }
+		expectSub = false;
+
+		if (_good) t->newArrBnd();
+		else { t = $$->type = t1; t->base = ERROR_B; }
 	}
-	| direct_declarator '(' parameter_type_list ')'	{ $$ = $1; // TODO: REFINE CODE
-		$$->type->isFunc = true;
-		/* $$ = op( nd(FUNC_PTR, "() [func-ptr]", { 0, 0 }), 0, 2, ej($1), ej($3) ); */
+	| direct_declarator '(' parameter_type_list ')'	{ $$ = $1; // $$ = op( nd(FUNC_PTR, "() [func-ptr]", { 0, 0 }), 0, 2, ej($1), ej($3) );
+		Type *t, *t1 = $1->type; bool _good = false;
+		if (expectSub && t1->isPtr()) { t = $$->type = new Type(); t->sub = t1; _good = true; }
+		else if (t1->isFunc()) repErr($1->pos, "function returns a function (will set variable to \"error\" type)", _FORE_RED_); // must not be a function
+		else if (t1->isArr()) repErr($1->pos, "array of functions (will set variable to \"error\" type)", _FORE_RED_);
+		else { t = $$->type = t1; _good = true; }
+		expectSub = false;
+
+		if (_good) {
+			int l = $3->numChild; // check (1) there must be no pure "void" type, (2) ellipsis occurence
+			for (int i = 0; i < l; i++) { node_t* ch = $3->ch(i); Type* ti = ch->type; // check whether "ti" is a good type
+				t->newFuncParam(ti);
+			}
+		} else { t = $$->type = t1; t->base = ERROR_B; }
 	}
-	| direct_declarator '(' identifier_list ')'	{ $$ = $1;  // TODO: REFINE CODE
-		$$->type->isFunc = true;
-		/* $$ = op( nd(FUNC_PTR, "() [func-ptr]", { 0, 0 }), 0, 2, ej($1), ej($3) ); */
+	| direct_declarator '(' identifier_list ')'	{ $$ = $1; // $$ = op( nd(FUNC_PTR, "() [func-ptr]", { 0, 0 }), 0, 2, ej($1), ej($3) );
+		repErr($3->pos, "warning: parameter names without any declaration specifiers", _FORE_MAGENTA_);
+		Type *t, *t1 = $1->type; bool _good = false;
+		if (expectSub && t1->isPtr()) { t = $$->type = new Type(); t->sub = t1; _good = true; }
+		else if (t1->isFunc()) repErr($1->pos, "function returns a function (will set variable to \"error\" type)", _FORE_RED_); // must not be a function
+		else if (t1->isArr())  repErr($1->pos, "array of functions (will set variable to \"error\" type)", _FORE_RED_); // unspecified non-first bound
+		else { t = $$->type = t1; _good = true; }
+		expectSub = false;
+
+		if (_good) {
+			int l = $3->numChild; // check (1) there must be no pure "void" type, (2) ellipsis occurence
+			for (int i = 0; i < l; i++) {
+				node_t* ch = $3->ch(i); sym* ret = SymRoot->gLookup(ch->label);
+				if (ret) t->newFuncParam(ret->type); // assume this was a good type (since it was already inserted)
+				else {
+					t->base = ERROR_B; repErr(ch->pos, "variable undeclared in this scope (will set variable to \"error\" type)", _FORE_RED_); // coordi
+				}
+			}
+		} else { t = $$->type = t1; t->base = ERROR_B; }
 	}
-	| direct_declarator '(' ')' { $$ = op( $2, 0, 1, ej($1) ); $$->type = $1->type; // TODO: REFINE CODE
-		$$->type->isFunc = true;
-		$$->tok = FUNC_PTR;	$$->label = "() [func-ptr]";
+	| direct_declarator '(' ')' { $$ = op( $2, 0, 1, ej($1) ); $$->type = $1->type; $$->tok = FUNC_PTR;	$$->label = "() [func-ptr]";
+		Type *t, *t1 = $1->type; bool _good = false;
+		if (expectSub && t1->isPtr()) { t = $$->type = new Type(); t->sub = t1; _good = true; }
+		else if (t1->isFunc()) repErr($1->pos, "function returns a function (will set variable to \"error\" type)", _FORE_RED_); // must not be a function
+		else if (t1->isArr()) repErr($1->pos, "array of functions (will set variable to \"error\" type)", _FORE_RED_);
+		else { t = $$->type = t1; _good = true; }
+		expectSub = false;
+
+		if (_good) {
+			Type* tmp = new Type(); tmp->base = VOID_B; tmp->strg = AUTO_S; t->newFuncParam(tmp); // void argument
+		} else { t = $$->type = t1; t->base = ERROR_B; }
 	}
 	;
 
-// TESTED OK
-// USE PRASKR METHOD (p_p_...base) - MORE FAVOURABLE
 pointer
-	: '*'								{ ($1)->tok = DEREF; $$ = $1; $$->type = new Type(); $$->type->ptrs.push_back(qual_t()); }
-	| '*' type_qualifier_list			{ ($1)->tok = DEREF; $$ = $1; /* $$ = op( $1, 0, 1, ej($2) ); */
-		bool isConst = false, isVoltl = false; bool err = false;
-		for (int i = 0; i < $2->numChild; i++) {
-			int tok = $2->ch(i)->tok;
-			if (tok == CONST) if (!isConst) isConst = true; else { repErr($1->pos, "const specified twice (will set variable to \"error\" type)", _FORE_RED_); err = true; }
-			if (tok == VOLATILE) if (!isVoltl) isVoltl = true; else { repErr($1->pos, "volatile specified twice (will set variable to \"error\" type)", _FORE_RED_); err = true; }
-		}
-		Type* tp = $$->type = new Type(); if (err) tp->base = ERROR_B; else tp->ptrs.push_back(qual_t(isConst, isVoltl));
+	: '*'								{ ($1)->tok = DEREF; $$ = $1;
+		Type *t = $$->type = new Type(); t->ptrs.push_back(qual_t());
 	}
-	| '*' pointer						{ ($1)->tok = DEREF; $$ = op( $1, 0, 1, ej($2) ); Type* tp = $$->type = $2->type; tp->ptrs.insert(tp->ptrs.begin(), qual_t());	}
-	| '*' type_qualifier_list pointer	{ ($1)->tok = DEREF; $$ = op( $1, 0, 1, ej($3) ); /* $$ = op( $1, 0, 2, ej($2), ej($3) ); */
-		Type* tp = $$->type = $3->type;
-		bool isConst = false, isVoltl = false; bool err = false;
-		for (int i = 0; i < $2->numChild; i++) {
-			int tok = $2->ch(i)->tok;
-			if (tok == CONST) if (!isConst) isConst = true; else { repErr($1->pos, "const specified twice (will set variable to \"error\" type)", _FORE_RED_); err = true; }
-			if (tok == VOLATILE) if (!isVoltl) isVoltl = true; else { repErr($1->pos, "volatile specified twice (will set variable to \"error\" type)", _FORE_RED_); err = true; }
-		}
-		if (err) tp->base = ERROR_B; else tp->ptrs.insert(tp->ptrs.begin(), qual_t(isConst, isVoltl));	
+	| '*' type_qualifier_list			{ ($1)->tok = DEREF; $$ = $1; // $$ = op( $1, 0, 1, ej($2) );
+		Type *t = $$->type = $2->type; t->ptrs.push_back(t->qual);
+		t->qual.isConst = t->qual.isVolatile = false; // clean the slate
+	}
+	| '*' pointer { ($1)->tok = DEREF; $$ = op( $1, 0, 1, ej($2) );
+		Type *t = $$->type = $2->type; t->ptrs.insert(t->ptrs.begin(), qual_t());
+	}
+	| '*' type_qualifier_list pointer { ($1)->tok = DEREF; $$ = op( $1, 0, 1, ej($3) ); // $$ = op( $1, 0, 2, ej($2), ej($3) );
+		Type *t2 = $2->type, *t3 = $3->type, *t = $$->type = t3;
+		t->ptrs.insert(t->ptrs.begin(), t2->qual);
+		if (t2->base == ERROR_B || t3->base == ERROR_B) t->base = ERROR_B;
+		delete t2;
 	}
 	;
 
 type_qualifier_list
 	: type_qualifier						{ $$ = op( nd(TYPE_QUAL_LIST, "type-quals", { 0, 0 }), 0, 1, ej($1) );
+		Type* t = $$->type = new Type();
+		switch ($1->tok) { case CONST : t->qual.isConst = true; break; case VOLATILE : t->qual.isVolatile = true; }
 	}
-	| type_qualifier_list type_qualifier	{ $$ = op( $1, 0, 1, ej($2) );  }
+	| type_qualifier_list type_qualifier	{ $$ = op( $1, 0, 1, ej($2) ); Type* t = $$->type;
+		switch ($2->tok) {
+			case CONST : if (t->qual.isConst) { repErr($2->pos, "const specified twice", _FORE_RED_); t->base = ERROR_B; } else t->qual.isConst = true; break;
+			case VOLATILE : if (t->qual.isVolatile) { repErr($2->pos, "volatile specified twice", _FORE_RED_); t->base = ERROR_B; } else t->qual.isVolatile = true;
+		}
+	}
 	;
 
 parameter_type_list
 	: parameter_list				{ $$ = $1; }
-	| parameter_list ',' ELLIPSIS	{ $$ = op( $1, 0, 1, ej($3) ); }
+	| parameter_list ',' ELLIPSIS	{ $$ = op( $1, 0, 1, ej($3) ); Type* t3 = $3->type = new Type(); t3->base = ELLIPSIS_B; }
 	;
 
 parameter_list
@@ -521,8 +563,33 @@ parameter_list
 	;
 
 parameter_declaration
-	: declaration_specifiers declarator            { $$ = op( nd(PARAM_DECL, "param-decl", { 0, 0 }), 0, 2, ej($1), ej($2) ); }
-	| declaration_specifiers abstract_declarator   { $$ = op( nd(PARAM_DECL, "param-decl", { 0, 0 }), 0, 2, ej($1), ej($2) ); }
+	: declaration_specifiers declarator            { $$ = op( nd(PARAM_DECL, "param-decl", { 0, 0 }), 0, 2, ej($1), ej($2) );
+		Type *t1 = $1->type, *t2 = $2->type, *t = $$->type = t2; // delete t1
+		// copy t1 into t2 (partially)
+		if (t1->strg != NONE_S) { // t1 must not carry any storage class
+			t->base = ERROR_B; repErr($1->pos, "storage class specified for parameter", _FORE_RED_);
+		} else if (checkVoid(t1, t2)) { // how to check void ?  t1->base == VOID_B and t1->
+			t->base = ERROR_B; repErr($1->pos, "variable declared void", _FORE_RED_);
+		} else {
+			t->base = t1->base; t->qual = t1->qual; t->sign = t1->sign; t->strg = t1->strg;
+			t->enumDef = t1->enumDef; t->unionDef = t1->unionDef; t->structDef = t1->structDef;
+		}
+		if (t1->base == ERROR_B || t2->base == ERROR_B) t->base = ERROR_B;
+		delete t1;
+	}
+	| declaration_specifiers abstract_declarator   { $$ = op( nd(PARAM_DECL, "param-decl", { 0, 0 }), 0, 2, ej($1), ej($2) );
+		Type *t1 = $1->type, *t2 = $2->type, *t = $$->type = t2; // delete t1
+		if (t1->base == ERROR_B || t2->base == ERROR_B) t->base = ERROR_B;
+		else { // copy t1 into t2 (partially)
+			if (t1->strg != NONE_S) { // t1 must not carry any storage class
+				t->base = ERROR_B; repErr($1->pos, "storage class specified for parameter", _FORE_RED_);
+			} else {
+				t->base = t1->base; t->qual = t1->qual; t->sign = t1->sign; t->strg = t1->strg;
+				t->enumDef = t1->enumDef; t->unionDef = t1->unionDef; t->structDef = t1->structDef;
+			}
+		}
+		delete t1;
+	}
 	| declaration_specifiers                       { $$ = $1; }
 	;
 
@@ -605,13 +672,11 @@ declaration_list
 	}
 	;
 
-// DONE
 statement_list
 	: statement                { $$ = op( nd(STMT_LIST, "stmt-list", { 0, 0 }), 0, 1, ej($1) ); }
 	| statement_list statement { $$ = op( $1, 0, 1, ej($2) ); }
 	;
 
-// DONE
 expression_statement
 	: ';'				{ $$ = $1; }
 	| expression ';'	{ $$ = $1; }
