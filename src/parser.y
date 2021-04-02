@@ -445,6 +445,7 @@ declarator
 // Check existence of "IDENTIFIER" later
 // check whether all bounds given if not in parameter list - declaration level
 // do not lookup variable if in parameter list
+// START HERE
 direct_declarator
 	: IDENTIFIER									{ $$ = $1; $1->type = new Type(); }
 	| '(' declarator ')'							{ $$ = $2; expectSub = true; }
@@ -609,6 +610,7 @@ abstract_declarator
 	| pointer direct_abstract_declarator   { $$ = op( nd(ABSTRACT_DECLARATOR, "abst-decl", { 0, 0 }), 0, 2, ej($1), ej($2) ); }
 	;
 
+// START HERE
 direct_abstract_declarator
 	: '(' abstract_declarator ')'                                { $$ = $2; }
 	| '[' ']'                                                    { $$ = $1; }

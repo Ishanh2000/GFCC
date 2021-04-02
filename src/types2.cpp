@@ -5,7 +5,8 @@
    members, methods, etc.
  * Search "TODO" for things to do.
  * Search "ASSUMPTIONS" for assumptions.
- * Execution using: g++ -std=c++11 [-DTEST_TYPES] types.cpp -Iinclude && ./a.out
+ * Execution using: g++ -std=c++11 -Iinclude [-DTEST_TYPES_2] [-DDEBUG_TYPES_2] types2.cpp && ./a.out
+ * String related stuff after class methods, before test suites.
 ************************************************************************/
 
 #include <iostream>
@@ -14,7 +15,8 @@
 #include <gfcc_colors.h>
 #include <types2.h>
 
-#ifdef DEBUG_TYPES
+// debugging does not work as of yet - actually not required
+#ifdef DEBUG_TYPES_2
 const static bool dbg = true;
 #else
 const static bool dbg = false;
@@ -222,7 +224,7 @@ std::string Func::_str() {
 /****************** TEST SUITE ******************/
 /************************************************/
 
-#ifdef TEST_TYPES
+#ifdef TEST_TYPES_2
 
 #define MAX_TESTNAME_WIDTH 12
 

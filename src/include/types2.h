@@ -44,11 +44,6 @@ typedef struct _qual_t { // type qualifiers
 } qual_t;
 
 class Type { public : // late binding : use "virtual"
-    base_t base = NONE_B;
-    sign_t sign = NONE_X;
-    strg_t strg = NONE_S;
-    struct _qual_t qual;
-    
     virtual grp_t grp(); // NONE_G
     virtual std::string _str(); // convert type to string (for error reporting)
 };
@@ -83,7 +78,7 @@ class Ptr : public Type { public :
     std::string _str();
 };
 
-class Arr : public Type { public :
+class Arr : public Type { public : // int a[]
     std::vector<struct _node_t *> dims; // (bounds) NULL iff abstract declaration
     class Type* item = NULL;
 
@@ -98,7 +93,7 @@ class Arr : public Type { public :
 };
 
 class Func : public Type { public :
-    std::vector<class Type *> params; // NULL iff void
+    std::vector<class Type *> params; // [size() == 0] iff void
     class Type* retType = NULL;
 
     Func(class Type *);
