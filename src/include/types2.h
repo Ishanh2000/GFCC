@@ -50,7 +50,7 @@ class Type { public : // late binding : use "virtual"
     struct _qual_t qual;
     
     virtual grp_t grp(); // NONE_G
-    virtual std::string str(); // convert type to string (for error reporting)
+    virtual std::string _str(); // convert type to string (for error reporting)
 };
 
 class Base : public Type { public :
@@ -66,7 +66,7 @@ class Base : public Type { public :
     Base ();
     Base (base_t);
     grp_t grp(); // BASE_G
-    std::string str();
+    std::string _str();
 };
 
 class Ptr : public Type { public :
@@ -80,7 +80,7 @@ class Ptr : public Type { public :
     void newPtr(struct _qual_t);
     void newPtr(bool, bool);
     grp_t grp(); // PTR_G
-    std::string str();
+    std::string _str();
 };
 
 class Arr : public Type { public :
@@ -93,7 +93,7 @@ class Arr : public Type { public :
     void newDim();
     void newDim(struct _node_t *);
     grp_t grp(); // ARR_G
-    std::string str();
+    std::string _str();
     // unsigned int eval(int); // evaluate a bound
 };
 
@@ -104,7 +104,7 @@ class Func : public Type { public :
     Func(class Type *);
     void newParam(class Type *);
     grp_t grp(); // FUNC_G
-    std::string str();
+    std::string _str();
 };
 
 extern bool brackPut; // signifies whether brackets were put around a declarator earlier
