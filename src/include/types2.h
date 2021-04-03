@@ -1,5 +1,7 @@
+// AUM SHREEGANESHAAYA NAMAH||
 #ifndef __GFCC_TYPES__
 #define __GFCC_TYPES__
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -9,7 +11,7 @@
 
 // basic types (increasing size)
 enum base_t {
-	NONE_B, ERROR_B,
+	NONE_B,
 	VOID_B, CHAR_B, SHORT_B, INT_B, FLOAT_B, LONG_B, LONG_LONG_B, DOUBLE_B, LONG_DOUBLE_B, // primitives
 	ENUM_B, STRUCT_B, UNION_B, // compound types
 	ELLIPSIS_B,
@@ -43,7 +45,11 @@ typedef struct _qual_t { // type qualifiers
 	_qual_t(bool, bool);
 } qual_t;
 
-class Type { public : // late binding : use "virtual"
+class Type { public :
+    bool isErr = false;
+    strg_t strg = NONE_S;
+
+    // late binding : use "virtual"
     virtual grp_t grp(); // NONE_G
     virtual std::string _str(); // convert type to string (for error reporting)
 };
@@ -51,7 +57,6 @@ class Type { public : // late binding : use "virtual"
 class Base : public Type { public :
     base_t base = NONE_B;
     sign_t sign = NONE_X;
-    strg_t strg = NONE_S;
     bool isConst = false;
     bool isVoltl = false;
     // void* enumDef; // deal later
@@ -103,5 +108,9 @@ class Func : public Type { public :
 };
 
 extern bool brackPut; // signifies whether brackets were put around a declarator earlier
+
+std::string str(class Type *);
+
+class Type *clone(class Type*);
 
 #endif

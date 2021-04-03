@@ -14,7 +14,7 @@ IS			(u|U|l|L)*
 #include <parser.tab.h>
 #include <gfcc_lexer.h>
 #include <symtab.h>
-#include <types.h>
+#include <types2.h>
 #include <typo.h>
 
 using namespace std;
@@ -93,24 +93,44 @@ using namespace std;
 
 "while"			{ count(); yylval.node = Nd(WHILE, "while", iter_attr, gpos); return (WHILE); }
 
-{L}({L}|{D})*	{ count(); yylval.node = nd(IDENTIFIER, strdup(yytext), gpos); return (check_type()); /* returns IDENTIFIER */ }
+{L}({L}|{D})*	{ // IDENTIIFER / TYPE_NAME
+    count();
+    node_t *n = yylval.node = nd(IDENTIFIER, strdup(yytext), gpos);
+    sym *ret = SymRoot->gLookup(n->label);
+    if (ret && ret->type && (ret->type->strg == TYPEDEF_S)) {
+        n->type = clone(ret->type);
+        return (TYPE_NAME);
+    }
+    return (IDENTIFIER);
+}
 
+/* const int / const long */
+0[xX]{H}+{IS}?			{ count(); node_t* n = yylval.node = nd(CONSTANT, strdup(yytext), gpos); n->type = new Type(INT_B); n->type->isConst = true; return (CONSTANT); }
+0{D}+{IS}?				{ count(); node_t* n = yylval.node = nd(CONSTANT, strdup(yytext), gpos); n->type = new Type(INT_B); n->type->isConst = true; return (CONSTANT); }
+{D}+{IS}?				{ count(); node_t* n = yylval.node = nd(CONSTANT, strdup(yytext), gpos); n->type = new Type(INT_B); n->type->isConst = true; return (CONSTANT); }
 
-0[xX]{H}+{IS}?			{ count(); node_t* n = yylval.node = nd(CONSTANT, strdup(yytext), gpos); Type* tp = n->type = new Type(); tp->base = INT_B; tp->qual.isConst = true; return (CONSTANT); } // const int / const long
-0{D}+{IS}?				{ count(); node_t* n = yylval.node = nd(CONSTANT, strdup(yytext), gpos); Type* tp = n->type = new Type(); tp->base = INT_B; tp->qual.isConst = true; return (CONSTANT); } // const int / const long
-{D}+{IS}?				{ count(); node_t* n = yylval.node = nd(CONSTANT, strdup(yytext), gpos); Type* tp = n->type = new Type(); tp->base = INT_B; tp->qual.isConst = true; return (CONSTANT); } // const int / const long
 L?'(\\.|[^\\'])+'		{ // const char
-    count(); node_t* n = yylval.node = nd(CONSTANT, strdup(yytext), gpos); Type* tp = n->type = new Type(); tp->base = CHAR_B; tp->qual.isConst = true;
+    count();
+    node_t* n = yylval.node = nd(CONSTANT, strdup(yytext), gpos);
+    n->type = new Type(CHAR_B); n->type->isConst = true;
+
     string s(yytext); int _f = s.find_first_of('\''), _l = s.find_last_of('\''); string ss = s.substr(_f + 1, _l - _f - 1);
     if ((ss[0] != '\\' && (ss.size() > 1)) || ((ss[0] == '\\') && (ss.size() > 2)))
         repErr(gpos, "warning: wide character encountered (will only consider first character)", _FORE_MAGENTA_);
     return (CONSTANT);
 } 
-{D}+{E}{FS}?			{ count(); node_t* n = yylval.node = nd(CONSTANT, strdup(yytext), gpos); Type* tp = n->type = new Type(); tp->base = DOUBLE_B; tp->qual.isConst = true; return (CONSTANT); } // const double / const long double
-{D}*"."{D}+({E})?{FS}?	{ count(); node_t* n = yylval.node = nd(CONSTANT, strdup(yytext), gpos); Type* tp = n->type = new Type(); tp->base = DOUBLE_B; tp->qual.isConst = true; return (CONSTANT); } // const double / const long double
-{D}+"."{D}*({E})?{FS}?	{ count(); node_t* n = yylval.node = nd(CONSTANT, strdup(yytext), gpos); Type* tp = n->type = new Type(); tp->base = DOUBLE_B; tp->qual.isConst = true; return (CONSTANT); } // const double / const long double
 
-L?\"(\\.|[^\\"])*\"		{ count(); node_t* n = yylval.node = nd(STRING_LITERAL, strdup(yytext), gpos); Type* tp = n->type = new Type(); tp->base = CHAR_B; tp->qual.isConst = true; tp->ptrs.push_back(qual_t()); return (STRING_LITERAL); } // const char *
+/* const double / const long double */
+{D}+{E}{FS}?			{ count(); node_t* n = yylval.node = nd(CONSTANT, strdup(yytext), gpos); n->type = new Type(DOUBLE_B); n->type->isConst = true; return (CONSTANT); }
+{D}*"."{D}+({E})?{FS}?	{ count(); node_t* n = yylval.node = nd(CONSTANT, strdup(yytext), gpos); n->type = new Type(DOUBLE_B); n->type->isConst = true; return (CONSTANT); }
+{D}+"."{D}*({E})?{FS}?	{ count(); node_t* n = yylval.node = nd(CONSTANT, strdup(yytext), gpos); n->type = new Type(DOUBLE_B); n->type->isConst = true; return (CONSTANT); }
+
+L?\"(\\.|[^\\"])*\"		{ // const char *
+    count();
+    node_t* n = yylval.node = nd(STRING_LITERAL, strdup(yytext), gpos);
+    Base *b = new Base(CHAR_B); b->isConst = true; n->type = new Ptr(b);
+    return (STRING_LITERAL);
+}
 
 "..."			{ count(); yylval.node = nd(ELLIPSIS, "...", gpos); return (ELLIPSIS); }
 ">>="			{ count(); yylval.node = nd(RIGHT_ASSIGN, ">>=", gpos); return (RIGHT_ASSIGN); }

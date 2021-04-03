@@ -11,6 +11,7 @@
 
 #include <gfcc_lexer.h>
 #include <symtab.h>
+#include <types2.h>
 #include <typo.h>
 
 using namespace std;
@@ -65,10 +66,10 @@ using namespace std;
 primary_expression
 	: IDENTIFIER			{ $$ = $1;
 		sym* ret = SymRoot->gLookup($1->label);
-		if (ret) { $$->type = new Type(); *($$->type) = *($1->type); } // success - start by making a copy of type.
+		if (ret) $$->type = clone($1->type); // success - start by making a copy of type.
 		else {
-			repErr($1->pos, "variable undeclared in this scope (will set variable to \"error\" type)", _FORE_RED_);
-			Type* tp = $$->type = new Type(); tp->base = ERROR_B;
+			repErr($1->pos, "variable undeclared in this scope", _FORE_RED_);
+			Type* t = $$->type = new Type(); t->isErr = true;
 		}
 	}
 	| CONSTANT				{ $$ = $1; } // get sematic number (means 0x56 = 86, 0227 = 151, etc) during semantic analysis - but ENCODE HERE ITSELF
@@ -237,7 +238,7 @@ declaration
 
 			// pass down tree $2 until name & position found.
 			if (cnode->tok == '=') { cnode = cnode->ch(0); useful++; } // "init_declarator"
-			while (cnode->tok != IDENTIFIER) { // pass down from "direct_declarator"
+			/* while (cnode->tok != IDENTIFIER) { // pass down from "direct_declarator"
 				if (cnode->tok == DECLARATOR) cnode = cnode->ch(1); // "decl" + rule 2 of "direct_decl"
 				else cnode = cnode->ch(0); // rules 3 - 7 of "direct_decl"
 			} // cnode->tok == IDENTIFIER
@@ -245,7 +246,7 @@ declaration
 			sym* retval = SymRoot->lookup(cnode->label);
 			// TODO: handle "extern"
 			if (retval) {
-				stringstream str1; str1 << "multiple declarations of \"" << cnode->label << "\" (will set variable to \"error\" type)"; repErr(cnode->pos, str1.str(), _FORE_RED_);
+				stringstream str1; str1 << "multiple declarations of \"" << cnode->label << "\""; repErr(cnode->pos, str1.str(), _FORE_RED_);
 				repErr(retval->pos, "previous declaration given here...", _FORE_CYAN_);
 				retval->type->base = ERROR_B;
 			} else { // copy tp1 into tp2 (partially), delete tp1 (easier to copy tp1 than tp2).
@@ -253,10 +254,8 @@ declaration
 				tp2->qual = tp1->qual; tp2->sign = tp1->sign; tp2->strg = tp1->strg;
 				tp2->enumDef = tp1->enumDef; tp2->unionDef = tp1->unionDef; tp2->structDef = tp1->structDef;
 				SymRoot->pushSym(cnode->label, tp2, cnode->pos); // ASUMPTION: success - can check that too
-			}
+			} */
 		}
-
-		delete tp1;
 
 		if (useful > 0) {
 			edge_t **tmp = (edge_t **) malloc(useful * sizeof(edge_t *)); int curr = 0;
@@ -268,68 +267,81 @@ declaration
 	;
 
 // TODO: handle storage class "typedef"
-// useless iff NULL
 // A list of three kinds of objects. Also, new child appends to the left.
 declaration_specifiers
 	: storage_class_specifier                        { $$ = op( nd(DECL_SPEC_LIST, "decl-specs", { 0, 0 }), 0, 1, ej($1) );
-		Type* tp = $$->type = new Type();
-		switch ($1->tok) { case AUTO : tp->strg = AUTO_S; break;
-			case EXTERN : tp->strg = EXTERN_S; break; case REGISTER : tp->strg = REGISTER_S; break;
-			case STATIC : tp->strg = STATIC_S; break; case TYPEDEF : tp->strg = TYPEDEF_S;
+		Base* b = new Base();
+		switch ($1->tok) {
+			case     AUTO : b->strg = AUTO_S; break;
+			case   EXTERN : b->strg = EXTERN_S; break;
+			case REGISTER : b->strg = REGISTER_S; break;
+			case   STATIC : b->strg = STATIC_S; break;
+			case  TYPEDEF : b->strg = TYPEDEF_S; break;
+		}
+		$$->tHead = $$->tTail = b;
+	}
+	| storage_class_specifier declaration_specifiers { $$ = op( $2, 1, 0, ej($1) );
+		Base* b = (Base *) $$->tTail;
+		if (b->strg != NONE_S) {
+			b->isErr = true;
+			repErr($2->pos, "more than required or incompatible storage class specifiers given",  _FORE_RED_);
+		} else switch ($1->tok) {
+			case     AUTO : b->strg = AUTO_S; break;
+			case   EXTERN : b->strg = EXTERN_S; break;
+			case REGISTER : b->strg = REGISTER_S; break;
+			case   STATIC : b->strg = STATIC_S; break;
+			case  TYPEDEF : b->strg = TYPEDEF_S; break;
 		}
 	}
-	| storage_class_specifier declaration_specifiers { $$ = op( $2, 1, 0, ej($1) ); Type* tp = $$->type;
-		bool isStrg = (tp->strg != NONE_S);
-		string stdErs = "more than required or incompatible storage class specifiers given (will set variable to \"error\" type)";
-		switch ($1->tok) {
-			case AUTO : if (!isStrg) tp->strg = AUTO_S; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
-			case EXTERN : if (!isStrg) tp->strg = EXTERN_S; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
-			case REGISTER : if (!isStrg) tp->strg = REGISTER_S; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
-			case STATIC : if (!isStrg) tp->strg = STATIC_S; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
-			case TYPEDEF : if (!isStrg) tp->strg = TYPEDEF_S; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
+	| type_specifier                                 { $$ = op( nd(DECL_SPEC_LIST, "decl-specs", { 0, 0 }), 0, 1, ej($1) );
+		Base *b = new Base();
+		switch ($1->tok) { // FILE_OBJ and TYPE_NAME not taken into account
+			case     VOID : b->base = VOID_B; break;
+			case     CHAR : b->base = CHAR_B; break;
+			case    SHORT : b->base = SHORT_B; break;
+			case      INT : b->base = INT_B; break;
+			case     LONG : b->base = LONG_B; break;
+			case    FLOAT : b->base = FLOAT_B; break;
+			case   DOUBLE : b->base = DOUBLE_B; break;
+			case   STRUCT : b->base = STRUCT_B; break;
+			case    UNION : b->base = UNION_B; break;
+			case     ENUM : b->base = ENUM_B; break;
+			case   SIGNED : b->sign = SIGNED_X; break; // sign changes, not type (type may be decided later)
+			case UNSIGNED : b->sign = UNSIGNED_X; break; // sign changes, not type (type may be decided later)
 		}
+		$$->tHead = $$->tTail = b;
 	}
-	| type_specifier                                 { $$ = op( nd(DECL_SPEC_LIST, "decl-specs", { 0, 0 }), 0, 1, ej($1) ); // FILE_OBJ and TYPE_NAME not taken into account
-		Type* tp = $$->type = new Type();
+	| type_specifier declaration_specifiers          { $$ = op( $2, 1, 0, ej($1) );
+		Base* b = (Base *) $$->tTail; base_t base = b->base;
+		bool isSpec = (base != NONE_B), signGiven = (b->sign != NONE_X); // whether already specified a base / sign
+		string stdErs = "more than required or incompatible type specifiers given";
 		switch ($1->tok) {
-			case VOID : tp->base = VOID_B; break; case CHAR : tp->base = CHAR_B; break;
-			case SHORT : tp->base = SHORT_B; break; case INT : tp->base = INT_B; break;
-			case LONG : tp->base = LONG_B; break; case FLOAT : tp->base = FLOAT_B; break;
-			case DOUBLE : tp->base = DOUBLE_B; break; case STRUCT : tp->base = STRUCT_B; break;
-			case UNION : tp->base = UNION_B; break; case ENUM : tp->base = ENUM_B; break;
-			case SIGNED : tp->sign = SIGNED_X; break; case UNSIGNED : tp->sign = UNSIGNED_X; break; // sign changes, not type (type may be decided later)
-		}
-	}
-	| type_specifier declaration_specifiers          { $$ = op( $2, 1, 0, ej($1) ); Type* tp = $$->type;
-		bool isSpec = (tp->base != NONE_B); // see whether already specified a basic type
-		bool signGiven = (tp->sign != NONE_X); // see whether already specified a sign
-		base_type_t base = tp->base;
-		string stdErs = "more than required or incompatible type specifiers given (will set variable to \"error\" type)";
-		switch ($1->tok) {
-			case VOID : if (!isSpec) tp->base = VOID_B; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
-			case CHAR : if (!isSpec) tp->base = CHAR_B; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
-			case INT :  if (!isSpec) tp->base = INT_B; else if (base == SHORT_B) tp->base = SHORT_B; else if (base == LONG_B) tp->base = LONG_B;
-						else if (base == LONG_LONG_B) tp->base = LONG_B; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
-			case SHORT : if (!isSpec || (base == INT_B)) tp->base = SHORT_B; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
-			case LONG : if (!isSpec || (base == INT_B)) tp->base = LONG_B; else if (base == LONG_B) tp->base = LONG_LONG_B;
-						else if (base == DOUBLE_B) tp->base = LONG_DOUBLE_B; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
-			case FLOAT : if (!isSpec) tp->base = FLOAT_B; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
-			case DOUBLE : if (!isSpec) tp->base = DOUBLE_B; else if (base == LONG_B) tp->base = LONG_DOUBLE_B; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
-			case SIGNED : if (!signGiven && (base == CHAR_B || base == SHORT_B || base == INT_B || base == LONG_B || base == LONG_LONG_B)) tp->sign = SIGNED_X; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
-			case UNSIGNED : if (!signGiven && (base == CHAR_B || base == SHORT_B || base == INT_B || base == LONG_B || base == LONG_LONG_B)) tp->sign = UNSIGNED_X; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
-			case STRUCT : if (!isSpec) tp->base = STRUCT_B; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
-			case UNION : if (!isSpec) tp->base = UNION_B; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; } break;
-			case ENUM : if (!isSpec) tp->base = ENUM_B; else { repErr($1->pos, stdErs,  _FORE_RED_); tp->base = ERROR_B; }
+			case VOID : if (!isSpec) b->base = VOID_B; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
+			case CHAR : if (!isSpec) b->base = CHAR_B; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
+			case INT :  if (!isSpec) b->base = INT_B; else if (base == SHORT_B) b->base = SHORT_B; else if (base == LONG_B) b->base = LONG_B;
+						else if (base == LONG_LONG_B) b->base = LONG_B; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
+			case SHORT : if (!isSpec || (base == INT_B)) b->base = SHORT_B; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
+			case LONG : if (!isSpec || (base == INT_B)) b->base = LONG_B; else if (base == LONG_B) b->base = LONG_LONG_B;
+						else if (base == DOUBLE_B) b->base = LONG_DOUBLE_B; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
+			case FLOAT : if (!isSpec) b->base = FLOAT_B; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
+			case DOUBLE : if (!isSpec) b->base = DOUBLE_B; else if (base == LONG_B) b->base = LONG_DOUBLE_B; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
+			case SIGNED : if (!signGiven && (base == CHAR_B || base == SHORT_B || base == INT_B || base == LONG_B || base == LONG_LONG_B)) b->sign = SIGNED_X; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
+			case UNSIGNED : if (!signGiven && (base == CHAR_B || base == SHORT_B || base == INT_B || base == LONG_B || base == LONG_LONG_B)) b->sign = UNSIGNED_X; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
+			case STRUCT : if (!isSpec) b->base = STRUCT_B; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
+			case UNION : if (!isSpec) b->base = UNION_B; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
+			case ENUM : if (!isSpec) b->base = ENUM_B; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; }
 		}
 	}
 	| type_qualifier                                 { $$ = op( nd(DECL_SPEC_LIST, "decl-specs", { 0, 0 }), 0, 1, ej($1) );
-		Type* t = $$->type = new Type();
-		switch ($1->tok) { case CONST : t->qual.isConst = true; break; case VOLATILE : t->qual.isVolatile = true; }
+		Base *b = new Base();
+		switch ($1->tok) { case CONST : b->isConst = true; break; case VOLATILE : b->isVoltl = true; }
+		$$->tHead = $$->tTail = b;
 	}
-	| type_qualifier declaration_specifiers          { $$ = op( $2, 1, 0, ej($1) ); Type* t = $$->type;
+	| type_qualifier declaration_specifiers          { $$ = op( $2, 1, 0, ej($1) );
+		Base *b = (Base *) $$->tTail;
 		switch ($1->tok) {
-			case CONST : if (t->qual.isConst) { repErr($2->pos, "const specified twice", _FORE_RED_); t->base = ERROR_B; } else t->qual.isConst = true; break;
-			case VOLATILE : if (t->qual.isVolatile) { repErr($2->pos, "volatile specified twice", _FORE_RED_); t->base = ERROR_B; } else t->qual.isVolatile = true;
+			case    CONST : if (b->isConst) { repErr($2->pos, "const specified twice", _FORE_RED_); b->isErr = true; } else b->isConst = true; break;
+			case VOLATILE : if (b->isVoltl) { repErr($2->pos, "volatile specified twice", _FORE_RED_); b->isErr = true; } else b->isVoltl = true;
 		}
 	}
 	;
@@ -395,10 +407,57 @@ struct_declaration
 	;
 
 specifier_qualifier_list
-	: type_specifier specifier_qualifier_list { $$ = op( $2, 1, 0, ej($1) ); }
-	| type_specifier                          { $$ = op( nd(SPEC_QUAL_LIST, "spec-qual", { 0, 0 }), 0, 1, ej($1) ); }
-	| type_qualifier specifier_qualifier_list { $$ = op( $2, 1, 0, ej($1) ); }
-	| type_qualifier			              { $$ = op( nd(SPEC_QUAL_LIST, "spec-qual", { 0, 0 }), 0, 1, ej($1) ); }
+	: type_specifier specifier_qualifier_list { $$ = op( $2, 1, 0, ej($1) );
+		Base* b = (Base *) $$->tTail; base_t base = b->base;
+		bool isSpec = (base != NONE_B), signGiven = (b->sign != NONE_X); // whether already specified a base / sign
+		string stdErs = "more than required or incompatible type specifiers given";
+		switch ($1->tok) {
+			case VOID : if (!isSpec) b->base = VOID_B; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
+			case CHAR : if (!isSpec) b->base = CHAR_B; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
+			case INT :  if (!isSpec) b->base = INT_B; else if (base == SHORT_B) b->base = SHORT_B; else if (base == LONG_B) b->base = LONG_B;
+						else if (base == LONG_LONG_B) b->base = LONG_B; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
+			case SHORT : if (!isSpec || (base == INT_B)) b->base = SHORT_B; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
+			case LONG : if (!isSpec || (base == INT_B)) b->base = LONG_B; else if (base == LONG_B) b->base = LONG_LONG_B;
+						else if (base == DOUBLE_B) b->base = LONG_DOUBLE_B; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
+			case FLOAT : if (!isSpec) b->base = FLOAT_B; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
+			case DOUBLE : if (!isSpec) b->base = DOUBLE_B; else if (base == LONG_B) b->base = LONG_DOUBLE_B; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
+			case SIGNED : if (!signGiven && (base == CHAR_B || base == SHORT_B || base == INT_B || base == LONG_B || base == LONG_LONG_B)) b->sign = SIGNED_X; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
+			case UNSIGNED : if (!signGiven && (base == CHAR_B || base == SHORT_B || base == INT_B || base == LONG_B || base == LONG_LONG_B)) b->sign = UNSIGNED_X; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
+			case STRUCT : if (!isSpec) b->base = STRUCT_B; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
+			case UNION : if (!isSpec) b->base = UNION_B; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
+			case ENUM : if (!isSpec) b->base = ENUM_B; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; }
+		}
+	}
+	| type_specifier                          { $$ = op( nd(SPEC_QUAL_LIST, "spec-qual", { 0, 0 }), 0, 1, ej($1) );
+		Base *b = new Base();
+		switch ($1->tok) { // FILE_OBJ and TYPE_NAME not taken into account
+			case     VOID : b->base = VOID_B; break;
+			case     CHAR : b->base = CHAR_B; break;
+			case    SHORT : b->base = SHORT_B; break;
+			case      INT : b->base = INT_B; break;
+			case     LONG : b->base = LONG_B; break;
+			case    FLOAT : b->base = FLOAT_B; break;
+			case   DOUBLE : b->base = DOUBLE_B; break;
+			case   STRUCT : b->base = STRUCT_B; break;
+			case    UNION : b->base = UNION_B; break;
+			case     ENUM : b->base = ENUM_B; break;
+			case   SIGNED : b->sign = SIGNED_X; break; // sign changes, not type (type may be decided later)
+			case UNSIGNED : b->sign = UNSIGNED_X; break; // sign changes, not type (type may be decided later)
+		}
+		$$->tHead = $$->tTail = b;
+	}
+	| type_qualifier specifier_qualifier_list { $$ = op( $2, 1, 0, ej($1) );
+		Base *b = (Base *) $$->tTail;
+		switch ($1->tok) {
+			case    CONST : if (b->isConst) { repErr($2->pos, "const specified twice", _FORE_RED_); b->isErr = true; } else b->isConst = true; break;
+			case VOLATILE : if (b->isVoltl) { repErr($2->pos, "volatile specified twice", _FORE_RED_); b->isErr = true; } else b->isVoltl = true;
+		}
+	}
+	| type_qualifier			              { $$ = op( nd(SPEC_QUAL_LIST, "spec-qual", { 0, 0 }), 0, 1, ej($1) );
+		Base *b = new Base();
+		switch ($1->tok) { case CONST : b->isConst = true; break; case VOLATILE : b->isVoltl = true; }
+		$$->tHead = $$->tTail = b;
+	}
 	;
 
 struct_declarator_list
@@ -435,9 +494,6 @@ type_qualifier
 
 declarator
 	: pointer direct_declarator	{ $$ = op( nd(DECLARATOR, "var", { 0, 0 }), 0, 2, ej($1), ej($2) ); // copy pointers to direct_declarator
-		Type* tp = $$->type = $2->type;
-		tp->ptrs = $1->type->ptrs; // copied pointers
-		delete $1->type; $1->type = NULL;
 	}
 	| direct_declarator			{ $$ = $1; }
 	;
@@ -448,11 +504,11 @@ declarator
 // START HERE
 direct_declarator
 	: IDENTIFIER									{ $$ = $1; $1->type = new Type(); }
-	| '(' declarator ')'							{ $$ = $2; expectSub = true; }
+	| '(' declarator ')'							{ $$ = $2; expectSub = true; } // int *[], int (*f)[] => (*f)[]
 	| direct_declarator '[' constant_expression ']'	{ $$ = op( $2, 0, 2, ej($1), ej($3) );
 		Type *t, *t1 = $1->type; bool _good = false;
 		if (expectSub && t1->isPtr()) { t = $$->type = new Type(); t->sub = t1; _good = true; }
-		else if (t1->isFunc()) repErr($1->pos, "function returns an array (will set variable to \"error\" type)", _FORE_RED_);
+		else if (t1->isFunc()) repErr($1->pos, "function returns an array", _FORE_RED_);
 		else { t = $$->type = t1; _good = true; }
 		expectSub = false;
 		
@@ -464,8 +520,8 @@ direct_declarator
 	| direct_declarator '[' ']'						{ $$ = op( $2, 0, 1, ej($1) );
 		Type *t, *t1 = $1->type; bool _good = false;
 		if (expectSub && t1->isPtr()) { t = $$->type = new Type(); t->sub = t1; _good = true; }
-		else if (t1->isFunc()) repErr($1->pos, "function returns an array (will set variable to \"error\" type)", _FORE_RED_);
-		else if (t1->isArr()) repErr($1->pos, "incomplete array bound: all bounds except first must be specified (will set variable to \"error\" type)", _FORE_RED_); // unspecified non-first bound
+		else if (t1->isFunc()) repErr($1->pos, "function returns an array", _FORE_RED_);
+		else if (t1->isArr()) repErr($1->pos, "incomplete array bound: all bounds except first must be specified", _FORE_RED_); // unspecified non-first bound
 		else { t = $$->type = t1; _good = true; }
 		expectSub = false;
 
@@ -475,8 +531,8 @@ direct_declarator
 	| direct_declarator '(' parameter_type_list ')'	{ $$ = $1; // $$ = op( nd(FUNC_PTR, "() [func-ptr]", { 0, 0 }), 0, 2, ej($1), ej($3) );
 		Type *t, *t1 = $1->type; bool _good = false;
 		if (expectSub && t1->isPtr()) { t = $$->type = new Type(); t->sub = t1; _good = true; }
-		else if (t1->isFunc()) repErr($1->pos, "function returns a function (will set variable to \"error\" type)", _FORE_RED_); // must not be a function
-		else if (t1->isArr()) repErr($1->pos, "array of functions (will set variable to \"error\" type)", _FORE_RED_);
+		else if (t1->isFunc()) repErr($1->pos, "function returns a function", _FORE_RED_); // must not be a function
+		else if (t1->isArr()) repErr($1->pos, "array of functions", _FORE_RED_);
 		else { t = $$->type = t1; _good = true; }
 		expectSub = false;
 
@@ -491,8 +547,8 @@ direct_declarator
 		repErr($3->pos, "warning: parameter names without any declaration specifiers", _FORE_MAGENTA_);
 		Type *t, *t1 = $1->type; bool _good = false;
 		if (expectSub && t1->isPtr()) { t = $$->type = new Type(); t->sub = t1; _good = true; }
-		else if (t1->isFunc()) repErr($1->pos, "function returns a function (will set variable to \"error\" type)", _FORE_RED_); // must not be a function
-		else if (t1->isArr())  repErr($1->pos, "array of functions (will set variable to \"error\" type)", _FORE_RED_); // unspecified non-first bound
+		else if (t1->isFunc()) repErr($1->pos, "function returns a function", _FORE_RED_); // must not be a function
+		else if (t1->isArr())  repErr($1->pos, "array of functions", _FORE_RED_); // unspecified non-first bound
 		else { t = $$->type = t1; _good = true; }
 		expectSub = false;
 
@@ -502,7 +558,7 @@ direct_declarator
 				node_t* ch = $3->ch(i); sym* ret = SymRoot->gLookup(ch->label);
 				if (ret) t->newFuncParam(ret->type); // assume this was a good type (since it was already inserted)
 				else {
-					t->base = ERROR_B; repErr(ch->pos, "variable undeclared in this scope (will set variable to \"error\" type)", _FORE_RED_); // coordi
+					t->base = ERROR_B; repErr(ch->pos, "variable undeclared in this scope", _FORE_RED_); // coordi
 				}
 			}
 		} else { t = $$->type = t1; t->base = ERROR_B; }
@@ -510,8 +566,8 @@ direct_declarator
 	| direct_declarator '(' ')' { $$ = op( $2, 0, 1, ej($1) ); $$->type = $1->type; $$->tok = FUNC_PTR;	$$->label = "() [func-ptr]";
 		Type *t, *t1 = $1->type; bool _good = false;
 		if (expectSub && t1->isPtr()) { t = $$->type = new Type(); t->sub = t1; _good = true; }
-		else if (t1->isFunc()) repErr($1->pos, "function returns a function (will set variable to \"error\" type)", _FORE_RED_); // must not be a function
-		else if (t1->isArr()) repErr($1->pos, "array of functions (will set variable to \"error\" type)", _FORE_RED_);
+		else if (t1->isFunc()) repErr($1->pos, "function returns a function", _FORE_RED_); // must not be a function
+		else if (t1->isArr()) repErr($1->pos, "array of functions", _FORE_RED_);
 		else { t = $$->type = t1; _good = true; }
 		expectSub = false;
 
@@ -523,39 +579,45 @@ direct_declarator
 
 pointer
 	: '*'								{ ($1)->tok = DEREF; $$ = $1;
-		Type *t = $$->type = new Type(); t->ptrs.push_back(qual_t());
+		$$->tHead = $$->tTail = new Ptr(NULL); // get the pointee (pt = NULL) later
 	}
 	| '*' type_qualifier_list			{ ($1)->tok = DEREF; $$ = $1; // $$ = op( $1, 0, 1, ej($2) );
-		Type *t = $$->type = $2->type; t->ptrs.push_back(t->qual);
-		t->qual.isConst = t->qual.isVolatile = false; // clean the slate
+		Base *b2 = (Base *) $2->tTail;
+		Ptr *p = new Ptr(NULL, b2->isConst, b2->isVoltl); // get the pointee (pt = NULL) later
+		p->isErr = b2->isErr;
+		$$->tHead = $$->tTail = p;
+		delete b2; $2->tHead = $2->tTail = NULL;
 	}
 	| '*' pointer { ($1)->tok = DEREF; $$ = op( $1, 0, 1, ej($2) );
-		Type *t = $$->type = $2->type; t->ptrs.insert(t->ptrs.begin(), qual_t());
+		$$->tHead = $2->tHead; $$->tTail = $2->tTail;
+		Ptr *p = (Ptr *) $$->tTail; p->newPtr();
 	}
 	| '*' type_qualifier_list pointer { ($1)->tok = DEREF; $$ = op( $1, 0, 1, ej($3) ); // $$ = op( $1, 0, 2, ej($2), ej($3) );
-		Type *t2 = $2->type, *t3 = $3->type, *t = $$->type = t3;
-		t->ptrs.insert(t->ptrs.begin(), t2->qual);
-		if (t2->base == ERROR_B || t3->base == ERROR_B) t->base = ERROR_B;
-		delete t2;
+		$$->tHead = $3->tHead; $$->tTail = $3->tTail;
+		Ptr *p = (Ptr *) $$->tTail; Base *b2 = (Base *) $2->tTail;
+		p->newPtr(b2->isConst, b2->isVoltl); p->isErr |= b2->isErr;
+		delete b2; $2->tHead = $2->tTail = NULL;
 	}
 	;
 
 type_qualifier_list
 	: type_qualifier						{ $$ = op( nd(TYPE_QUAL_LIST, "type-quals", { 0, 0 }), 0, 1, ej($1) );
-		Type* t = $$->type = new Type();
-		switch ($1->tok) { case CONST : t->qual.isConst = true; break; case VOLATILE : t->qual.isVolatile = true; }
+		Base *b = new Base();
+		switch ($1->tok) { case CONST : b->isConst = true; break; case VOLATILE : b->isVoltl = true; }
+		$$->tHead = $$->tTail = b;
 	}
-	| type_qualifier_list type_qualifier	{ $$ = op( $1, 0, 1, ej($2) ); Type* t = $$->type;
+	| type_qualifier_list type_qualifier	{ $$ = op( $1, 0, 1, ej($2) );
+		Base *b = (Base *) $$->tTail;
 		switch ($2->tok) {
-			case CONST : if (t->qual.isConst) { repErr($2->pos, "const specified twice", _FORE_RED_); t->base = ERROR_B; } else t->qual.isConst = true; break;
-			case VOLATILE : if (t->qual.isVolatile) { repErr($2->pos, "volatile specified twice", _FORE_RED_); t->base = ERROR_B; } else t->qual.isVolatile = true;
+			case    CONST : if (b->isConst) { repErr($2->pos, "const specified twice", _FORE_RED_); b->isErr = true; } else b->isConst = true; break;
+			case VOLATILE : if (b->isVoltl) { repErr($2->pos, "volatile specified twice", _FORE_RED_); b->isErr = true; } else b->isVoltl = true;
 		}
 	}
 	;
 
 parameter_type_list
 	: parameter_list				{ $$ = $1; }
-	| parameter_list ',' ELLIPSIS	{ $$ = op( $1, 0, 1, ej($3) ); Type* t3 = $3->type = new Type(); t3->base = ELLIPSIS_B; }
+	| parameter_list ',' ELLIPSIS	{ $$ = op( $1, 0, 1, ej($3) ); $3->tHead = $3->tTail = new Base(ELLIPSIS_B); }
 	;
 
 parameter_list

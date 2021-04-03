@@ -8,7 +8,7 @@
 #include <vector>
 
 #include <gfcc_meta.h>
-#include <types.h>
+#include <types2.h>
 
 // TAB LENGTH
 #define TAB_LEN 4 // TODO: must change later
@@ -85,8 +85,7 @@ typedef struct _node_t {
 	int numChild;
 	struct _edge_t **edges;
 	loc_t pos;
-	class Type* type;
-	// class type_expr tp;
+	class Type *type;
 
 	struct _node_t *ch(int); // getting child without much effort
 } node_t;
@@ -142,8 +141,6 @@ char lexInput(void);
 void count(); // count characters for every token encountered
 
 void comment(); // [DO NOT CHANGE NAME] for multi-line comment (MLC)
-
-int check_type();
 
 bool matches(const char*, std::string); // check if first is equal to second
 

@@ -9,7 +9,6 @@
 
 #include <gfcc_lexer.h>
 #include <gfcc_tree.h>
-#include <types.h>
 #include <typo.h>
 #include <parser.tab.h>
 
@@ -41,7 +40,7 @@ node_t* Nd(int tok, const char* label, const char* attr, loc_t pos) {
 	}
 	node->label = newlabel;
 
-	node->pos = pos; node->type = NULL; // node->tp = type_int();
+	node->pos = pos; node->type = NULL;
 
 	return node;
 }

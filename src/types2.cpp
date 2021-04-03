@@ -108,9 +108,21 @@ static void rm(string &str, const string &a) { // remove all instances of a in s
     while ((_start = str.find(a)) >= 0) str.replace(_start, la, "");
 }
 
-string str(class Type *t) { // beautify
+string str(class Type *t) {
     if (!t) return "";
-    string str = t->_str();
+    if (t->isErr) return "error_type";
+
+    string str;
+
+    switch (t->strg) {
+        case AUTO_S : str += "auto "; break;
+        case EXTERN_S : str += "extern "; break;
+        case REGISTER_S : str += "register "; break;
+        case STATIC_S : str += "static "; break;
+        case TYPEDEF_S : str += "typedef "; break;
+    }
+    
+    str += t->_str();
     
     rm(str, "<p>"); rm(str, "<ab>"); rm(str, "<ad>");
     rm(str, "<fb>"); rm(str, "<fp>");
@@ -133,22 +145,13 @@ string Base::_str() {
     vector<string> sv;
     if (isConst) sv.push_back("const");
     if (isVoltl) sv.push_back("volatile");
-    
-    switch (strg) {
-        case AUTO_S : sv.push_back("auto"); break;
-        case EXTERN_S : sv.push_back("extern"); break;
-        case REGISTER_S : sv.push_back("register"); break;
-        case STATIC_S : sv.push_back("static"); break;
-        case TYPEDEF_S : sv.push_back("typedef"); break;
-    }
-    
+
     switch (sign) {
         case SIGNED_X : sv.push_back("signed"); break;
         case UNSIGNED_X : sv.push_back("unsigned"); break;
     }
     
     switch (base) {
-        case ERROR_B : sv.push_back("error_type"); break;
         case VOID_B : sv.push_back("void"); break;
         case CHAR_B : sv.push_back("char"); break;
         case SHORT_B : sv.push_back("short int"); break;
@@ -219,6 +222,33 @@ std::string Func::_str() {
     return s; // return according to expectation of others
 }
 
+/*************************************************/
+/****************** CLONE MAKER ******************/
+/*************************************************/
+
+class Type *clone(class Type *t) {
+    if (!t) return NULL;
+    Base *b; Ptr *p; Arr *a; Func *f;
+    switch (t->grp()) {
+        case BASE_G :
+            b = new Base(); *b = *((Base *) t); return b;
+
+        case PTR_G :
+            p = new Ptr(NULL); *p = *((Ptr *) t); p->pt = clone(((Ptr*) t)->pt); return p;
+
+        case ARR_G :
+            a = new Arr(NULL); *a = *((Arr *) t); a->item = clone(((Arr *) t)->item); return a;
+
+        case FUNC_G :
+            f = new Func(NULL); *f = *((Func *) t); f->retType = clone(((Func *) t)->retType);
+            int l = ((Func *) t)->params.size();
+            f->params.clear();
+            for (int i = 0; i < l; i++) f->params.push_back(clone(((Func *) t)->params[i]));
+            return f;
+    }
+    Type *c = new Type(); *c = *t; return c;
+}
+
 
 /************************************************/
 /****************** TEST SUITE ******************/
@@ -239,6 +269,7 @@ void testBase() { // const unsigned int volatile static;
     
     Type* t = b;
     if (t->grp() == BASE_G) testOut("base class", str(t));
+    testOut("clone_base", str(clone(t)));
 }
 
 void testPtr() { // const int ** const *volatile;
@@ -247,6 +278,7 @@ void testPtr() { // const int ** const *volatile;
 
     Type* t = p;
     if (t->grp() == PTR_G) testOut("ptr class", str(t));
+    testOut("clone_ptr", str(clone(t)));
 }
 
 void testArr() { // const double [][][];
@@ -255,6 +287,7 @@ void testArr() { // const double [][][];
 
     Type *t = a;
     if (t->grp() == ARR_G) testOut("arr class", str(t));
+    testOut("clone_arr", str(clone(t)));
 }
 
 void testFunc() { // void ()(unsigned char, ...);
@@ -265,6 +298,7 @@ void testFunc() { // void ()(unsigned char, ...);
     
     Type *t = f;
     if (t->grp() == FUNC_G) testOut("func class", str(t));
+    testOut("clone_func", str(clone(t)));
 }
 
 void testComplex_1() { // int *const (* volatile f)(); // surprisingly, a "const" (pointer or value) can be returned.
@@ -275,6 +309,7 @@ void testComplex_1() { // int *const (* volatile f)(); // surprisingly, a "const
 
     Type *t = p;
     if (t->grp() == PTR_G) testOut("complex_1", str(t));
+    testOut("clone_1", str(clone(t)));
 }
 
 void testComplex_2() { // float (*f)[4][5][6];
@@ -284,6 +319,7 @@ void testComplex_2() { // float (*f)[4][5][6];
 
     Type *t = p;
     if (t->grp() == PTR_G) testOut("complex_2", str(t));
+    testOut("clone_2", str(clone(t)));
 }
 
 void testComplex_3() { // int *** (*(*)(char))[]
@@ -296,6 +332,7 @@ void testComplex_3() { // int *** (*(*)(char))[]
 
     Type *t = pf;
     if (t->grp() == PTR_G) testOut("complex_3", str(t));
+    testOut("clone_3", str(clone(t)));
 }
 
 void testComplex_4() { // int *(*(*(*(*(*(*[])[])[])[])[])[])[]
@@ -317,6 +354,7 @@ void testComplex_4() { // int *(*(*(*(*(*(*[])[])[])[])[])[])[]
 
     Type *t = a7;
     if (t->grp() == ARR_G) testOut("complex_4", str(t));
+    testOut("clone_4", str(clone(t)));
 }
 
 void testComplex_5() { // int *** (*(*)(char))()
@@ -328,7 +366,8 @@ void testComplex_5() { // int *** (*(*)(char))()
     Ptr *pff = new Ptr(ff); // int *** (*(*)(char))()
 
     Type *t = pff;
-    if (t->grp() == PTR_G) testOut("complex_5", str(t));    
+    if (t->grp() == PTR_G) testOut("complex_5", str(t));
+    testOut("clone_5", str(clone(t)));
 }
 
 int main(){
@@ -342,7 +381,7 @@ int main(){
     testComplex_3();
     testComplex_4();
     testComplex_5();
-	
+
 	return 0;	
 }
 

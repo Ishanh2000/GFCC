@@ -19,7 +19,7 @@ add_executable(parser
   ${CMAKE_CURRENT_SOURCE_DIR}/src/meta.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/symtab.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/tree.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/types.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/types2.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/typo.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/generated/lex.yy.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/generated/parser.tab.cpp

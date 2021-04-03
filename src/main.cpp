@@ -161,14 +161,6 @@ const char* getTokenName(int tok_num, const char* lexeme) {
 	return (tok_num < IDENTIFIER || tok_num > RETURN) ? lexeme : TOKEN_NAME_ARRAY[tok_num - IDENTIFIER];
 }
 
-int check_type() {
-	// PSEUDO-CODE: This is what it should check.
-	// if (yytext == type_name) return (TYPE_NAME);
-	// return (IDENTIFIER);
-
-	return (IDENTIFIER); // it actually will only return IDENTIFIER
-}
-
 void comment() { // multi line comment (MLC)
 	column += 2; /* since '/*' start was never counted */
 	char c, c_next;
