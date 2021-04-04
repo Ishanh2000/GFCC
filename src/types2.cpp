@@ -283,7 +283,9 @@ class Type *last(class Type *t, grp_t g) { // get last instance of grp type 'g' 
 }
 
 void heir(class Type* t) {
+    bool isErr = false;
     while (t) {
+        isErr |= t->isErr;
         switch (t->grp()) {
             case NONE_G : cout << "NONE_G"; t = NULL; break;
             case BASE_G : cout << "BASE_G"; t = NULL; break;
@@ -293,6 +295,7 @@ void heir(class Type* t) {
         }
         if (t) cout << " >> ";
     }
+    if (isErr) cout << _FORE_RED_ << " [ERROR]" << _C_NONE_;
     cout << endl;
 }
 

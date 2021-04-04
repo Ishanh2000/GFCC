@@ -30,15 +30,15 @@ msg::~msg() {
 
 int yyerror(const char *s) {
 	// cout << fflush << endl;
-	cout << _C_BOLD_ << "GFCC : " << fileName << ':' << gpos.line << ':' << gpos.column << ": ";
-	cout << _FORE_RED_ << setw(column) << s << " [approx. positions indicated.]" << _C_NONE_ << endl;
+	cout << _C_BOLD_ << "GFCC : " << fileName << ':' << gpos.line << ':' << gpos.column << ": [approx. positions indicated] ";
+	cout << _FORE_RED_ << setw(column) << s << _C_NONE_ << endl;
 
 	// Here, print from offsets[line-1] till '\n'
 	in_file.seekg(offsets[gpos.line - 1]);
 	string lineToPrint; getline(in_file, lineToPrint);
 	cout << lineToPrint << endl;
 	
-	// Now, place the '^'. 
+	// Now, place the '^'.
 	cout << _C_BOLD_ << _FORE_RED_ << setw(column-1) << '^' << _C_NONE_ << endl;
 	// confusion in computing column - ask TEAM
 
