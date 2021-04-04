@@ -1,3 +1,9 @@
+int int x;
+const const int x;
+int newint g;
+newint newint g;
+const static  newint * g;
+int ***(**x);
 // int main(){
 //     char f = 's', m;
 //     long  long long *****(***x)[](int*);
@@ -12,4 +18,4 @@
 // }
 
 // int func(...) { }
-int (*f)(void, void);
+// int (*f)(void, void);

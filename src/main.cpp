@@ -128,6 +128,11 @@ int main (int argc , char *argv[]) {
 		// PostScript OK. Try to adjust for actual PDF (although not required).
 
 		SymRoot = new symRoot();
+		// int *const *
+		Base *b = new Base(INT_B);
+		Ptr *p = new Ptr(b, true, false); p->newPtr();
+		p->strg = TYPEDEF_S;
+		SymRoot->pushSym("newint", p, {0, 0});
 
 		offsets.push_back(0); // line 1 starts at offsets[0] = 0
 
@@ -152,6 +157,8 @@ int main (int argc , char *argv[]) {
 		delete SymRoot; // frees the current symbol tables
 		column = 1; gpos = { 1, 1 }; offsets.clear();
 		temp_out = NULL; // reset for next file
+		// reset any flags
+		brackPut = tpdef = false;
 	}
 
 	return file_failures;

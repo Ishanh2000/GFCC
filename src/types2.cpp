@@ -25,6 +25,7 @@ const static bool dbg = false;
 using namespace std;
 
 bool brackPut = false;
+bool tpdef = false;
 
 /******************************************************/
 /****************** struct "_qual_t" ******************/

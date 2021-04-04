@@ -109,6 +109,8 @@ class Func : public Type { public :
 
 extern bool brackPut; // signifies whether brackets were put around a declarator earlier
 
+extern bool tpdef; // signifies whether we are using a typedefed definition for a symbol
+
 std::string str(class Type *);
 
 class Type *clone(class Type*);
