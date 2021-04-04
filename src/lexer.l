@@ -162,7 +162,7 @@ L?\"(\\.|[^\\"])*\"		{ // const char *
 "="				{ count(); yylval.node = nd('=', "=", gpos); return ('='); }
 "("				{ count(); yylval.node = nd('(', "()", gpos); /* Change 'tok' and 'label' depending upon context. */ return ('('); }
 ")"				{ count(); yylval.node = NULL; /* NULL passed since ':' is not useful to parser. BE CAREFUL WHEN PASSING NULL */ return (')'); }
-("["|"<:")		{ count(); yylval.node = nd(SUBSCRIPT, "[]", gpos); return ('['); }
+("["|"<:")		{ count(); yylval.node = nd(SUBSCRIPT, "[]", gpos); cout << gpos.line << ":" << gpos.column << endl; return ('['); }
 ("]"|":>")		{ count(); yylval.node = NULL; /* NULL passed since ']' is not useful to parser. BE CAREFUL WHEN PASSING NULL */ return (']'); }
 "."				{ count(); yylval.node = nd('.', ".", gpos); return ('.'); }
 "&"				{ count(); yylval.node = nd('&', "&", gpos); return ('&'); }

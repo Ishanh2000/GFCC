@@ -1,9 +1,14 @@
-int int x;
-const const int x;
-int newint g;
-newint newint g;
-const static  newint * g;
-int ***(**x);
+// int int x;
+// const const int x;
+// int newint g;
+// newint newint g;
+// const static  newint * g;
+// int ***(**x);
+
+// int *const const *volatile volatile f;
+
+int **** (*x)[5][][6]; // PTR >> ARR >> BASE
+
 // int main(){
 //     char f = 's', m;
 //     long  long long *****(***x)[](int*);

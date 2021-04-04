@@ -251,6 +251,52 @@ class Type *clone(class Type *t) {
 }
 
 
+/*************************************************/
+/****************** TAIL FINDER ******************/
+/*************************************************/
+
+class Type *tail(class Type *t) { // to get tail (last in linked list)
+    if (!t) return NULL;
+    switch (t->grp()) {
+        case BASE_G : return t;
+        case  PTR_G : if (((Ptr *)t)->pt) return tail(((Ptr *)t)->pt); else return t;
+        case  ARR_G : if (((Arr *)t)->item) return tail(((Arr *)t)->item); else return t;
+        case FUNC_G : if (((Func *)t)->retType) return tail(((Func *)t)->retType); else return t;
+    }
+    return t;
+}
+
+class Type *last(class Type *t, grp_t g) { // get last instance of grp type 'g' for linked list 't'. Return NULL is doesn't exist.
+    if (!t) return NULL;
+    Type *found = NULL;
+    while (t) {
+        grp_t cg = t->grp();
+        if (cg == g) found = t;
+        switch (cg) { // now get next of t
+            case NONE_G : case BASE_G : t = NULL; break;
+            case  PTR_G : t = ((Ptr *) t)->pt; break;
+            case  ARR_G : t = ((Arr *) t)->item; break;
+            case FUNC_G : t = ((Func *) t)->retType; break;
+        }
+    }
+    return found;
+}
+
+void heir(class Type* t) {
+    while (t) {
+        switch (t->grp()) {
+            case NONE_G : cout << "NONE_G"; t = NULL; break;
+            case BASE_G : cout << "BASE_G"; t = NULL; break;
+            case  PTR_G : cout <<  "PTR_G"; t = ((Ptr *) t)->pt; break;
+            case  ARR_G : cout <<  "ARR_G"; t = ((Arr *) t)->item; break;
+            case FUNC_G : cout << "FUNC_G"; t = ((Func *) t)->retType; break;
+        }
+        if (t) cout << " >> ";
+    }
+    cout << endl;
+}
+
+
 /************************************************/
 /****************** TEST SUITE ******************/
 /************************************************/
@@ -334,6 +380,7 @@ void testComplex_3() { // int *** (*(*)(char))[]
     Type *t = pf;
     if (t->grp() == PTR_G) testOut("complex_3", str(t));
     testOut("clone_3", str(clone(t)));
+    heir(t);
 }
 
 void testComplex_4() { // int *(*(*(*(*(*(*[])[])[])[])[])[])[]

@@ -108,11 +108,18 @@ class Func : public Type { public :
 };
 
 extern bool brackPut; // signifies whether brackets were put around a declarator earlier
+// brackets have meaning only if pointers are being used - so that binding with pointers can be enforced.
 
 extern bool tpdef; // signifies whether we are using a typedefed definition for a symbol
 
 std::string str(class Type *);
 
 class Type *clone(class Type*);
+
+class Type *tail(class Type *); // to get tail (last in linked list)
+
+class Type *last(class Type *, grp_t); // get last instance of a group in the linked list
+
+void heir(class Type*);
 
 #endif

@@ -541,8 +541,19 @@ type_qualifier
 
 declarator
 	: pointer direct_declarator	{ $$ = op( nd(DECLARATOR, "var", { 0, 0 }), 0, 2, ej($1), ej($2) ); // copy pointers to direct_declarator
-		Ptr *p = (Ptr *)($1->type); p->pt = new Base(INT_B);
-		cout << "test: " << str(p) << endl;
+		Type *t2 = $2->type, *tt = tail(t2);
+		if (!t2) $$->type = $1->type;
+		else {
+			Ptr *dst = (Ptr*)tt, *src = (Ptr*)($1->type); int l = src->ptrs.size();
+			switch (tt->grp()) {
+				case  PTR_G : // merge src->ptrs into dst->ptrs from left
+					for (int i = 0; i < l; i++) dst->ptrs.insert(dst->ptrs.begin(), src->ptrs[l-i-1]);
+					break;
+				case  ARR_G : ((Arr *) tt)->item = $1->type; break;
+				case FUNC_G : ((Func *)tt)->retType = $1->type; break;
+			}
+			$$->type = tt;
+		}
 	}
 	| direct_declarator			{ $$ = $1; }
 	;
@@ -552,11 +563,34 @@ declarator
 // do not lookup variable if in parameter list
 // START HERE
 direct_declarator
-	: IDENTIFIER									{ $$ = $1; }
-	| '(' declarator ')'							{ $$ = $2; }
-	| direct_declarator '[' constant_expression ']'	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); }
-	| direct_declarator '[' ']'						{ $$ = op( $2, 0, 1, ej($1) ); }
-	| direct_declarator '(' parameter_type_list ')'	{ $$ = $1; /* $$ = op( nd(FUNC_PTR, "() [func-ptr]", { 0, 0 }), 0, 2, ej($1), ej($3) ); */ }
+	: IDENTIFIER									{ $$ = $1; } // completed
+	| '(' declarator ')'							{ $$ = $2; brackPut = true; }
+	| direct_declarator '[' constant_expression ']'	{ $$ = op( $2, 0, 2, ej($1), ej($3) );
+		Type *t1 = $1->type, *tt = tail(t1);
+		if (brackPut && tt && (tt->grp() == PTR_G)) { ((Ptr *)tt)->pt = new Arr(NULL, $3); $$->type = t1; }
+		else if (!t1) $$->type = new Arr(NULL, $3);
+		else {
+			Arr *a = (Arr *) last(t1, ARR_G);
+			if (a) { a->newDim($3); $$->type = t1; }
+			else { repErr($1->pos, "function returns an array", _FORE_RED_); $$->type = t1; t1->isErr = true; }
+		}
+		brackPut = false;
+	}
+	| direct_declarator '[' ']'						{ loc_t bra = $2->pos; $$ = op( $2, 0, 1, ej($1) );
+		Type *t1 = $1->type, *tt = tail(t1);
+		if (brackPut && tt && (tt->grp() == PTR_G)) { ((Ptr *)tt)->pt = new Arr(NULL); $$->type = t1; }
+		else if (!t1) $$->type = new Arr(NULL);
+		else {
+			if (last(t1, ARR_G)) {
+				repErr(bra, "incomplete array bound: all bounds except first must be specified", _FORE_RED_);
+				$$->type = t1; t1->isErr = true;
+			}
+			else { repErr($1->pos, "function returns an array", _FORE_RED_); $$->type = t1; t1->isErr = true; }
+		}
+		brackPut = false;
+	}
+	| direct_declarator '(' parameter_type_list ')'	{ $$ = $1; /* $$ = op( nd(FUNC_PTR, "() [func-ptr]", { 0, 0 }), 0, 2, ej($1), ej($3) ); */
+	}
 	| direct_declarator '(' identifier_list ')'	    { $$ = $1; /* $$ = op( nd(FUNC_PTR, "() [func-ptr]", { 0, 0 }), 0, 2, ej($1), ej($3) ); */ }
 	| direct_declarator '(' ')' { $$ = op( $2, 0, 1, ej($1) ); $$->type = $1->type; $$->tok = FUNC_PTR;	$$->label = "() [func-ptr]"; }
 	;
@@ -602,7 +636,7 @@ type_qualifier_list
 parameter_type_list
 	: parameter_list				{ $$ = $1; }
 	| parameter_list ',' ELLIPSIS	{ $$ = op( $1, 0, 1, ej($3) );
-		/* $3->tHead = $3->tTail = new Base(ELLIPSIS_B); */
+		$3->type = new Base(ELLIPSIS_B);
 	}
 	;
 
