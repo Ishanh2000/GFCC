@@ -21,14 +21,23 @@
 // int *(*(*(*(*(*(*f[])[])[])[])[])[])[]; // ARR >> PTR >> ARR >> PTR >> ARR >> PTR >> ARR >> PTR >> ARR >> PTR >> ARR >> PTR >> ARR >> PTR (7)
 // int *** (*(*f)(char))(); // PTR >> FUNC >> PTR >> FUNC >> PTR
 
-int f()();
-int f[]();
-int (f())[], (g[])();
+// int f()();
+// int f[]();
+// int (f())[], (g[])();
 
 // void f(unsigned char a, ...); // FUNC
 // const double ff[][][]; // ARR
 // const int ** const *volatile l; // PTR
 // const unsigned int volatile static;
+
+int main(int ()(), int);
+int main(int [](), int);
+int main(int ()[], int);
+int main(int [][], int);
+int main(int [][78], int);
+int main(int **(*[])[78], void);
+int main(void);
+
 
 // int main(){
 //     char f = 's', m;

@@ -559,21 +559,18 @@ declarator
 	| direct_declarator			{ $$ = $1; }
 	;
 
-// Check existence of "IDENTIFIER" later
-// check whether all bounds given if not in parameter list - declaration level
-// do not lookup variable if in parameter list
-// START HERE
+// not handled array bound "constant_expression" type
 direct_declarator
 	: IDENTIFIER									{ $$ = $1; } // completed
 	| '(' declarator ')'							{ $$ = $2; brackPut = true; }
-	| direct_declarator '[' constant_expression ']'	{ $$ = op( $2, 0, 2, ej($1), ej($3) );
+	| direct_declarator '[' constant_expression ']'	{ loc_t bra = $2->pos; $$ = op( $2, 0, 2, ej($1), ej($3) );
 		Type *t1 = $1->type, *tt = tail(t1);
 		if (brackPut && tt && (tt->grp() == PTR_G)) { ((Ptr *)tt)->pt = new Arr(NULL, $3); $$->type = t1; }
 		else if (!t1) $$->type = new Arr(NULL, $3);
 		else {
 			Arr *a = (Arr *) last(t1, ARR_G);
 			if (a) { a->newDim($3); $$->type = t1; }
-			else { repErr($1->pos, "function returns an array", _FORE_RED_); $$->type = t1; t1->isErr = true; }
+			else { repErr(bra, "function returns an array", _FORE_RED_); $$->type = t1; t1->isErr = true; }
 		}
 		brackPut = false;
 	}
@@ -584,7 +581,7 @@ direct_declarator
 		else if (last(t1, ARR_G)) {
 			repErr(bra, "incomplete array bound: all bounds except first must be specified", _FORE_RED_);
 			$$->type = t1; t1->isErr = true;
-		} else { repErr($1->pos, "function returns an array", _FORE_RED_); $$->type = t1; t1->isErr = true; }
+		} else { repErr(bra, "function returns an array", _FORE_RED_); $$->type = t1; t1->isErr = true; }
 		brackPut = false;
 	}
 	| direct_declarator '(' parameter_type_list ')'	{ loc_t bra = $2->pos; $$ = $1; /* $$ = op( nd(FUNC_PTR, "() [func-ptr]", { 0, 0 }), 0, 2, ej($1), ej($3) ); */
@@ -722,20 +719,101 @@ type_name
 abstract_declarator
 	: pointer                              { $$ = $1; }
 	| direct_abstract_declarator           { $$ = $1; }
-	| pointer direct_abstract_declarator   { $$ = op( nd(ABSTRACT_DECLARATOR, "abst-decl", { 0, 0 }), 0, 2, ej($1), ej($2) ); }
+	| pointer direct_abstract_declarator   { $$ = op( nd(ABSTRACT_DECLARATOR, "abst-decl", { 0, 0 }), 0, 2, ej($1), ej($2) );
+		Type *t2 = $2->type, *tt = tail(t2);
+		if (!t2) $$->type = $1->type;
+		else {
+			Ptr *dst = (Ptr*)tt, *src = (Ptr*)($1->type); int l = src->ptrs.size();
+			switch (tt->grp()) {
+				case  PTR_G : // merge src->ptrs into dst->ptrs from left
+					for (int i = 0; i < l; i++) dst->ptrs.insert(dst->ptrs.begin(), src->ptrs[l-i-1]);
+					break;
+				case  ARR_G : ((Arr *) tt)->item = $1->type; break;
+				case FUNC_G : ((Func *)tt)->retType = $1->type; break;
+			}
+			$$->type = t2; t2->isErr |= $1->type->isErr;
+		}
+	}
 	;
 
-// START HERE
+// not handled array bound "constant_expression" type
 direct_abstract_declarator
-	: '(' abstract_declarator ')'                                { $$ = $2; }
-	| '[' ']'                                                    { $$ = $1; }
-	| '[' constant_expression ']'                                { $$ = op( $1, 0, 1, ej($2)); }
-	| direct_abstract_declarator '[' ']'                         { $$ = op( $2, 0, 1, ej($1) ); }
-	| direct_abstract_declarator '[' constant_expression ']'     { $$ = op( $2, 0, 2, ej($1), ej($3) ); }
-	| '(' ')'                                                    { $1->tok = ABST_DCLN; $1->label = "() abst-dcln"; $$ = $1; }
-	| '(' parameter_type_list ')'                                { $1->tok = ABST_DCLN; $1->label = "() abst-dcln"; $$ = op( $1, 0, 1, ej($2) ); } // ! Will handle
-	| direct_abstract_declarator '(' ')'                         { $2->tok = ABST_DCLN; $2->label = "() abst-dcln"; $$ = op( $2, 0, 1, ej($1) ); }
-	| direct_abstract_declarator '(' parameter_type_list ')'     { $2->tok = ABST_DCLN; $2->label = "() abst-dcln"; $$ = op( $2, 0, 2, ej($1), ej($3) ); }
+	: '(' abstract_declarator ')'                                { $$ = $2; brackPut = true; }
+	| '[' ']'                                                    { $$ = $1; $$->type = new Arr(NULL, NULL); /* neither item nor bound is known */ }
+	| '[' constant_expression ']'                                { $$ = op( $1, 0, 1, ej($2)); $$->type = new Arr(NULL, $2); /* item unknown */ }
+	| direct_abstract_declarator '[' ']'                         { loc_t bra = $2->pos; $$ = op( $2, 0, 1, ej($1) );
+		Type *t1 = $1->type, *tt = tail(t1);
+		if (brackPut && tt && (tt->grp() == PTR_G)) { ((Ptr *)tt)->pt = new Arr(NULL); $$->type = t1; }
+		else if (!t1) $$->type = new Arr(NULL);
+		else if (last(t1, ARR_G)) {
+			repErr(bra, "incomplete array bound: all bounds except first must be specified", _FORE_RED_);
+			$$->type = t1; t1->isErr = true;
+		} else { repErr(bra, "function returns an array", _FORE_RED_); $$->type = t1; t1->isErr = true; }
+		brackPut = false;
+	}
+	| direct_abstract_declarator '[' constant_expression ']'     { loc_t bra = $2->pos; $$ = op( $2, 0, 2, ej($1), ej($3) );
+		Type *t1 = $1->type, *tt = tail(t1);
+		if (brackPut && tt && (tt->grp() == PTR_G)) { ((Ptr *)tt)->pt = new Arr(NULL, $3); $$->type = t1; }
+		else if (!t1) $$->type = new Arr(NULL, $3);
+		else {
+			Arr *a = (Arr *) last(t1, ARR_G);
+			if (a) { a->newDim($3); $$->type = t1; }
+			else { repErr(bra, "function returns an array", _FORE_RED_); $$->type = t1; t1->isErr = true; }
+		}
+		brackPut = false;
+	}
+	| '(' ')'                                                    { $1->tok = ABST_DCLN; $1->label = "() abst-dcln"; $$ = $1;
+		$$->type = new Func(NULL); // function of unknown return type
+	}
+	| '(' parameter_type_list ')'                                { $1->tok = ABST_DCLN; $1->label = "() abst-dcln"; $$ = op( $1, 0, 1, ej($2) );
+		int l = $2->numChild; bool pureVoid = false, argErr = false; vector<class Type *> v;
+		for (int i = 0; i < l; i++) {
+			node_t *ch = $2->ch(i); Type *cht = ch->type; v.push_back(cht);
+			if ( cht && (cht->grp() == BASE_G) && (((Base*)cht)->base == VOID_B) ) { // i-th arg is "void"
+				if (i == 0) { pureVoid = true; continue; }
+				repErr(ch->pos, "\"void\" must be the only argument", _FORE_RED_); argErr = true;
+			}
+		}
+
+		Func *f = new Func(NULL); $$->type = f; f->isErr = argErr;
+		if (!pureVoid) for (int i = 0; i < l; i++) f->params.push_back(clone(v[i]));
+	}
+	| direct_abstract_declarator '(' ')' { loc_t bra = $2->pos; $2->tok = ABST_DCLN; $2->label = "() abst-dcln"; $$ = op( $2, 0, 1, ej($1) );
+		Type *t1 = $1->type, *tt = tail(t1);
+		if (brackPut && tt && (tt->grp() == PTR_G)) { ((Ptr*)tt)->pt = new Func(NULL); $$->type = t1; }
+		else if (!t1) $$->type = new Func(NULL);
+		else if (last(t1, ARR_G)) {
+			repErr(bra, "array of functions", _FORE_RED_); $$->type = t1; t1->isErr = true;
+		} else {
+			repErr(bra, "function returns a function", _FORE_RED_); $$->type = t1; t1->isErr = true;
+		}
+		brackPut = false;
+	}
+	| direct_abstract_declarator '(' parameter_type_list ')' { loc_t bra = $2->pos; $2->tok = ABST_DCLN; $2->label = "() abst-dcln"; $$ = op( $2, 0, 2, ej($1), ej($3) );
+		int l = $3->numChild; bool pureVoid = false, argErr = false; vector<class Type *> v;
+		for (int i = 0; i < l; i++) {
+			node_t *ch = $3->ch(i); Type *cht = ch->type; v.push_back(cht);
+			if ( cht && (cht->grp() == BASE_G) && (((Base*)cht)->base == VOID_B) ) { // i-th arg is "void"
+				if (i == 0) { pureVoid = true; continue; }
+				repErr(ch->pos, "\"void\" must be the only argument", _FORE_RED_); argErr = true;
+			}
+		}
+
+		Type *t1 = $1->type, *tt = tail(t1);
+		if (brackPut && tt && (tt->grp() == PTR_G)) {
+			Func* f = new Func(NULL); ((Ptr*)tt)->pt = f;
+			$$->type = t1; t1->isErr |= argErr;
+			if (! (t1->isErr || pureVoid) ) for (int i = 0; i < l; i++) f->params.push_back(clone(v[i]));
+		} else if (!t1) {
+			Func *f = new Func(NULL); $$->type = f; f->isErr = argErr;
+			if (! ( f->isErr || pureVoid) ) for (int i = 0; i < l; i++) f->params.push_back(clone(v[i]));
+		} else if (last(t1, ARR_G)) {
+			repErr(bra, "array of functions", _FORE_RED_); $$->type = t1; t1->isErr = true;
+		} else {
+			repErr(bra, "function returns a function", _FORE_RED_); $$->type = t1; t1->isErr = true;
+		}
+		brackPut = false;
+	}
 	;
 
 initializer
