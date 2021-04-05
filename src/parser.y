@@ -51,6 +51,9 @@ using namespace std;
 %type <node> translation_unit type_name type_qualifier type_qualifier_list type_specifier
 %type <node> unary_expression unary_operator
 
+// new (copied) introductions
+/* %type <node> declarator */
+
 // Provide types to fixed literals (to avoid warnings)
 %type <node> '(' ')' '[' ']' '{' '}' '+' '-' '=' '*' '/' '%' '&' '~' '!' '>' '<' '|' '^' ',' ';' ':' '.' '?'
 
@@ -230,7 +233,7 @@ constant_expression
 declaration
 	: declaration_specifiers ';' { $$ = NULL; } // do nothing as decl_specs aleardy vallidated
 	| declaration_specifiers init_declarator_list ';' { // start declaring / defining
-		edge_t **ch1 = $1->edges, **ch2 = $2->edges;
+		edge_t **ch2 = $2->edges;
 		int l1 = $1->numChild, l2 = $2->numChild, useful = 0;
 		Type *t1 = $1->type;
 
@@ -722,9 +725,29 @@ parameter_list
 	;
 
 parameter_declaration
-	: declaration_specifiers declarator            { $$ = op( nd(PARAM_DECL, "param-decl", { 0, 0 }), 0, 2, ej($1), ej($2) ); }
-	| declaration_specifiers abstract_declarator   { $$ = op( nd(PARAM_DECL, "param-decl", { 0, 0 }), 0, 2, ej($1), ej($2) ); }
-	| declaration_specifiers                       { $$ = $1; }
+	: declaration_specifiers declarator            { $$ = op( nd(PARAM_DECL, "param-decl", { 0, 0 }), 0, 2, ej($1), ej($2) );
+		Type *t1 = $1->type, *t2 = $2->type, *tt = tail(t2);
+        if (t1->strg != NONE_S) { repErr($1->pos, "storage class specifier given in parameter", _FORE_RED_); t1->isErr = true; }
+        /* node_t *cnode = $2; // "concerned node" - get directly
+        while (cnode->tok != IDENTIFIER) cnode = (cnode->tok == DECLARATOR) ? cnode->ch(1) : cnode = cnode->ch(0); */
+        if ((t1->grp() == BASE_G) && (((Base*)t1)->base == VOID_B)) { // t2's tail must not be array or NULL
+            if (!t2) { repErr($2->pos, "pure \"void\" type given", _FORE_RED_); t2->isErr = true; } // void x;
+            else if (tt->grp() == ARR_G) { repErr($2->pos, "array of \"voids\" given", _FORE_RED_); t2->isErr = true; } // void x[];
+        }
+        $$->type = unify(t1, t2); // Arr >> pointer >> funcs >> ptrs
+	}
+	| declaration_specifiers abstract_declarator   { $$ = op( nd(PARAM_DECL, "param-decl", { 0, 0 }), 0, 2, ej($1), ej($2) );
+		Type *t1 = $1->type, *t2 = $2->type, *tt = tail(t2);
+        if (t1->strg != NONE_S) { repErr($1->pos, "storage class specifier given in parameter", _FORE_RED_); t1->isErr = true; }
+        if ((t1->grp() == BASE_G) && (((Base*)t1)->base == VOID_B)) { // t2's tail must not be array or NULL
+            if (!t2) { repErr($2->pos, "pure \"void\" type given", _FORE_RED_); t2->isErr = true; } // void x;
+            else if (tt->grp() == ARR_G) { repErr($2->pos, "array of \"voids\" given", _FORE_RED_); t2->isErr = true; } // void x[];
+        }
+        $$->type = unify(t1, t2);
+	}
+	| declaration_specifiers                       { $$ = $1;
+        if ($1->type->strg != NONE_S) { repErr($1->pos, "storage class specifier given in parameter", _FORE_RED_); $1->type->isErr = true; }
+	}
 	;
 
 identifier_list

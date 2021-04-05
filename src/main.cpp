@@ -150,7 +150,7 @@ int main (int argc , char *argv[]) {
 			csv_out << csvHeaders << endl << endl; /// CSV HEADERS
 			SymRoot->dump(csv_out);
 		}
-
+		
 		// PREPARE FOR NEXT FILE (ITERATION)
 		in_file.close(); dot_out.close(); csv_out.close();
 		purgeAST(AstRoot); // frees the current AST

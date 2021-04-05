@@ -35,13 +35,14 @@
 
 #include <stdio.h>
 
-void func(int f(), int j) {
+void func(int f(), int j);
+void func(int f(), int j) {{
         f();
-}
+}}
 
-
-int (*F)();
-int (*F)();
+// int (*F)(char t[][45], int c);
+int *F(char t[][45], int c);
+// int (*F)();
 
 //int F() {
 //      return 9;
@@ -58,6 +59,9 @@ const int main() {
         func(&f, 89);
         return 0;
 }
+
+
+int x;
 
 
 // int main() {

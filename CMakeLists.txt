@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.10.2)
 
 project(GFCC VERSION 0.1)
 
+set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_CXX_FLAGS_DEBUG_INIT "-Wall")
+
 configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/src/include/gfcc_meta.h.in
   ${CMAKE_CURRENT_SOURCE_DIR}/src/include/generated/gfcc_meta.h

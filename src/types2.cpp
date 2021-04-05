@@ -111,6 +111,7 @@ static void rm(string &str, const string &a) { // remove all instances of a in s
 
 string str(class Type *t) {
     if (!t) return "";
+
     if (t->isErr) return "error_type";
 
     string str;
@@ -122,7 +123,7 @@ string str(class Type *t) {
         case STATIC_S : str += "static "; break;
         case TYPEDEF_S : str += "typedef "; break;
     }
-    
+
     str += t->_str();
     
     rm(str, "<p>"); rm(str, "<ab>"); rm(str, "<ad>");
@@ -211,7 +212,7 @@ std::string Func::_str() {
 
     string r = "("; int l = params.size();
     for (int i = 0; i < l; i++) {
-        if (i > 0) r += ", "; r += params[i]->_str();
+        if (i > 0) r += ", "; r += params[i] ? (params[i]->_str()) : "<unknown>";
     }
     r += ")";
 
