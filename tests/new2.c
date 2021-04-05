@@ -30,13 +30,49 @@
 // const int ** const *volatile l; // PTR
 // const unsigned int volatile static;
 
-int main(int ()(), int);
-int main(int [](), int);
-int main(int ()[], int);
-int main(int [][], int);
-int main(int [][78], int);
-int main(int **(*[])[78], void);
-int main(void);
+// int main(int);
+// int main(void);
+
+#include <stdio.h>
+
+void func(int f(), int j) {
+        f();
+}
+
+
+int (*F)();
+int (*F)();
+
+//int F() {
+//      return 9;
+//}
+
+int long h;
+long const long k;
+
+const int main() {
+        // goto g;
+        const double d[10][10][10];
+        int f();
+        g :
+        func(&f, 89);
+        return 0;
+}
+
+
+// int main() {
+//     extern int const i;
+//     extern int i;
+//     int x[][45];
+// }
+
+// int main(int ()(), int);
+// int main(int [](), int);
+// int main(int ()[], int);
+// int main(int [][], int);
+// int main(int [][78], int);
+// int main(int **(*[])[78], void);
+// int main(void);
 
 
 // int main(){

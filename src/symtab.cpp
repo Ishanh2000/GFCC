@@ -49,7 +49,7 @@ sym::sym(string _name, class Type* _type, loc_t _pos) : name(_name), type(_type)
 }
 
 void sym::dump(ofstream &f) {
-  f << name << " , " << pos.line << ":" << pos.column << endl; // decode type later on
+  f << name << " , " << pos.line << ":" << pos.column << " \"" << str(type) << "\"" << endl; // decode type later on
 }
 
 /****************************************/

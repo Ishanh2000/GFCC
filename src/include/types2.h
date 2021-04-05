@@ -122,4 +122,10 @@ class Type *last(class Type *, grp_t); // get last instance of a group in the li
 
 void heir(class Type*);
 
+class Type *unify(class Type *, class Type *); // decl_specs with declarator
+
+bool tMatch(class Type *, class Type *); // compatibility under "extern"
+
+bool checkArrDims(class Type *); // recursively check that all array bounds must be present
+
 #endif

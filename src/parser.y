@@ -223,39 +223,56 @@ constant_expression
 /************************************** DECLARATIONS BEGIN **************************************/
 /************************************************************************************************/
 
+// possible to declare a function / function pointer twice - default extern.
+// possible to declare variable twice - under "extern" keyword.
+
 // useless iff NULL
 declaration
-	: declaration_specifiers ';' { $$ = NULL; }
-	| declaration_specifiers init_declarator_list ';' {
+	: declaration_specifiers ';' { $$ = NULL; } // do nothing as decl_specs aleardy vallidated
+	| declaration_specifiers init_declarator_list ';' { // start declaring / defining
 		edge_t **ch1 = $1->edges, **ch2 = $2->edges;
 		int l1 = $1->numChild, l2 = $2->numChild, useful = 0;
-		Type *tp1 = $1->type;
+		Type *t1 = $1->type;
 
 		// single pass over variables
 		for (int i = 0; i < l2; i++) { // first check that there is no var in scope
 			node_t *cnode = $2->ch(i); // "concerned node" - get directly
-			Type *tp2 = cnode->type;
+			Type *t2 = cnode->type;
 
 			// pass down tree $2 until name & position found.
 			if (cnode->tok == '=') { cnode = cnode->ch(0); useful++; } // "init_declarator"
-			heir(cnode->type);
-			/* while (cnode->tok != IDENTIFIER) { // pass down from "direct_declarator"
+			while (cnode->tok != IDENTIFIER) { // pass down from "direct_declarator"
 				if (cnode->tok == DECLARATOR) cnode = cnode->ch(1); // "decl" + rule 2 of "direct_decl"
 				else cnode = cnode->ch(0); // rules 3 - 7 of "direct_decl"
 			} // cnode->tok == IDENTIFIER
 
 			sym* retval = SymRoot->lookup(cnode->label);
-			// TODO: handle "extern"
-			if (retval) {
-				stringstream str1; str1 << "multiple declarations of \"" << cnode->label << "\""; repErr(cnode->pos, str1.str(), _FORE_RED_);
-				repErr(retval->pos, "previous declaration given here...", _FORE_CYAN_);
-				retval->type->base = ERROR_B;
-			} else { // copy tp1 into tp2 (partially), delete tp1 (easier to copy tp1 than tp2).
-				if (tp2->base != ERROR_B) tp2->base = tp1->base;
-				tp2->qual = tp1->qual; tp2->sign = tp1->sign; tp2->strg = tp1->strg;
-				tp2->enumDef = tp1->enumDef; tp2->unionDef = tp1->unionDef; tp2->structDef = tp1->structDef;
-				SymRoot->pushSym(cnode->label, tp2, cnode->pos); // ASUMPTION: success - can check that too
-			} */
+			if (!retval) {
+				Type *tt = tail(t2); // [tt == NULL] iff [t2 == NULL]
+				// good to go - check if void for non-function, non-pointer
+				if ((t1->grp() == BASE_G) && (((Base*)t1)->base == VOID_B)) { // t2's tail must not be array or NULL
+					if (!t2) { repErr(cnode->pos, "pure \"void\" type given", _FORE_RED_); t2->isErr = true; } // void x;
+					else if (tt->grp() == ARR_G) { repErr(cnode->pos, "array of \"voids\" given", _FORE_RED_); t2->isErr = true; } // void x[];
+				}
+				// go over t2 recursively and check that all array bounds must be present
+				Type *ut = unify(t1, t2); grp_t g = ut->grp();
+				if ( (g == FUNC_G) || ( (g == PTR_G) && ((Ptr *)ut)->pt && (((Ptr *)ut)->pt->grp() == FUNC_G) ) )
+				ut->strg = EXTERN_S; // if a function (or a pointer to a function) strg is EXTERN_S
+				if (!checkArrDims(ut)) {
+					repErr(cnode->pos, "array bounds incomplete", _FORE_RED_);
+					ut->isErr = true;
+				}
+				SymRoot->pushSym(cnode->label, ut, cnode->pos);
+
+			} else { // already exists - check if "extern" or a "function"
+				if (retval->type->strg != EXTERN_S) {
+					repErr(cnode->pos, "variable redefined in this scope", _FORE_RED_); continue;
+				}
+				if (!tMatch(retval->type, unify(t1, t2))) { // just check that retval->type matched t1 union t2
+					repErr(cnode->pos, "incompatibe redeclaration", _FORE_RED_);
+					repErr(retval->pos, "previous declaration here ...", _FORE_CYAN_);
+				} else retval->pos = cnode->pos; // update last declaration position
+			}
 		}
 
 		if (useful > 0) {
@@ -267,7 +284,6 @@ declaration
 	}
 	;
 
-// TODO: handle storage class "typedef"
 // A list of three kinds of objects. Also, new child appends to the left.
 declaration_specifiers
 	: storage_class_specifier                        { $$ = op( nd(DECL_SPEC_LIST, "decl-specs", { 0, 0 }), 0, 1, ej($1) );
@@ -377,11 +393,16 @@ init_declarator_list
 	| init_declarator_list ',' init_declarator { $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
-// PARTIALLY DONE - TEST RULE 1
+
 // useless iff NULL
 init_declarator
 	: declarator                 { $$ = $1; brackPut = false; } // handle uselessness at "declaration"
 	| declarator '=' initializer { $$ = op( $2, 0, 2, ej($1), ej($3) ); brackPut = false;
+		Type *t1 = $1->type;
+		if (t1 && (t1->grp() == FUNC_G)) {
+			repErr($2->pos, "function initialized like a variable", _FORE_RED_);
+			t1->isErr = true;
+		}
 		// TODO: Check assignment compatibility of declarator with intializer.
 	}
 	;
@@ -561,7 +582,7 @@ declarator
 
 // not handled array bound "constant_expression" type
 direct_declarator
-	: IDENTIFIER									{ $$ = $1; } // completed
+	: IDENTIFIER									{ $$ = $1; }
 	| '(' declarator ')'							{ $$ = $2; brackPut = true; }
 	| direct_declarator '[' constant_expression ']'	{ loc_t bra = $2->pos; $$ = op( $2, 0, 2, ej($1), ej($3) );
 		Type *t1 = $1->type, *tt = tail(t1);
@@ -905,7 +926,7 @@ iteration_statement
 	;
 
 jump_statement
-	: GOTO IDENTIFIER ';'	{ $$ = op( $1, 0, 1, ej($2) ); }
+	: GOTO IDENTIFIER ';'	{ $$ = op( $1, 0, 1, ej($2) ); } // ignore for now
 	| CONTINUE ';'			{ $$ = $1; }
 	| BREAK ';'				{ $$ = $1; }
 	| RETURN ';'			{ $$ = $1; }

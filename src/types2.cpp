@@ -299,6 +299,79 @@ void heir(class Type* t) {
     cout << endl;
 }
 
+class Type *unify(class Type *t1, class Type *t2) { // decl_specs with declarator
+    if (!(t1 || t2)) return NULL;
+    if (!t2) return t1; // simple case (int x;)
+    if (!t1) return NULL;
+    Type *tt = tail(t2);
+    switch (tt->grp()) {
+        case  PTR_G : ((Ptr *)tt)->pt = clone(t1); break;
+        case  ARR_G : ((Arr *)tt)->item = clone(t1); break;
+        case FUNC_G : ((Func*)tt)->retType = clone(t1); break;
+    }
+    t2->isErr |= t1->isErr; t2->strg = t1->strg;
+    return t2;
+}
+
+bool tMatch(class Type *prev, class Type *curr) {
+    cout << str(prev) << ", " << str(curr) << endl;
+    if (!prev || !curr) return false;
+    if (prev->isErr || curr->isErr) return false;
+
+    while (prev || curr) {
+        if (!prev || !curr) return false;
+        if (prev->isErr || curr->isErr) return false;
+        grp_t g = prev->grp();
+        if (g != curr->grp()) return false;
+        Base *b1, *b2; Ptr *p1, *p2; Arr *a1, *a2; Func *f1, *f2; int l1, l2;
+        switch (g) {
+            case NONE_G : prev = curr = NULL; break;
+            
+            case BASE_G : b1 = (Base *)prev; b2 = (Base *)curr;
+                if ( (b1->base != b2->base) || (b1->sign != b2->sign) || (b1->strg != b2->strg)
+                || (b1->isConst != b2->isConst) || (b1->isVoltl != b2->isVoltl)) return false;
+                prev = curr = NULL; break;
+            
+            case  PTR_G : p1 = (Ptr *)prev; p2 = (Ptr *)curr;
+                l1 = p1->ptrs.size(); l2 = p2->ptrs.size();
+                if (l1 != l2) return false;
+                for (int i = 0; i < l1; i++) {
+                    qual_t q1 = p1->ptrs[i], q2 = p2->ptrs[i];
+                    if ((q1.isConst != q2.isConst) || (q1.isVoltl != q2.isVoltl)) return false;
+                }
+                prev = p1->pt; curr = p2->pt; break;
+
+            case  ARR_G : a1 = (Arr *)prev; a2 = (Arr *)curr;
+                l1 = a1->dims.size(); l2 = a2->dims.size();
+                if (l1 != l2) return false;
+                // check that array bounds must be equal - later
+                prev = ((Arr *)prev)->item; curr = ((Arr *)curr)->item; break;
+
+            case FUNC_G : f1 = (Func*)prev; f2 = (Func*)curr;
+                l1 = f1->params.size(); l2 = f2->params.size();
+                if (l1 != l2) return false;
+                for (int i = 0; i < l1; i++) if (!tMatch(f1->params[i], f2->params[i])) return false;
+                prev = f1->retType; curr = f2->retType; break;
+        }
+    }
+    return true;
+}
+
+bool checkArrDims(class Type *t) { // recursively check that all array bounds must be present
+    if (!t) return true;
+    Arr *a;
+    switch (t->grp()) {
+        case NONE_G : case BASE_G : return true;
+        case PTR_G : t = ((Ptr *)t)->pt; break;
+        case FUNC_G : t = ((Func *)t)->retType; break;
+        case ARR_G : a = (Arr *)t;
+            if (a->dims[0] == NULL) return false;
+        
+            t = a->item; break;
+    }
+    return true;
+}
+
 
 /************************************************/
 /****************** TEST SUITE ******************/

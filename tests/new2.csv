@@ -3,4 +3,11 @@
 NAME , LOCATION
 
 ###### Scope = Global ######,
-newint , 0:0
+newint , 0:0 "typedef int * const *"
+F , 44:7 "extern int (*)()"
+h , 50:10 "long int"
+k , 51:17 "const long long int"
+###### Scope = Global >> _unnamed_0 ######,
+###### Scope = Global >> _unnamed_1 ######,
+d , 55:22 "const double [][][]"
+f , 56:13 "extern int ()()"
