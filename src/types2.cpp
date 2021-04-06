@@ -314,8 +314,14 @@ class Type *unify(class Type *t1, class Type *t2) { // decl_specs with declarato
     return t2;
 }
 
+bool extMatch(class Type *prev, class Type *curr) { // match under "extern"
+    if (!prev || !curr) return false;
+    prev = clone(prev); curr = clone(curr);
+    prev->strg = NONE_S; curr->strg = NONE_S;
+    return tMatch(prev, curr);
+}
+
 bool tMatch(class Type *prev, class Type *curr) {
-    cout << str(prev) << ", " << str(curr) << endl;
     if (!prev || !curr) return false;
     if (prev->isErr || curr->isErr) return false;
 

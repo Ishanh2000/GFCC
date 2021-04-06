@@ -81,4 +81,6 @@ bool acceptType(class Type*); // check validity
 
 extern symRoot *SymRoot;
 
+extern std::vector<sym *>PLB; // parameter lookup buffer
+
 #endif

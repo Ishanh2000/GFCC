@@ -243,18 +243,17 @@ declaration
 			Type *t2 = cnode->type;
 
 			// pass down tree $2 until name & position found.
-			if (cnode->tok == '=') { cnode = cnode->ch(0); useful++; } // "init_declarator"
-			while (cnode->tok != IDENTIFIER) { // pass down from "direct_declarator"
-				if (cnode->tok == DECLARATOR) cnode = cnode->ch(1); // "decl" + rule 2 of "direct_decl"
-				else cnode = cnode->ch(0); // rules 3 - 7 of "direct_decl"
-			} // cnode->tok == IDENTIFIER
+			if (cnode->tok == '=') { cnode = cnode->ch(0); useful++;
+				if (t1->strg == EXTERN_S) repErr($1->pos, "initialized after using \"extern\"", _FORE_RED_);
+			} // "init_declarator"
+			while (cnode->tok != IDENTIFIER) cnode = cnode->ch((cnode->tok == DECLARATOR) ? 1 : 0); // rules of "direct_decl"
 
 			sym* retval = SymRoot->lookup(cnode->label);
 			if (!retval) {
 				Type *tt = tail(t2); // [tt == NULL] iff [t2 == NULL]
 				// good to go - check if void for non-function, non-pointer
 				if ((t1->grp() == BASE_G) && (((Base*)t1)->base == VOID_B)) { // t2's tail must not be array or NULL
-					if (!t2) { repErr(cnode->pos, "pure \"void\" type given", _FORE_RED_); t2->isErr = true; } // void x;
+					if (!t2) { repErr(cnode->pos, "pure \"void\" type given", _FORE_RED_); t1->isErr = true; } // void x;
 					else if (tt->grp() == ARR_G) { repErr(cnode->pos, "array of \"voids\" given", _FORE_RED_); t2->isErr = true; } // void x[];
 				}
 				// go over t2 recursively and check that all array bounds must be present
@@ -268,10 +267,11 @@ declaration
 				SymRoot->pushSym(cnode->label, ut, cnode->pos);
 
 			} else { // already exists - check if "extern" or a "function"
-				if (retval->type->strg != EXTERN_S) {
+				if ((retval->type->strg != EXTERN_S) && (t1->strg != EXTERN_S) && (t2 && (t2->grp() != FUNC_G))) {
 					repErr(cnode->pos, "variable redefined in this scope", _FORE_RED_); continue;
 				}
-				if (!tMatch(retval->type, unify(t1, t2))) { // just check that retval->type matched t1 union t2
+				
+				if (!extMatch(retval->type, unify(t1, t2))) { // just check that retval->type matched t1 union t2
 					repErr(cnode->pos, "incompatibe redeclaration", _FORE_RED_);
 					repErr(retval->pos, "previous declaration here ...", _FORE_CYAN_);
 				} else retval->pos = cnode->pos; // update last declaration position
@@ -608,7 +608,7 @@ direct_declarator
 		} else { repErr(bra, "function returns an array", _FORE_RED_); $$->type = t1; t1->isErr = true; }
 		brackPut = false;
 	}
-	| direct_declarator '(' parameter_type_list ')'	{ loc_t bra = $2->pos; $$ = $1; /* $$ = op( nd(FUNC_PTR, "() [func-ptr]", { 0, 0 }), 0, 2, ej($1), ej($3) ); */
+	| direct_declarator '(' parameter_type_list ')'	{ loc_t bra = $2->pos; /* $$ = $1; */ $$ = op( nd(FUNC_PTR, "() [func-ptr]", { 0, 0 }), 0, 2, ej($1), ej($3) );
 		int l = $3->numChild; bool pureVoid = false, argErr = false; vector<class Type *> v;
 		for (int i = 0; i < l; i++) {
 			node_t *ch = $3->ch(i); Type *cht = ch->type; v.push_back(cht);
@@ -729,7 +729,7 @@ parameter_declaration
 		Type *t1 = $1->type, *t2 = $2->type, *tt = tail(t2);
         if (t1->strg != NONE_S) { repErr($1->pos, "storage class specifier given in parameter", _FORE_RED_); t1->isErr = true; }
         /* node_t *cnode = $2; // "concerned node" - get directly
-        while (cnode->tok != IDENTIFIER) cnode = (cnode->tok == DECLARATOR) ? cnode->ch(1) : cnode = cnode->ch(0); */
+        while (cnode->tok != IDENTIFIER) cnode = cnode->ch((cnode->tok == DECLARATOR) ? 1 : 0); */
         if ((t1->grp() == BASE_G) && (((Base*)t1)->base == VOID_B)) { // t2's tail must not be array or NULL
             if (!t2) { repErr($2->pos, "pure \"void\" type given", _FORE_RED_); t2->isErr = true; } // void x;
             else if (tt->grp() == ARR_G) { repErr($2->pos, "array of \"voids\" given", _FORE_RED_); t2->isErr = true; } // void x[];
@@ -978,7 +978,42 @@ function_definition
 		? op( nd(FUNC_DEF, "function_definition", { 0, 0 }), 0, 3, ej($2), ej($3), ej($4) )
 		: op( nd(FUNC_DEF, "function_definition", { 0, 0 }), 0, 2, ej($2), ej($4) );
 	}
-	| declaration_specifiers declarator compound_statement { $$ = op( nd(FUNC_DEF, "function_definition", { 0, 0 }), 0, 2, ej($2), ej($3)); }
+	| declaration_specifiers declarator { // will not work for STATIC functions defined later
+		// t1 - must not take some values, take care of STATIC_S too.
+		// t2 - FUNC_G, function parameters must not be abstract (but not recursively)
+		// unify t1 and t2. Get decl's identifier name - must not be already defined
+		Type *t1 = $1->type, *t2 = $2->type; strg_t s1 = t1->strg; bool _good = false;
+		if (s1 == AUTO_S || s1 == REGISTER_S || s1 == TYPEDEF_S) {
+			repErr($1->pos, "incompatible storage class specifier for function definition", _FORE_RED_);
+		} else if (!t2 || (t2->grp() != FUNC_G)) repErr($2->pos, "variable defined like a function", _FORE_RED_);
+		else { // assume params are not abstract for now
+			Type *ut = unify(t1, t2);
+			node_t *cnode = $2; while (cnode->tok != IDENTIFIER) cnode = cnode->ch((cnode->tok == DECLARATOR) ? 1 : 0);
+			sym *ret = SymRoot->gLookup(cnode->label);
+			if (ret) {
+				if (ret->type->strg != EXTERN_S) {
+					repErr(cnode->pos, "function redefinition", _FORE_RED_);
+					repErr(ret->pos, "previous definition given here", _FORE_CYAN_);
+				} else if (!extMatch(ret->type, ut)) {
+					repErr($2->pos, "definition does not match previous declaration", _FORE_RED_);
+					repErr(ret->pos, "previous declaration given here", _FORE_CYAN_);
+				} else { ret->type->strg = NONE_S; ret->pos = cnode->pos; _good = true; }
+			} else { SymRoot->pushSym(cnode->label, ut, cnode->pos); _good = true; } // good to go
+			
+			if (_good) { // works for simple functions ans function params only - do not use a complicated declarator (like function pointers)
+				SymRoot->newScope(); Func *f = (Func *)t2; int l = f->params.size();
+				node_t *cnode = $2;
+				if (cnode->tok == DECLARATOR) cnode = cnode->ch(1);
+				cnode = cnode->ch(1); // cnode->tok = PARAM_TYPE_LIST
+				/* cout << cnode->numChild << ", " << l << endl; */
+				for (int i = 0; i < l; i++) {
+					node_t * x = cnode->ch(i)->ch(1); // x now similar to "declarator" ($2)					
+					while (x->tok != IDENTIFIER) x = x->ch((x->tok== DECLARATOR) ? 1 : 0);
+					SymRoot->pushSym(x->label, f->params[i], x->pos);
+				}
+			}
+		}
+	} compound_statement { $$ = op( nd(FUNC_DEF, "function_definition", { 0, 0 }), 0, 2, ej($2), ej($4)); SymRoot->closeScope(); }
 	| declarator declaration_list compound_statement {
 		$$ = ($2)
 		? op( nd(FUNC_DEF, "function_definition", { 0, 0 }), 0, 3, ej($1), ej($2), ej($3) )

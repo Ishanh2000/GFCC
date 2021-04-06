@@ -35,62 +35,78 @@
 
 #include <stdio.h>
 
-void func(int f(), int j);
-void func(int f(), int j) {{
-        f();
-}}
-
-// int (*F)(char t[][45], int c);
-int *F(char t[][45], int c);
-// int (*F)();
-
-//int F() {
-//      return 9;
-//}
-
-int long h;
-long const long k;
-
-const int main() {
-        // goto g;
-        const double d[10][10][10];
-        int f();
-        g :
-        func(&f, 89);
+int x (void * x) {
         return 0;
 }
 
 
-int x;
+void func(int f, int j, char **x) {
+        f+j;
+}
+// // int (*F)(char t[][45], int c);
+// int *F(char t[][45], int c);
+// // int (*F)();
+
+// //int F() {
+// //      return 9;
+// //}
+
+// int long h;
+// long const long k;
+
+// const int main(void);
+// const int main() {
+//         // goto g;
+//         const double d[10][10][10];
+//         int f();
+
+//         extern int lp;
+//         int lp;
+//         extern int lp;
 
 
-// int main() {
-//     extern int const i;
-//     extern int i;
-//     int x[][45];
+//         // g :
+//         func(&f, 89);
+
+
+        
+        
+
+
+//         return 0;
 // }
 
-// int main(int ()(), int);
-// int main(int [](), int);
-// int main(int ()[], int);
-// int main(int [][], int);
-// int main(int [][78], int);
-// int main(int **(*[])[78], void);
-// int main(void);
+
+// int x;
 
 
-// int main(){
-//     char f = 's', m;
-//     long  long long *****(***x)[](int*);
-//     // int *const volatile* volatile volatile d()[2];
-//     // int a;
-//     // int a,b;
-//     int (*f)(int, char) = func;
-//     // {
-//         int f = 0;
-//     // }
+// // int main() {
+// //     extern int const i;
+// //     extern int i;
+// //     int x[][45];
+// // }
+
+// // int main(int ()(), int);
+// // int main(int [](), int);
+// // int main(int ()[], int);
+// // int main(int [][], int);
+// // int main(int [][78], int);
+// // int main(int **(*[])[78], void);
+// // int main(void);
+
+
+// // int main(){
+// //     char f = 's', m;
+// //     long  long long *****(***x)[](int*);
+// //     // int *const volatile* volatile volatile d()[2];
+// //     // int a;
+// //     // int a,b;
+// //     int (*f)(int, char) = func;
+// //     // {
+// //         int f = 0;
+// //     // }
     
-// }
+// // }
 
-// int func(...) { }
-// int (*f)(void, void);
+// // int func(...) { }
+// // int (*f)(void, void);

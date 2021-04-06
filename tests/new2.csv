@@ -4,13 +4,13 @@ NAME , LOCATION
 
 ###### Scope = Global ######,
 newint , 0:0 "typedef int * const *"
-func , 38:6 "extern void ()(int ()(), int)"
-F , 44:6 "extern int *()(char [][], int)"
-h , 51:10 "long int"
-k , 52:17 "const long long int"
-x , 64:5 "int"
 ###### Scope = Global >> _unnamed_0 ######,
+x , 38:5 "int ()(void *)"
 ###### Scope = Global >> _unnamed_0 >> _unnamed_0 ######,
+x , 38:15 "void *"
 ###### Scope = Global >> _unnamed_1 ######,
-d , 56:22 "const double [][][]"
-f , 57:13 "extern int ()()"
+func , 43:6 "void ()(int, int, char **)"
+###### Scope = Global >> _unnamed_1 >> _unnamed_0 ######,
+f , 43:15 "int"
+j , 43:22 "int"
+x , 43:32 "char **"

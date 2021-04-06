@@ -2,6 +2,7 @@
 #include <cstring>
 #include <iostream>
 #include <fstream>
+#include <vector>
 
 #include <parser.tab.h>
 #include <gfcc_lexer.h>
@@ -23,6 +24,7 @@ ull_t currNumNodes = 0; // invariant: currNumNodes > 0 for all existing nodes.
 node_t* AstRoot = NULL;
 char * fileName = NULL;
 symRoot *SymRoot = NULL;
+vector<sym *>PLB; // parameter lookup buffer
 vector<unsigned int> offsets; // line i starts at offsets[i-1]
 ifstream in_file;
 
@@ -127,7 +129,7 @@ int main (int argc , char *argv[]) {
 
 		// PostScript OK. Try to adjust for actual PDF (although not required).
 
-		SymRoot = new symRoot();
+		SymRoot = new symRoot(); 
 		// int *const *
 		Base *b = new Base(INT_B);
 		Ptr *p = new Ptr(b, true, false); p->newPtr();
@@ -155,6 +157,7 @@ int main (int argc , char *argv[]) {
 		in_file.close(); dot_out.close(); csv_out.close();
 		purgeAST(AstRoot); // frees the current AST
 		delete SymRoot; // frees the current symbol tables
+		PLB.clear(); // clear the parameter lookup buffer
 		column = 1; gpos = { 1, 1 }; offsets.clear();
 		temp_out = NULL; // reset for next file
 		// reset any flags

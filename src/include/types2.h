@@ -124,6 +124,8 @@ void heir(class Type*);
 
 class Type *unify(class Type *, class Type *); // decl_specs with declarator
 
+bool extMatch(class Type *prev, class Type *curr); // match under "extern"
+
 bool tMatch(class Type *, class Type *); // compatibility under "extern"
 
 bool checkArrDims(class Type *); // recursively check that all array bounds must be present
