@@ -4,13 +4,11 @@ NAME , LOCATION
 
 ###### Scope = Global ######,
 newint , 0:0 "typedef int * const *"
+x , 40:5 "int ()()"
+func , 54:6 "void ()(int, int, char **)"
 ###### Scope = Global >> _unnamed_0 ######,
-x , 38:5 "int ()(void *)"
-###### Scope = Global >> _unnamed_0 >> _unnamed_0 ######,
-x , 38:15 "void *"
 ###### Scope = Global >> _unnamed_1 ######,
-func , 43:6 "void ()(int, int, char **)"
-###### Scope = Global >> _unnamed_1 >> _unnamed_0 ######,
-f , 43:15 "int"
-j , 43:22 "int"
-x , 43:32 "char **"
+###### Scope = Global >> _unnamed_2 ######,
+f , 54:15 "int"
+j , 54:22 "int"
+x , 54:32 "char **"
