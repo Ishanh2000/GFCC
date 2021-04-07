@@ -132,9 +132,9 @@ cast_expression
 
 multiplicative_expression
 	: cast_expression { $$ = $1; }
-	| multiplicative_expression '*' cast_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); }
-	| multiplicative_expression '/' cast_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); }
-	| multiplicative_expression '%' cast_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); }
+	| multiplicative_expression '*' cast_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('*', $1, $3);}
+	| multiplicative_expression '/' cast_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('/', $1, $3);}
+	| multiplicative_expression '%' cast_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('%', $1, $3);}
 	;
 
 additive_expression
@@ -145,14 +145,14 @@ additive_expression
 
 shift_expression
 	: additive_expression { $$ = $1; }
-	| shift_expression LEFT_OP additive_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); }
-	| shift_expression RIGHT_OP additive_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); }
+	| shift_expression LEFT_OP additive_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('a', $1, $3);}
+	| shift_expression RIGHT_OP additive_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('b', $1, $3);}
 	;
 
 relational_expression
 	: shift_expression { $$ = $1; }
-	| relational_expression '<' shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); }
-	| relational_expression '>' shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); }
+	| relational_expression '<' shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) );  $$->type = bin('<', $1, $3);}
+	| relational_expression '>' shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) );  $$->type = bin('>', $1, $3);}
 	| relational_expression LE_OP shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); }
 	| relational_expression GE_OP shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); }
 	;
@@ -165,17 +165,17 @@ equality_expression
 
 and_expression
 	: equality_expression { $$ = $1; }
-	| and_expression '&' equality_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); }
+	| and_expression '&' equality_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('&', $1, $3); }
 	;
 
 exclusive_or_expression
 	: and_expression { $$ = $1; }
-	| exclusive_or_expression '^' and_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); }
+	| exclusive_or_expression '^' and_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('^', $1, $3); }
 	;
 
 inclusive_or_expression
 	: exclusive_or_expression { $$ = $1; }
-	| inclusive_or_expression '|' exclusive_or_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); }
+	| inclusive_or_expression '|' exclusive_or_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('|', $1, $3); }
 	;
 
 logical_and_expression
