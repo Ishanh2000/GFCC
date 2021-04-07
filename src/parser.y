@@ -13,6 +13,7 @@
 #include <symtab.h>
 #include <types2.h>
 #include <typo.h>
+#include <ops.h>
 
 using namespace std;
 
@@ -66,6 +67,7 @@ using namespace std;
 /************************************** EXPRESSIONS BEGIN **************************************/
 /***********************************************************************************************/
 
+// done
 primary_expression
 	: IDENTIFIER			{ $$ = $1;
 		sym* ret = SymRoot->gLookup($1->label);
@@ -97,6 +99,7 @@ postfix_expression
 	| postfix_expression DEC_OP								{ $$ = op( $2, 0, 1, ej($1) ); }
 	;
 
+// nothing to do
 argument_expression_list
 	: assignment_expression									{ $$ = op( nd(ARG_EXPR_LIST, "arg-expr-list", { 0, 0 }), 0, 1, ej($1) ); }
 	| argument_expression_list ',' assignment_expression	{ $$ = op( $1, 0, 1, ej($3) ); }
@@ -136,8 +139,8 @@ multiplicative_expression
 
 additive_expression
 	: multiplicative_expression { $$ = $1; }
-	| additive_expression '+' multiplicative_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); /*$$->type = bin('+', $1, $3);*/ }
-	| additive_expression '-' multiplicative_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); /*$$->type = bin('-', $1, $3);*/ }
+	| additive_expression '+' multiplicative_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('+', $1, $3); }
+	| additive_expression '-' multiplicative_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('-', $1, $3); }
 	;
 
 shift_expression
@@ -217,6 +220,7 @@ expression
 	| expression ',' assignment_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); }
 	;
 
+// nothing to do
 constant_expression
 	: conditional_expression { $$ = $1; }
 	;
