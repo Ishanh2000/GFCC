@@ -33,27 +33,27 @@
 // int main(int);
 // int main(void);
 
-#include <stdio.h>
+// #include <stdio.h>
 
 
 
-int x (void x) {
-        x;
-        return 0;
-}
-char x;
-int x;
+// int x (void x) {
+//         x;
+//         return 0;
+// }
+// char x;
+// int x;
 
 
-int x (void * x) {
-        return 0;
-}
+// int x (void * x) {
+//         return 0;
+// }
 
 
 
-void func(int f, int j, char **x) {
-        f+j+k;
-}
+// void func(int f, int j, char **x) {
+//         f+j+k;
+// }
 // // int (*F)(char t[][45], int c);
 // int *F(char t[][45], int c);
 // // int (*F)();

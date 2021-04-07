@@ -60,8 +60,7 @@ class Base : public Type { public :
     bool isConst = false;
     bool isVoltl = false;
     // void* enumDef; // deal later
-	// void* unionDef; // deal later
-	// void* structDef; // deal later
+	class symtab* subDef = NULL; // struct or union subscope
 
     Base ();
     Base (base_t);

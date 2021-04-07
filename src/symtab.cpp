@@ -9,6 +9,7 @@
 ************************************************************************/
 
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -28,7 +29,7 @@ typedef unsigned long int ull;
 
 using namespace std;
 
-string csvHeaders = "NAME , LOCATION";
+string csvHeaders = "NAME, LOCATION, TYPE";
 
 bool acceptType(class Type* type) {
   // analyze type properly. eg: return 0 if "auto static int"
@@ -49,7 +50,9 @@ sym::sym(string _name, class Type* _type, loc_t _pos) : name(_name), type(_type)
 }
 
 void sym::dump(ofstream &f) {
-  f << name << " , " << pos.line << ":" << pos.column << " \"" << str(type) << "\"" << endl; // decode type later on
+  f << setw(10) << name << ", ";
+  f << setw(3) << pos.line << " : " << setw(3) << pos.column << ", ";
+  f << " \"" << str(type) << "\"" << endl; // decode type later on
 }
 
 /****************************************/
@@ -103,13 +106,15 @@ bool symtab::pushSym(string _name, class Type* _type, loc_t _pos) {
 }
 
 void symtab::dump(ofstream &f, string scopePath) {
-  f << "###### Scope = " << scopePath << name << " ######," << endl;
+  f << "############ Scope = " << scopePath << name << " ############," << endl;
   
   // First print symbols, then scopes; just a random decision.
   // CAUTION: Will NOT reflect the history of symbols in CSV file.
   int l1 = syms.size(), l2 = subScopes.size();
   for (int i = 0; i < l1; i++) syms[i]->dump(f); // ASSUMPTION: none is NULL
-  for (int i = 0; i < l2; i++) subScopes[i]->dump(f, scopePath + name + " >> "); // ASSUMPTION: none is NULL  
+  f << endl;
+  for (int i = 0; i < l2; i++) subScopes[i]->dump(f, scopePath + name + " >> "); // ASSUMPTION: none is NULL
+  
 }
 
 

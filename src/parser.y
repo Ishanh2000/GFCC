@@ -91,8 +91,8 @@ postfix_expression
 		$2->tok = FUNC_CALL; $2->label = "() [func-call]"; $2->attr = func_call_attr;
 		$$ = op( $2, 0, 2, ej($1), ej($3) );
 	}
-	| postfix_expression '.' IDENTIFIER						{ $$ = op( $2, 0, 2, ej($1), ej($3) ); }
-	| postfix_expression PTR_OP IDENTIFIER					{ $$ = op( $2, 0, 2, ej($1), ej($3) ); }
+	| postfix_expression '.' IDENTIFIER						{ $$ = op( $2, 0, 2, ej($1), ej($3) ); } // search for definition by name of "struct|union _abc"
+	| postfix_expression PTR_OP IDENTIFIER					{ $$ = op( $2, 0, 2, ej($1), ej($3) ); } // search for definition by name of "struct|union _abc"
 	| postfix_expression INC_OP								{ $$ = op( $2, 0, 1, ej($1) ); }
 	| postfix_expression DEC_OP								{ $$ = op( $2, 0, 1, ej($1) ); }
 	;
@@ -136,8 +136,8 @@ multiplicative_expression
 
 additive_expression
 	: multiplicative_expression { $$ = $1; }
-	| additive_expression '+' multiplicative_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); }
-	| additive_expression '-' multiplicative_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); }
+	| additive_expression '+' multiplicative_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); /*$$->type = bin('+', $1, $3);*/ }
+	| additive_expression '-' multiplicative_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); /*$$->type = bin('-', $1, $3);*/ }
 	;
 
 shift_expression
@@ -256,13 +256,20 @@ declaration
 					if (!t2) { repErr(cnode->pos, "pure \"void\" type given", _FORE_RED_); t1->isErr = true; } // void x;
 					else if (tt->grp() == ARR_G) { repErr(cnode->pos, "array of \"voids\" given", _FORE_RED_); t2->isErr = true; } // void x[];
 				}
-				// go over t2 recursively and check that all array bounds must be present
 				Type *ut = unify(t1, t2); grp_t g = ut->grp();
 				if ( (g == FUNC_G) || ( (g == PTR_G) && ((Ptr *)ut)->pt && (((Ptr *)ut)->pt->grp() == FUNC_G) ) )
 				ut->strg = EXTERN_S; // if a function (or a pointer to a function) strg is EXTERN_S
-				if (!checkArrDims(ut)) {
+				if (!checkArrDims(ut)) { // go over t2 recursively and check that all array bounds must be present
 					repErr(cnode->pos, "array bounds incomplete", _FORE_RED_);
 					ut->isErr = true;
+				}
+				if (t1->grp() == BASE_G) { // if struct or union and not defined, check that the declarator has pointer tail - else generate error.
+					Base *_b = (Base *) t1;
+					if ( ((_b->base == STRUCT_B) || (_b->base == UNION_B)) && !(_b->subDef->syms.size())) {
+						if (!tt || (tt->grp() != PTR_G)) {
+							repErr(cnode->pos, "struct / union not yet defined", _FORE_RED_); continue; // should we continue? or must set isErr = true?
+						}
+					}
 				}
 				SymRoot->pushSym(cnode->label, ut, cnode->pos);
 
@@ -323,8 +330,7 @@ declaration_specifiers
 			case      LONG : b = new Base(LONG_B); break;
 			case     FLOAT : b = new Base(FLOAT_B); break;
 			case    DOUBLE : b = new Base(DOUBLE_B); break;
-			case    STRUCT : b = new Base(STRUCT_B); break;
-			case     UNION : b = new Base(UNION_B); break;
+			case    STRUCT : case UNION : b = $1->type; break;
 			case      ENUM : b = new Base(ENUM_B); break;
 			case    SIGNED : b = new Base(); ((Base *)b)->sign = SIGNED_X; break; // sign changes, not type (type may be decided later)
 			case  UNSIGNED : b = new Base(); ((Base *)b)->sign = UNSIGNED_X; break; // sign changes, not type (type may be decided later)
@@ -352,8 +358,8 @@ declaration_specifiers
 					case DOUBLE : if (!isSpec) b->base = DOUBLE_B; else if (base == LONG_B) b->base = LONG_DOUBLE_B; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
 					case SIGNED : if (!signGiven && (base == CHAR_B || base == SHORT_B || base == INT_B || base == LONG_B || base == LONG_LONG_B)) b->sign = SIGNED_X; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
 					case UNSIGNED : if (!signGiven && (base == CHAR_B || base == SHORT_B || base == INT_B || base == LONG_B || base == LONG_LONG_B)) b->sign = UNSIGNED_X; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
-					case STRUCT : if (!isSpec) b->base = STRUCT_B; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
-					case UNION : if (!isSpec) b->base = UNION_B; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
+					case STRUCT : if (!isSpec) { b->base = STRUCT_B; b->subDef = ((Base *)($1->type))->subDef; } else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
+					case UNION : if (!isSpec) { b->base = UNION_B; b->subDef = ((Base *)($1->type))->subDef; } else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
 					case ENUM : if (!isSpec) b->base = ENUM_B; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; }
 				}
 			} else { // typedef that is not a simple type
@@ -434,10 +440,77 @@ type_specifier
 	| TYPE_NAME						{ $$ = $1; }
 	;
 
+	/* {
+		int x;
+		struct x var;
+		var.k
+		struct x { int i; } v1;
+		struct x { int i; int j; } v1;
+
+	} */
+
 struct_or_union_specifier
-	: struct_or_union IDENTIFIER '{' struct_declaration_list '}' { $$ = op( $1, 0, 2, ej($2), ej($4) ); }
-	| struct_or_union '{' struct_declaration_list '}'            { $$ = op( $1, 0, 1, ej($3) ); }
-	| struct_or_union IDENTIFIER                                 { $$ = op( $1, 0, 1, ej($2) ); }
+	: struct_or_union IDENTIFIER '{' struct_declaration_list '}' { $$ = op( $1, 0, 2, ej($2), ej($4) );
+		SymRoot->currScope->name = $2->label;
+		SymRoot->closeScope();
+		// check if there exists a "defined" struct using lookup
+		// if yes, generate error - duplicate definition
+		// else go just like rule 2, but also insert a struct definition in current scope.
+		sym *ret = SymRoot->lookup(string(($1->tok == STRUCT) ? "struct " : "union ") + $2->label);
+		bool _good = true;
+		if (ret) {
+			Type *rt = ret->type;
+			if (rt && (rt->grp() == BASE_G)) {
+				Base *rb = (Base *) rt;
+				if (((rb->base == STRUCT_B) || (rb->base == UNION_B)) && (rb->subDef->syms.size())) {
+					repErr($2->pos, "redefinition of struct / union (will default to type \"error_type\")", _FORE_RED_);
+					repErr(ret->pos, "previous definition given here", _FORE_CYAN_);
+					_good = false;
+				}
+			}
+		}
+
+		if (_good) {
+			Base *b = new Base(($1->tok == STRUCT) ? STRUCT_B : UNION_B);
+			b->subDef = SymRoot->currScope->subScopes.back();
+			$$->type = clone(b);
+			SymRoot->currScope->subScopes.pop_back();
+			SymRoot->pushSym(string(($1->tok == STRUCT) ? "struct " : "union ") + $2->label, b, $2->pos);
+		} else {
+			SymRoot->currScope->subScopes.pop_back();
+			Base *b = new Base(INT_B); b->isErr = true; // we must send something up the tree - even if erroneous
+			$$->type = clone(b);
+		}
+	}
+	| struct_or_union '{' struct_declaration_list '}'            { $$ = op( $1, 0, 1, ej($3) );
+		Base *b = new Base(($1->tok == STRUCT) ? STRUCT_B : UNION_B);
+		b->subDef = SymRoot->currScope;
+		$$->type = clone(b);
+		SymRoot->closeScope();
+		SymRoot->currScope->subScopes.pop_back();
+	}
+	| struct_or_union IDENTIFIER                                 { $$ = op( $1, 0, 1, ej($2) );
+		// check if there exists a "defined" struct using gLookup
+		// if yes, $$->type = clone of the returned lookup type
+		// else just insert a new Base() with subDef = NULL
+		sym *ret = SymRoot->gLookup(string(($1->tok == STRUCT) ? "struct " : "union ") + $2->label); bool defExists = false;
+		if (ret) {
+			Type* rt = ret->type;
+			if (rt && (rt->grp() == BASE_G)) {
+				Base *rb = (Base *) rt;
+				if ( ((rb->base == STRUCT_B) || (rb->base == UNION_B)) && (rb->subDef->syms.size()) ) {
+					$$->type = clone(ret->type); defExists = true;
+				}
+			}
+		}
+
+		if (!defExists) {
+			Base *b = new Base(($1->tok == STRUCT) ? STRUCT_B : UNION_B);
+			b->subDef = new symtab($2->label);
+			$$->type = clone(b);
+			SymRoot->pushSym(string(($1->tok == STRUCT) ? "struct " : "union ") + $2->label, b, $2->pos);
+		}
+	}
 	;
 
 struct_or_union
@@ -451,7 +524,32 @@ struct_declaration_list
 	;
 
 struct_declaration
-	: specifier_qualifier_list struct_declarator_list ';' { $$ = op( nd(STRUCT_MEMBER, "member", { 0, 0 }), 0, 2, ej($1), ej($2) ); }
+	: specifier_qualifier_list struct_declarator_list ';' { $$ = op( nd(STRUCT_MEMBER, "member", { 0, 0 }), 0, 2, ej($1), ej($2) );
+		Type *t1 = $1->type; int l = $2->numChild;
+		// assume new scope already opened.
+		for (int i = 0; i < l; i++) {
+			node_t *cnode = $2->ch(i); // a declarator
+			Type *t2 = cnode->type;
+
+			while (cnode->tok != IDENTIFIER) cnode = cnode->ch((cnode->tok == DECLARATOR) ? 1 : 0); // rules of "direct_decl"
+
+			sym* retval = SymRoot->lookup(cnode->label);
+			if (retval) repErr(cnode->pos, "variable redefined in this struct / union", _FORE_RED_); // already exists
+			else {
+				Type *tt = tail(t2); // [tt == NULL] iff [t2 == NULL]
+				// check for void
+				if ((t1->grp() == BASE_G) && (((Base*)t1)->base == VOID_B)) { // t2's tail must not be array or NULL
+					if (!t2) { repErr(cnode->pos, "pure \"void\" type given", _FORE_RED_); t1->isErr = true; } // void x;
+					else if (tt->grp() == ARR_G) { repErr(cnode->pos, "array of \"voids\" given", _FORE_RED_); t2->isErr = true; } // void x[];
+				}
+				Type *ut = unify(t1, t2);
+				if (!checkArrDims(ut)) { // go over t2 recursively and check that all array bounds must be present
+					repErr(cnode->pos, "array bounds incomplete", _FORE_RED_); ut->isErr = true;
+				}
+				SymRoot->pushSym(cnode->label, ut, cnode->pos);
+			} 
+		}
+	}
 	;
 
 specifier_qualifier_list
@@ -537,10 +635,11 @@ struct_declarator_list
 	| struct_declarator_list ',' struct_declarator { $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
+// assume only rule 1 is used.
 struct_declarator
-	: declarator              { $$ = $1; }
-	| ':' constant_expression { $$ = $2; }
-	| declarator ':' constant_expression { $$ = op( nd(STRUCT_DECL, "declarator", { 0, 0 }), 0, 2, ej($1), ej($3) ); }
+	: declarator              { $$ = $1; } // nothing to do
+	| ':' constant_expression { $$ = $2; } // TODO : handle later - when time permits
+	| declarator ':' constant_expression { $$ = op( nd(STRUCT_DECL, "declarator", { 0, 0 }), 0, 2, ej($1), ej($3) ); } // TODO : handle later - when time permits
 	;
 
 enum_specifier
@@ -998,7 +1097,11 @@ function_definition
 					repErr($2->pos, "definition does not match previous declaration", _FORE_RED_);
 					repErr(ret->pos, "previous declaration given here", _FORE_CYAN_);
 				} else { ret->type->strg = NONE_S; ret->pos = cnode->pos; _good = true; }
-			} else { SymRoot->currScope->parent->pushSym(cnode->label, ut, cnode->pos); _good = true; } // good to go
+			} else { // good to go
+				SymRoot->currScope->parent->pushSym(cnode->label, ut, cnode->pos);
+				SymRoot->currScope->name = string("func ") + cnode->label;
+				_good = true;
+			}
 			
 			if (_good) { // works for simple functions ans function params only - do not use a complicated declarator (like function pointers)
 				Func *f = (Func *)t2; int l = f->params.size();
@@ -1033,7 +1136,11 @@ function_definition
 					repErr($1->pos, "definition does not match previous declaration", _FORE_RED_);
 					repErr(ret->pos, "previous declaration given here", _FORE_CYAN_);
 				} else { ret->type->strg = NONE_S; ret->pos = cnode->pos; _good = true; }
-			} else { SymRoot->currScope->parent->pushSym(cnode->label, ut, cnode->pos); _good = true; } // good to go
+			} else { // good to go
+				SymRoot->currScope->parent->pushSym(cnode->label, ut, cnode->pos);
+				SymRoot->currScope->name = string("func ") + cnode->label;
+				_good = true;
+			}
 			
 			if (_good) { // works for simple functions ans function params only - do not use a complicated declarator (like function pointers)
 				Func *f = (Func *)t2; int l = f->params.size();

@@ -14,6 +14,7 @@
 
 #include <gfcc_colors.h>
 #include <types2.h>
+#include <symtab.h>
 
 // debugging does not work as of yet - actually not required
 #ifdef DEBUG_TYPES_2
@@ -152,7 +153,7 @@ string Base::_str() {
         case SIGNED_X : sv.push_back("signed"); break;
         case UNSIGNED_X : sv.push_back("unsigned"); break;
     }
-    
+    string tmp; int _l;
     switch (base) {
         case VOID_B : sv.push_back("void"); break;
         case CHAR_B : sv.push_back("char"); break;
@@ -164,8 +165,21 @@ string Base::_str() {
         case DOUBLE_B : sv.push_back("double"); break;
         case LONG_DOUBLE_B : sv.push_back("long double"); break;
         // case ENUM_B : sv.push_back("enum"); break;
-        // case STRUCT_B : sv.push_back("struct"); break;
-        // case UNION_B : sv.push_back("union"); break;
+        case STRUCT_B : case UNION_B :
+            tmp = tmp + ((base == STRUCT_B) ? "struct " : "union ") + subDef->name;
+            if (subDef->syms.size()) {
+                tmp += " { ";
+                _l = subDef->syms.size();
+                for (int i = 0; i < _l; i++) {
+                    if (i) tmp += ", ";
+                    tmp += subDef->syms[i]->name + " [" + str(subDef->syms[i]->type) + "]";
+                }
+                tmp += " }";
+            } else tmp += " <not yet defined>";
+
+
+            sv.push_back(tmp);
+            break;
         case ELLIPSIS_B : sv.push_back("..."); break;
     }
     string s; int l = sv.size();
