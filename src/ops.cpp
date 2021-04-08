@@ -59,6 +59,18 @@ class Type *bin(int opr, node_t *left, node_t *right)
             tl->isErr = true;
             return tl;
         }
+        if (gl == FUNC_G || gr == FUNC_G) {
+            if (gl == gr) {
+                repErr(left->pos, "invalid arithmetic for function type", _FORE_RED_); tl->isErr = true;
+                return tl;
+            }
+            if ((gl == BASE_G) && (priority[bl->base] <= priority[LONG_LONG_B])) return new Ptr(tr); // int + func
+            if ((gr == BASE_G) && (priority[br->base] <= priority[LONG_LONG_B])) return new Ptr(tl); // func + int
+
+            repErr(left->pos, "invalid arithmetic for function type", _FORE_RED_);
+            tl->isErr = true;
+            return tl;
+        }
         if(gl == PTR_G || gr == PTR_G) {
             if(gl == gr) {
                 repErr(left->pos,"Invalid Pointer arithmetic",_FORE_RED_);

@@ -393,12 +393,58 @@ bool checkArrDims(class Type *t) { // recursively check that all array bounds mu
     return true;
 }
 
-bool impCast(class Type *from, class Type *to) { // implicit type-casing
+bool impCast(class Type *from, class Type *to) { // implicit type-casting
+    if (!from || !to) return false;
+    grp_t gf = from->grp(), gt = to->grp();
+    Base *bf = (Base *)from, *bt = (Base *)to;
+    Ptr *pf = (Ptr *)from, *pt = (Ptr *)to;
+    Arr *af = (Arr *)from, *at = (Arr *)to;
+    Func *ff = (Func *)from, *ft = (Func *)to;
+    
+    if (gf == BASE_G && gt == BASE_G) {
+        // conversion TO a void, struct or union is not allowed
+        return !(bt->base == VOID_B || bt->base == STRUCT_B || bt->base == UNION_B);
+    }
+
+
+
+    if (gt == PTR_G && (pt->pt->grp() == BASE_G) && (((Base *)(pt->pt))->base == VOID_B)) {
+        if (gf == PTR_G || gf == ARR_G || gf == FUNC_G) return true; // any pointer/array/function is convertible to void *
+    }
+
+    // arr/func -> ptr
+    // but not opposite
+    if (gf == PTR_G && (gt == ARR_G || gt == FUNC_G)) return false;
+
+
     return true;
 }
 
 bool expCast(class Type *from, class Type *to) { // explicit type-casting (may differ from implicit version)
-    return impCast(from, to);
+    if (!from || !to) return false;
+    grp_t gf = from->grp(), gt = to->grp();
+    Base *bf = (Base *)from, *bt = (Base *)to;
+    Ptr *pf = (Ptr *)from, *pt = (Ptr *)to;
+    Arr *af = (Arr *)from, *at = (Arr *)to;
+    Func *ff = (Func *)from, *ft = (Func *)to;
+    
+    if (gf == BASE_G && gt == BASE_G) {
+        // conversion TO a void, struct or union is not allowed
+        return !(bt->base == VOID_B || bt->base == STRUCT_B || bt->base == UNION_B);
+    }
+
+
+
+    if (gt == PTR_G && (pt->pt->grp() == BASE_G) && (((Base *)(pt->pt))->base == VOID_B)) {
+        if (gf == PTR_G || gf == ARR_G || gf == FUNC_G) return true; // any pointer/array/function is convertible to void *
+    }
+
+    // arr/func -> ptr
+    // but not opposite
+    if (gf == PTR_G && (gt == ARR_G || gt == FUNC_G)) return false;
+
+
+    return true;
 }
 
 

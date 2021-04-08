@@ -134,15 +134,12 @@ postfix_expression
 		}
 	}
 	| postfix_expression '(' argument_expression_list ')' {
-				cout << "Here2\n";
 		$2->tok = FUNC_CALL; $2->label = "() [func-call]"; $2->attr = func_call_attr; $$ = op( $2, 0, 2, ej($1), ej($3) );
 		int numArg = $3->numChild;
 
 		Type *t = $1->type;
 		if (t->isErr) { $$->type = new Base(INT_B); $$->type->isErr = true; }
 		else {
-				cout << "Here3\n";
-
  			grp_t g = t->grp();	Func *f = NULL;
 			if (g == FUNC_G) f = (Func *)t;
 			else if ((g == PTR_G) && (((Ptr*)t)->pt->grp() == FUNC_G)) f = (Func *)(((Ptr*)t)->pt);
@@ -152,8 +149,6 @@ postfix_expression
 			}
 
 			if (f) {
-				cout << "here5" << endl;
-
 				if (f->params.size() == 0) {
 					repErr($3->pos, string("expected no argument; specified ") + to_string(numArg) + " argument(s)", _FORE_RED_);
 					$$->type = new Base(INT_B); $$->type->isErr = true;
@@ -161,8 +156,6 @@ postfix_expression
 					Type *_last = f->params.back();
 					if ((_last->grp() == BASE_G) && (((Base *)_last)->base == ELLIPSIS_B)) { // ellipsis call
 						int least = f->params.size() - 1; // assured least > 0
-						cout << "Here6" << endl;
-
 						if (numArg < least) {
 							repErr($3->pos, string("expected at least ") + to_string(least) + " argument(s); specified " + to_string(numArg) + " argument(s)", _FORE_RED_);
 							$$->type = new Base(INT_B); $$->type->isErr = true;
@@ -171,7 +164,7 @@ postfix_expression
 							for (int i = 0; i < least; i++) {
 								Type *proto = f->params[i], *given = $3->ch(i)->type;
 								if (!impCast(given, proto)) { // check given against proto
-									repErr($3->ch(i)->pos, "expected argument of type \"" + str(proto) + "\", but got type \"" + str(given) + "\"", _FORE_RED_);
+									repErr($3->ch(i)->pos, string("expected argument of type \"") + str(proto) + "\", but got type \"" + str(given) + "\"", _FORE_RED_);
 									_good = false;
 								}
 							}
@@ -179,7 +172,6 @@ postfix_expression
 							else { $$->type = new Base(INT_B); $$->type->isErr = true; }
 						}
 					} else { // not an ellipsis call
-					cout << "Here1" << endl;
 						int numProto = f->params.size();
 						if (numProto != numArg) {
 							repErr($3->pos, string("expected ") + to_string(numProto) + " argument(s); specified " + to_string(numArg) + " argument(s)", _FORE_RED_);
@@ -189,7 +181,7 @@ postfix_expression
 							for (int i = 0; i < numProto; i++) {
 								Type *proto = f->params[i], *given = $3->ch(i)->type;
 								if (!impCast(given, proto)) { // check given against proto
-									repErr($3->ch(i)->pos, "expected argument of type \"" + str(proto) + "\", but got type \"" + str(given) + "\"", _FORE_RED_);
+									repErr($3->ch(i)->pos, string("expected argument of type \"") + str(proto) + "\", but got type \"" + str(given) + "\"", _FORE_RED_);
 									_good = false;
 								}
 							}
@@ -330,8 +322,17 @@ cast_expression
 	| '(' type_name ')' cast_expression { $$ = op( nd(CAST_EXPR, "cast_expression", { 0, 0 }), 0, 2, Ej($2, "type", NULL), Ej($4, "expression", NULL) );
 		Type *t1 = $2->type, *t2 = $4->type; // assume both not NULL
 		t2->isErr |= t1->isErr;
+		if (t2->grp() == BASE_G) {
+			base_t bs = ((Base*)t2)->base;
+			if (bs == VOID_B || bs == STRUCT_B || bs == UNION_B) {
+				repErr($4->pos, "cannot cast from a pure \"void\", a struct or a union", _FORE_RED_); t1->isErr = true;
+			}
+		}
 		if (!expCast(t2, t1)) {
-			repErr($2->pos, "could not type cast from \"" + str(t2) + "\" to \"" + str(t1) + "\"", _FORE_RED_); t1->isErr = true;
+			cout << "here" << endl;
+			cout << "str t2 = " << str(t2) << endl;
+			cout << "str t1 = " << str(t1) << endl;
+			repErr($2->pos, string("could not type cast from \"") + str(t2) + "\" to \"" + str(t1) + "\"", _FORE_RED_); t1->isErr = true;
 		}
 		$$->type = t1;
 	}
@@ -785,8 +786,8 @@ specifier_qualifier_list
 					case DOUBLE : if (!isSpec) b->base = DOUBLE_B; else if (base == LONG_B) b->base = LONG_DOUBLE_B; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
 					case SIGNED : if (!signGiven && (base == CHAR_B || base == SHORT_B || base == INT_B || base == LONG_B || base == LONG_LONG_B)) b->sign = SIGNED_X; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
 					case UNSIGNED : if (!signGiven && (base == CHAR_B || base == SHORT_B || base == INT_B || base == LONG_B || base == LONG_LONG_B)) b->sign = UNSIGNED_X; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
-					case STRUCT : if (!isSpec) b->base = STRUCT_B; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
-					case UNION : if (!isSpec) b->base = UNION_B; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
+					case STRUCT : if (!isSpec) { b->base = STRUCT_B; b->subDef = ((Base *)($1->type))->subDef; } else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
+					case UNION : if (!isSpec) { b->base = UNION_B; b->subDef = ((Base *)($1->type))->subDef; } else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; } break;
 					case ENUM : if (!isSpec) b->base = ENUM_B; else { repErr($1->pos, stdErs,  _FORE_RED_); b->isErr = true; }
 				}
 			} else { // typedef that is not a simple type
@@ -804,8 +805,7 @@ specifier_qualifier_list
 			case      LONG : b = new Base(LONG_B); break;
 			case     FLOAT : b = new Base(FLOAT_B); break;
 			case    DOUBLE : b = new Base(DOUBLE_B); break;
-			case    STRUCT : b = new Base(STRUCT_B); break;
-			case     UNION : b = new Base(UNION_B); break;
+			case    STRUCT : case UNION : b = $1->type; break;
 			case      ENUM : b = new Base(ENUM_B); break;
 			case    SIGNED : b = new Base(); ((Base *)b)->sign = SIGNED_X; break; // sign changes, not type (type may be decided later)
 			case  UNSIGNED : b = new Base(); ((Base *)b)->sign = UNSIGNED_X; break; // sign changes, not type (type may be decided later)
@@ -1036,7 +1036,7 @@ parameter_list
 	;
 
 parameter_declaration
-	: declaration_specifiers declarator            { $$ = op( nd(PARAM_DECL, "param-decl", { 0, 0 }), 0, 2, ej($1), ej($2) );
+	: declaration_specifiers declarator            { $$ = op( nd(PARAM_DECL+2000, "param-decl", { 0, 0 }), 0, 2, ej($1), ej($2) );
 		Type *t1 = $1->type, *t2 = $2->type, *tt = tail(t2);
         if (t1->strg != NONE_S) { repErr($1->pos, "storage class specifier given in parameter", _FORE_RED_); t1->isErr = true; }
         /* node_t *cnode = $2; // "concerned node" - get directly
@@ -1046,6 +1046,15 @@ parameter_declaration
             else if (tt->grp() == ARR_G) { repErr($2->pos, "array of \"voids\" given", _FORE_RED_); t2->isErr = true; } // void x[];
         }
         $$->type = unify(t1, t2); // Arr >> pointer >> funcs >> ptrs
+		if (t1->grp() == BASE_G) { // if struct or union and not defined, check that the declarator has pointer tail - else generate error.
+			Base *_b = (Base *) t1;
+			if ( ((_b->base == STRUCT_B) || (_b->base == UNION_B)) && !(_b->subDef->syms.size())) {
+				if (!tt || (tt->grp() != PTR_G)) {
+					repErr($2->pos, "struct / union not yet defined", _FORE_RED_);
+					$$->type->isErr = true;
+				}
+			}
+		}
 	}
 	| declaration_specifiers abstract_declarator   { $$ = op( nd(PARAM_DECL, "param-decl", { 0, 0 }), 0, 2, ej($1), ej($2) );
 		Type *t1 = $1->type, *t2 = $2->type, *tt = tail(t2);
@@ -1055,9 +1064,26 @@ parameter_declaration
             else if (tt->grp() == ARR_G) { repErr($2->pos, "array of \"voids\" given", _FORE_RED_); t2->isErr = true; } // void x[];
         }
         $$->type = unify(t1, t2);
+		if (t1->grp() == BASE_G) { // if struct or union and not defined, check that the declarator has pointer tail - else generate error.
+			Base *_b = (Base *) t1;
+			if ( ((_b->base == STRUCT_B) || (_b->base == UNION_B)) && !(_b->subDef->syms.size())) {
+				if (!tt || (tt->grp() != PTR_G)) {
+					repErr($2->pos, "struct / union not yet defined", _FORE_RED_);
+					$$->type->isErr = true;
+				}
+			}
+		}
 	}
 	| declaration_specifiers                       { $$ = $1;
         if ($1->type->strg != NONE_S) { repErr($1->pos, "storage class specifier given in parameter", _FORE_RED_); $1->type->isErr = true; }
+
+		if ($1->type->grp() == BASE_G) { // if struct or union and not defined, check that the declarator has pointer tail - else generate error.
+			Base *_b = (Base *)($1->type);
+			if ( ((_b->base == STRUCT_B) || (_b->base == UNION_B)) && !(_b->subDef->syms.size())) {
+				repErr($1->pos, "struct / union not yet defined", _FORE_RED_);
+				$$->type->isErr = true;
+			}
+		}
 	}
 	;
 
@@ -1076,6 +1102,14 @@ type_name
             else if (tt->grp() == ARR_G) { repErr($2->pos, "array of \"voids\" given", _FORE_RED_); t2->isErr = true; } // void x[];
         }
         $$->type = unify(t1, t2);
+		/* if (t1->grp() == BASE_G) { // if struct or union and not defined, check that the declarator has pointer tail - else generate error.
+			Base *_b = (Base *) t1;
+			if ( ((_b->base == STRUCT_B) || (_b->base == UNION_B)) && !(_b->subDef->syms.size())) {
+				if (!tt || (tt->grp() != PTR_G)) {
+					repErr($2->pos, "struct / union not yet defined", _FORE_RED_); $$->type->isErr = true;
+				}
+			}
+		} */
 	}
 	;
 
@@ -1266,7 +1300,6 @@ selection_statement
 	}
 	| SWITCH '(' expression ')' statement { $$ = op( $1, 0, 2, Ej($3, "expr", NULL), Ej($5, "stmts", NULL) );
 		Type *t = $3->type; grp_t g = t->grp();
-		cout << "Here\n";
 		if (g != BASE_G) repErr($3->pos, "invalid expression type for switch statement", _FORE_RED_);
 		else {
 			base_t bs = ((Base*)t)->base;
@@ -1341,7 +1374,7 @@ function_definition
 			repErr($1->pos, "incompatible storage class specifier for function definition", _FORE_RED_);
 		} else if (!t2 || (t2->grp() != FUNC_G)) repErr($2->pos, "variable defined like a function", _FORE_RED_);
 		else { // assume params are not abstract for now
-			Type *ut = unify(t1, t2);
+			Type *tt = tail(t2), *ut = unify(t1, t2);
 			node_t *cnode = $2; while (cnode->tok != IDENTIFIER) cnode = cnode->ch((cnode->tok == DECLARATOR) ? 1 : 0);
 			sym *ret = SymRoot->currScope->parent->srchSym(cnode->label);
 			if (ret) {
@@ -1353,9 +1386,21 @@ function_definition
 					repErr(ret->pos, "previous declaration given here", _FORE_CYAN_);
 				} else { ret->type->strg = NONE_S; ret->pos = cnode->pos; _good = true; }
 			} else { // good to go
-				SymRoot->currScope->parent->pushSym(cnode->label, ut, cnode->pos);
-				SymRoot->currScope->name = string("func ") + cnode->label;
-				_good = true;
+				bool _err = false;
+				if (t1->grp() == BASE_G) { // if struct or union and not defined, check that the declarator has pointer tail - else generate error.
+					Base *_b = (Base *) t1;
+					if ( ((_b->base == STRUCT_B) || (_b->base == UNION_B)) && !(_b->subDef->syms.size())) {
+						if (!tt || (tt->grp() != PTR_G)) {
+							repErr(cnode->pos, "struct / union not yet defined", _FORE_RED_); _err = true;
+						}
+					}
+				}
+				if (_err) _good = false;
+				else {
+					SymRoot->currScope->parent->pushSym(cnode->label, ut, cnode->pos);
+					SymRoot->currScope->name = string("func ") + cnode->label;
+					_good = true;
+				}				
 			}
 			
 			if (_good) { // works for simple functions ans function params only - do not use a complicated declarator (like function pointers)
@@ -1366,6 +1411,9 @@ function_definition
 				for (int i = 0; i < l; i++) {
 					node_t * x = cnode->ch(i);
 					if (x->tok != ELLIPSIS) {
+						if (x->tok != (PARAM_DECL + 2000)) {
+							repErr(x->pos, "used an abstract declaration during function definition", _FORE_RED_); break;
+						}
 						x = x->ch(1); while (x->tok != IDENTIFIER) x = x->ch((x->tok== DECLARATOR) ? 1 : 0);
 					}
 					SymRoot->pushSym(x->label, f->params[i], x->pos);
@@ -1408,6 +1456,9 @@ function_definition
 				for (int i = 0; i < l; i++) {
 					node_t * x = cnode->ch(i);
 					if (x->tok != ELLIPSIS) {
+						if (x->tok != (PARAM_DECL + 2000)) {
+							repErr(x->pos, "used an abstract declaration during function definition", _FORE_RED_); break;
+						}
 						x = x->ch(1); while (x->tok != IDENTIFIER) x = x->ch((x->tok== DECLARATOR) ? 1 : 0);
 					}
 					SymRoot->pushSym(x->label, f->params[i], x->pos);

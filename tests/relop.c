@@ -1,15 +1,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int foo(int j) {
-  return 0;
-}
-void foo1() {
-}
-void foo2(int x, int y, ...) {
-}
-void foo3(int x, int y) {
-}
+int foo(int);
+void foo1();
+void foo2(int, int, ...);
+void foo3(int, int);
+// int foo(int j) {
+//   return 0;
+// }
+// void foo1() {
+// }
+// void foo2(int x, int y, ...) {
+// }
+// void foo3(int x, int y) {
+// }
 int main(int argc, char *argv[]) {
   int a, *p;
   float b, *pf;
@@ -76,11 +80,32 @@ int main(int argc, char *argv[]) {
   
   // while (foo1) ;
 
-  !foo();
-  foo1();
-  foo2();
-  foo2(45, 45, "ll");
-  foo3();
+  // !foo();
+  // foo1();
+  // foo2();
+  // foo2(45, 45, "ll");
+  // foo3();
+
+  // !foo(8);
+  // !foo1();
+  // foo2(5, 4, 56);
+  // foo2(45, 45, "ll");
+  // foo3(1, "ll");
+
+  // foo(0);
+  {
+    struct loc_t { int x; int y; } d;
+    (struct loc_t *[])9;
+    (void)9;
+    (int)foo1;
+  }
 
   return 0;
 }
+
+struct _aaa *myFunc(struct _x*);
+
+struct _aaa *myFunc(struct _x*c) {
+
+}
+

@@ -4,39 +4,35 @@ NAME, LOCATION, TYPE
 
 ############ Scope = Global ############,
     newint,   0 :   0,  "typedef int * const *"
-       foo,   4 :   5,  "int ()(int)"
-      foo1,   7 :   6,  "void ()()"
-      foo2,   9 :   6,  "void ()(int, int, ...)"
-      foo3,  11 :   6,  "void ()(int, int)"
-      main,  13 :   5,  "int ()(int, char *[])"
-
-############ Scope = Global >> func foo ############,
-         j,   4 :  13,  "int"
-
-############ Scope = Global >> func foo1 ############,
-
-############ Scope = Global >> func foo2 ############,
-         x,   9 :  15,  "int"
-         y,   9 :  22,  "int"
-       ...,   9 :  25,  "..."
-
-############ Scope = Global >> func foo3 ############,
-         x,  11 :  15,  "int"
-         y,  11 :  22,  "int"
+       foo,   4 :   5,  "extern int ()(int)"
+      foo1,   5 :   6,  "extern void ()()"
+      foo2,   6 :   6,  "extern void ()(int, int, ...)"
+      foo3,   7 :   6,  "extern void ()(int, int)"
+      main,  17 :   5,  "int ()(int, char *[])"
+struct _aaa, 106 :   8,  "struct _aaa <not yet defined>"
+ struct _x, 106 :  28,  "struct _x <not yet defined>"
+    myFunc, 108 :  14,  "struct _aaa <not yet defined> *()(struct _x <not yet defined> *)"
 
 ############ Scope = Global >> func main ############,
-      argc,  13 :  14,  "int"
-      argv,  13 :  26,  "char *[]"
-         a,  14 :   7,  "int"
-         p,  14 :  11,  "int *"
-         b,  15 :   9,  "float"
-        pf,  15 :  13,  "float *"
-         c,  16 :  22,  "unsigned long long int"
-         d,  16 :  26,  "unsigned long long int *"
-         e,  16 :  30,  "unsigned long long int **"
-        ee,  17 :  10,  "double []"
-       arr,  18 :   7,  "int"
-      arr1,  19 :   7,  "int []"
- struct _x,  37 :  10,  "struct _x { x [int], y [int] }"
-         l,  37 :  31,  "struct _x { x [int], y [int] }"
+      argc,  17 :  14,  "int"
+      argv,  17 :  26,  "char *[]"
+         a,  18 :   7,  "int"
+         p,  18 :  11,  "int *"
+         b,  19 :   9,  "float"
+        pf,  19 :  13,  "float *"
+         c,  20 :  22,  "unsigned long long int"
+         d,  20 :  26,  "unsigned long long int *"
+         e,  20 :  30,  "unsigned long long int **"
+        ee,  21 :  10,  "double []"
+       arr,  22 :   7,  "int"
+      arr1,  23 :   7,  "int []"
+ struct _x,  41 :  10,  "struct _x { x [int], y [int] }"
+         l,  41 :  31,  "struct _x { x [int], y [int] }"
+
+############ Scope = Global >> func main >> _unnamed_0 ############,
+struct loc_t,  97 :  12,  "struct loc_t { x [int], y [int] }"
+         d,  97 :  36,  "struct loc_t { x [int], y [int] }"
+
+############ Scope = Global >> _unnamed_1 ############,
+         c, 108 :  31,  "struct _x <not yet defined> *"
 
