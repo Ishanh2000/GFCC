@@ -11,9 +11,9 @@ const char* TOKEN_NAME_ARRAY[] = {
 
 
 #ifdef COMPLETE
-const char type_spec_attr[] = "style=filled,fillcolor=lightgreen,shape=diamond";
-const char strg_class_attr[] = "style=filled,fillcolor=lightgreen,shape=diamond";
-const char type_qual_attr[] = "style=filled,fillcolor=lightgreen,shape=diamond";
+const char type_spec_attr[] = "style=filled,fillcolor=yellow,shape=diamond";
+const char strg_class_attr[] = "style=filled,fillcolor=yellow,shape=diamond";
+const char type_qual_attr[] = "style=filled,fillcolor=yellow,shape=diamond";
 #else
 const char *type_spec_attr = NULL;
 const char *strg_class_attr = NULL;
@@ -23,7 +23,7 @@ const char *type_qual_attr = NULL;
 const char jump_attr[] = "style=filled,fillcolor=orange";
 const char iter_attr[] = "style=filled,fillcolor=lightblue";
 const char select_attr[] = "style=filled,fillcolor=yellow";
-const char sizeof_attr[] = "style=filled,fillcolor=lightgreen";
+const char sizeof_attr[] = "style=filled,fillcolor=yellow";
 const char empty_attr[] = "style=filled,fillcolor=gray"; // empty statment ';' / empty block '{}'
 const char file_name_attr[] = "shape=box";
 const char func_call_attr[] = "shape=box";
