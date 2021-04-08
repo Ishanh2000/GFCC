@@ -818,8 +818,9 @@ init_declarator
 			repErr($2->pos, "function initialized like a variable", _FORE_RED_);
 			t1->isErr = true;
 		}
+		$$->type=t1;
 	}
-	$$->type=t1;
+	
 	;
 
 storage_class_specifier
