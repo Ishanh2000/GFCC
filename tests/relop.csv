@@ -14,7 +14,5 @@ NAME, LOCATION, TYPE
 ############ Scope = Global >> func main ############,
       argc,  22 :  14,  "int"
       argv,  22 :  26,  "char *[]"
-struct _xc, 144 :  10,  "struct _xc { x [int], y [int] }"
-         p, 145 :  15,  "struct _xc { x [int], y [int] } *"
-         o, 146 :  14,  "struct _xc { x [int], y [int] }"
+         a, 161 :   7,  "int"
 

@@ -179,7 +179,9 @@ class Type *bin(int opr, node_t *left, node_t *right)
     case AND_OP : case OR_OP :
         bl = new Base(INT_B);
         return bl;
-    }    
+    }
+    Base *b = new Base(INT_B); b->isErr = true;
+    return b;
 }
 
 #ifdef TEST_OPS

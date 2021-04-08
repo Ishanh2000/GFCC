@@ -259,6 +259,9 @@ postfix_expression
 			if ((bs == VOID_B) || (bs == STRUCT_B) || (bs == UNION_B)) {
 				repErr($2->pos, "unary inrement operator used on pure \"void\" type, a struct or a union", _FORE_RED_); t->isErr = true;
 			}
+			if (((Base *)t)->isConst) {
+				repErr($1->pos, "cannot use increment / decrement of a \"const\" value", _FORE_RED_); t->isErr = true;
+			}
 		}
 		$$->type = t;
 		$$->type->lvalue = false;
@@ -271,6 +274,9 @@ postfix_expression
 			base_t bs = ((Base *) t)->base;
 			if ((bs == VOID_B) || (bs == STRUCT_B) || (bs == UNION_B)) {
 				repErr($2->pos, "unary inrement operator used on pure \"void\" type, a struct or a union", _FORE_RED_); t->isErr = true;
+			}
+			if (((Base *)t)->isConst) {
+				repErr($1->pos, "cannot use increment / decrement of a \"const\" value", _FORE_RED_); t->isErr = true;
 			}
 		}
 		$$->type = t;
@@ -294,6 +300,9 @@ unary_expression
 			if ((bs == VOID_B) || (bs == STRUCT_B) || (bs == UNION_B)) {
 				repErr($2->pos, "unary inrement operator used on pure \"void\" type, a struct or a union", _FORE_RED_); t->isErr = true;
 			}
+			if (((Base *)t)->isConst) {
+				repErr($1->pos, "cannot use increment / decrement of a \"const\" value", _FORE_RED_); t->isErr = true;
+			}
 		}
 		$$->type = t;
 		$$->type->lvalue = false;
@@ -306,6 +315,9 @@ unary_expression
 			base_t bs = ((Base *) t)->base;
 			if ((bs == VOID_B) || (bs == STRUCT_B) || (bs == UNION_B)) {
 				repErr($2->pos, "unary inrement operator used on pure \"void\" type, a struct or a union", _FORE_RED_); t->isErr = true;
+			}
+			if (((Base *)t)->isConst) {
+				repErr($1->pos, "cannot use increment / decrement of a \"const\" value", _FORE_RED_); t->isErr = true;
 			}
 		}
 		$$->type = t;
@@ -497,7 +509,83 @@ conditional_expression
 // todo
 assignment_expression
 	: conditional_expression { $$ = $1; }
-	| unary_expression assignment_operator assignment_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); }
+	| unary_expression assignment_operator assignment_expression { $$ = op( $2, 0, 2, ej($1), ej($3) );
+		Type *t1 = $1->type, *t2 = $3->type;
+		t1->isErr |= t2->isErr;
+		string stdErs = "incompatible operand types under assigment operator";
+		if (t1->lvalue) {
+			Base *b = (Base*)t1; Ptr *p = (Ptr*)t1; Arr *a; grp_t g = t1->grp();
+			bool isConst = ((g == BASE_G) && (b->isConst)) || ((g == PTR_G) && (p->ptrs.back().isConst));
+			if (isConst) {
+				repErr($1->pos, "cannot assign to a \"const\" value", _FORE_RED_); t1->isErr = true;
+
+			} else switch ($2->tok) {
+				case '=' :
+					if (!impCast(t2, t1)) { repErr($2->pos, stdErs, _FORE_RED_); t1->isErr; }
+					break;
+				
+				case MUL_ASSIGN : case DIV_ASSIGN :
+					if (!impCast(bin('*', $1, $3), t1)) { repErr($2->pos, stdErs, _FORE_RED_); t1->isErr; }
+					break;
+
+				case MOD_ASSIGN :
+					if (!impCast(bin('%', $1, $3), t1)) { repErr($2->pos, stdErs, _FORE_RED_); t1->isErr; }
+					break;
+
+				case ADD_ASSIGN : case SUB_ASSIGN :
+					if (!impCast(bin('+', $1, $3), t1)) { repErr($2->pos, stdErs, _FORE_RED_); t1->isErr; }
+					break;
+
+				case LEFT_ASSIGN : case RIGHT_ASSIGN : case AND_ASSIGN : case XOR_ASSIGN : case OR_ASSIGN :
+					if (!impCast(bin('&', $1, $3), t1)) { repErr($2->pos, stdErs, _FORE_RED_); t1->isErr; }
+					break;
+			}
+	
+			/* if (false)
+			switch (t1->grp()) {
+				case BASE_G :
+					b = (Base *)t1;
+					if (b->isConst) { repErr($1->pos, "cannot assign to a \"const\" value", _FORE_RED_); t1->isErr = true; break; }
+					if (b->base == VOID_B) { repErr($1->pos, "cannot assign to pure type \"void\"", _FORE_RED_); t1->isErr; break; }
+					if ((b->base == STRUCT_B || b->base == UNION_B) && ($2->tok != '=')) { repErr($1->pos, "invalid operator for struct or void", _FORE_RED_); t1->isErr; break; }
+					// t1 (base, non-void) ?= t2
+					if (!impCast(t2, t1)) {
+						repErr($3->pos, "incompatible operand types under assigment operator", _FORE_RED_); t1->isErr;
+					}
+					break;
+
+				case PTR_G : // only =, +=, -= allowed
+					if ($2->tok == '=' || $2->tok == ADD_ASSIGN || $2->tok == SUB_ASSIGN) {
+						// check compatibility of t1 += t2
+						g = t2->grp();
+						if (!( ($2->tok == '=') && (g == ARR_G || g == PTR_G || g == FUNC_G) )) {
+							repErr($3->pos, "pointer gets assigned a value that is not a pointer, a function or an array", _FORE_RED_); t1->isErr = true;
+						}
+						if ($2->tok == ADD_ASSIGN || $2->tok == SUB_ASSIGN) { // t2 must be integer related type
+							if (t2->grp() == BASE_G) {
+								b = (Base*)t2;
+								if (!(b->base == CHAR_B || b->base == INT_B || b->base == LONG_B || b->base == LONG_LONG_B || b->base == ENUM_B)) {
+									repErr($2->pos, "non-integer related value used with += or -= for pointer assignment", _FORE_RED_); t1->isErr = true;
+								}
+							} else {
+								repErr($2->pos, "non-integer related value used with += or -= for pointer assignment", _FORE_RED_); t1->isErr = true;
+							}
+						}
+					} else {
+						repErr($2->pos, string("invalid operand for types \"") + str(t1) + "\" and \"" + str(t2) + "\"", _FORE_RED_); t1->isErr = true;
+					}
+
+					break;
+
+				case ARR_G : repErr($1->pos, "cannot assign to an array", _FORE_RED_); t1->isErr = true;
+					break;
+
+				case FUNC_G : repErr($1->pos, "cannot assign to a function", _FORE_RED_); t1->isErr = true;
+					break;
+			} */
+		} else { repErr($1->pos, "left operand for '=' is not an lvalue", _FORE_RED_); t1->isErr = true; }
+		$$->type = t1;
+	}
 	;
 
 assignment_operator

@@ -151,6 +151,17 @@ int main(int argc, char *argv[]) {
   // o.l;
 
 
+
+  // int *const a;
+  // a *= 90;
+  // a=&main;
+  // a = main;
+  // a += 90;
+  // a <<= 0;
+  
+
+
+
   return 0;
 }
 

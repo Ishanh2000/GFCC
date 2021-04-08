@@ -402,6 +402,7 @@ bool checkArrDims(class Type *t) { // recursively check that all array bounds mu
 
 bool impCast(class Type *from, class Type *to) { // implicit type-casting
     if (!from || !to) return false;
+    if (from->isErr || to->isErr) return true;
     grp_t gf = from->grp(), gt = to->grp();
     Base *bf = (Base *)from, *bt = (Base *)to;
     Ptr *pf = (Ptr *)from, *pt = (Ptr *)to;
