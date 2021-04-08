@@ -37,10 +37,28 @@ class Type *bin(int opr, node_t *left, node_t *right)
         }
     }
 
-    switch (opr)
-    {
+    switch (opr) {
     case '+': case '-':
-    // TODO: do same for arr but return pointer
+    if (gl == ARR_G || gr == ARR_G) {
+        if (gl == gr) {
+            repErr(left->pos, "invalid arithmetic for array type", _FORE_RED_);
+            tl->isErr = true;
+            return tl;
+        }
+        if ((gl == BASE_G) && (priority[bl->base] <= priority[LONG_LONG_B])) { // int + arr
+            ar = (Arr *) tr;
+            if (ar->dims.size() > 1) { ar->dims.erase(ar->dims.begin()); return new Ptr(ar); }
+            if (ar->dims.size() == 1) return new Ptr(ar->item);
+        }
+        if ((gr == BASE_G) && (priority[br->base] <= priority[LONG_LONG_B])) { // arr + int
+            al = (Arr *) tl;
+            if (al->dims.size() > 1) { al->dims.erase(al->dims.begin()); return new Ptr(al); }
+            if (al->dims.size() == 1) return new Ptr(al->item);
+        }
+        repErr(left->pos, "invalid arithmetic for array type", _FORE_RED_);
+        tl->isErr = true;
+        return tl;
+    }
     if(gl == PTR_G || gr == PTR_G) {
         if(gl == gr) {
             repErr(left->pos,"Invalid Pointer arithmetic",_FORE_RED_);
@@ -131,11 +149,13 @@ class Type *bin(int opr, node_t *left, node_t *right)
     case '<': case '>':
         if(gl==BASE_G && gr == BASE_G){
             // ! return int type
-            return tl;
+            bl = new Base(INT_B); bl->isConst = true;
+            return bl;
         }
         if(gl==gr){
             // ! return int type
-            return tl;
+            bl = new Base(INT_B); bl->isConst = true;
+            return bl;
         }
         if(gl==BASE_G || gr == BASE_G){
             repErr(left->pos,"invalid operands to binary relational operator",_FORE_RED_);    

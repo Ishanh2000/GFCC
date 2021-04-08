@@ -20,4 +20,6 @@ NAME, LOCATION, TYPE
          d,  10 :  26,  "unsigned long long int *"
          e,  10 :  30,  "unsigned long long int **"
         ee,  11 :  10,  "double []"
+       arr,  12 :   7,  "int"
+      arr1,  13 :   7,  "int []"
 

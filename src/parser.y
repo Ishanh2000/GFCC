@@ -132,10 +132,16 @@ argument_expression_list
 // todo
 unary_expression
 	: postfix_expression				{ $$ = $1; }
-	| INC_OP unary_expression			{ $$ = op( $1, 0, 1, ej($2) ); }
+	| INC_OP unary_expression			{ $$ = op( $1, 0, 1, ej($2) );
+
+	}
 	| DEC_OP unary_expression			{ $$ = op( $1, 0, 1, ej($2) ); }
 	| unary_operator cast_expression	{ $$ = op( $1, 0, 1, ej($2) );
-		if ($1->tok == '-') $$->type = $2->type;
+
+		/* if ($1->tok == '-') {
+			if ($2->base-.grp)
+			$$->type = $2->type;
+		} */
 	}
 	| SIZEOF unary_expression			{ $$ = op( $1, 0, 1, ej($2) ); }
 	| SIZEOF '(' type_name ')'			{ $$ = op( $1, 0, 1, ej($3) ); }
@@ -154,9 +160,12 @@ unary_operator
 // todo
 cast_expression
 	: unary_expression { $$ = $1; }
-	| '(' type_name ')' cast_expression { $$ = op(
-		nd(CAST_EXPR, "cast_expression", { 0, 0 }), 0, 2, Ej($2, "type", NULL), Ej($4, "expression", NULL)
-	); }
+	| '(' type_name ')' cast_expression { $$ = op( nd(CAST_EXPR, "cast_expression", { 0, 0 }), 0, 2, Ej($2, "type", NULL), Ej($4, "expression", NULL) );
+		Type *t1 = $2->type, *t2 = $4->type; // assume both not NULL
+		t2->isErr |= t1->isErr;
+		// todo: check here whether conversion from one type to another is possible
+		$$->type = t1;
+	}
 	;
 
 multiplicative_expression
@@ -182,7 +191,7 @@ relational_expression
 	: shift_expression { $$ = $1; }
 	| relational_expression '<' shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('<', $1, $3); }
 	| relational_expression '>' shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('>', $1, $3); }
-	| relational_expression LE_OP shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('>', $1, $3); }
+	| relational_expression LE_OP shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('<', $1, $3); }
 	| relational_expression GE_OP shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('>', $1, $3); }
 	;
 
@@ -679,9 +688,9 @@ struct_declarator
 	;
 
 enum_specifier
-	: ENUM '{' enumerator_list '}'				{ $$ = op( $1, 0, 1, ej($3) ); }
-	| ENUM IDENTIFIER '{' enumerator_list '}'	{ $$ = op( $1, 0, 2, ej($2), ej($4) ); }
-	| ENUM IDENTIFIER							{ $$ = op( $1, 0, 1, ej($2) ); }
+	: ENUM '{' enumerator_list '}'				{ $$ = op( $1, 0, 1, ej($3) ); SymRoot->closeScope(); SymRoot->currScope->subScopes.pop_back(); }
+	| ENUM IDENTIFIER '{' enumerator_list '}'	{ $$ = op( $1, 0, 2, ej($2), ej($4) ); SymRoot->closeScope(); SymRoot->currScope->subScopes.pop_back(); }
+	| ENUM IDENTIFIER							{ $$ = op( $1, 0, 1, ej($2) ); SymRoot->closeScope(); }
 	;
 
 enumerator_list
@@ -997,8 +1006,8 @@ direct_abstract_declarator
 
 initializer
 	: assignment_expression			{ $$ = $1; }
-	| '{' initializer_list '}'		{ $$ = $2; }
-	| '{' initializer_list ',' '}'	{ $$ = $2; }
+	| '{' initializer_list '}'		{ $$ = $2; SymRoot->closeScope(); SymRoot->currScope->subScopes.pop_back(); }
+	| '{' initializer_list ',' '}'	{ $$ = $2; SymRoot->closeScope(); SymRoot->currScope->subScopes.pop_back(); }
 	;
 
 initializer_list
