@@ -369,7 +369,6 @@ unary_expression
 
 					case PTR_G :
 						p = (Ptr *) t;
-						cout << str(p) << endl;
 						if (p->ptrs.size() > 1) { p->ptrs.pop_back(); $$->type = p; }
 						else if (p->ptrs.size() == 1) { $$->type = p->pt; }
 						break;
@@ -430,9 +429,6 @@ cast_expression
 			}
 		}
 		if (!expCast(t2, t1)) {
-			cout << "here" << endl;
-			cout << "str t2 = " << str(t2) << endl;
-			cout << "str t1 = " << str(t1) << endl;
 			repErr($2->pos, string("could not type cast from \"") + str(t2) + "\" to \"" + str(t1) + "\"", _FORE_RED_); t1->isErr = true;
 		}
 		$$->type = t1;
@@ -634,7 +630,7 @@ declaration
 			Type *t2 = cnode->type; node_t *initNode = NULL;
 
 			// pass down tree $2 until name & position found.
-			if (cnode->tok == '=') { initNode = cnode->ch(1); cout << "will define" << endl; cnode = cnode->ch(0); useful++;
+			if (cnode->tok == '=') { initNode = cnode->ch(1); cnode = cnode->ch(0); useful++;
 				if (t1->strg == EXTERN_S) repErr($1->pos, "initialized after using \"extern\"", _FORE_RED_);
 			} // "init_declarator"
 			while (cnode->tok != IDENTIFIER) cnode = cnode->ch((cnode->tok == DECLARATOR) ? 1 : 0); // rules of "direct_decl"
@@ -662,11 +658,18 @@ declaration
 						}
 					}
 				}
-				
-				SymRoot->pushSym(cnode->label, ut, cnode->pos);
+				if (initNode) {
+					if (ut->grp() == ARR_G) {
+						Arr *a = (Arr*)ut;
+						/* if ((a->dims[0] == NULL) && (initNode->tok == INIT_LIST)) cout <<  */
+						/* if */
+					}
+					cout << "will initialize" << endl;
 
-				// initialization
-				/* if (initNode) cout << "Will initialize " << cnode->label << endl; */
+					/* if (!impCast(, ut)) */
+
+				}
+				SymRoot->pushSym(cnode->label, ut, cnode->pos);
 
 			} else { // already exists - check if "extern" or a "function"
 				if ((retval->type->strg != EXTERN_S) && (t1->strg != EXTERN_S) && (t2 && (t2->grp() != FUNC_G))) {

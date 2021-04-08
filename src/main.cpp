@@ -45,6 +45,10 @@ int main (int argc , char *argv[]) {
 	// VERSION - DO NOT CHECK FURTHER OPTIONS
 	if (matches(argv[1], "--version", "-v")) { gfcc_lexer_version(); return 0; }
 
+	msg(SUCC) << "This toy compiler uses tab length = 4. "
+	<< "Use [-t <tab_len>] option for changing it. "
+	<< "Use \"--help\" or \"-h\" for more help.";
+
 
 	// CHECK FILE LIST AND ALSO SEARCH OPTION [--output|-o]
 	int start = 1, o_flag_index = -1;

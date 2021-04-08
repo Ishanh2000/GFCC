@@ -14,5 +14,6 @@ NAME, LOCATION, TYPE
 ############ Scope = Global >> func main ############,
       argc,  22 :  14,  "int"
       argv,  22 :  26,  "char *[]"
-         a, 161 :   7,  "int"
+         a, 162 :   7,  "int"
+         b, 162 :  10,  "int"
 

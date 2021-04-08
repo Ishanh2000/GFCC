@@ -158,7 +158,8 @@ int main(int argc, char *argv[]) {
   // a = main;
   // a += 90;
   // a <<= 0;
-  
+  int a[] = {1, 2, 3,4};
+  int a, b = c;
 
 
 
