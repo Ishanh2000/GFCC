@@ -78,6 +78,7 @@ primary_expression
 			repErr($1->pos, "variable undeclared in this scope", _FORE_RED_);
 			Type* t = $$->type = new Type(); t->isErr = true;
 		}
+		$$->type->lvalue = true;
 	}
 	| CONSTANT				{ $$ = $1; } // get sematic number (means 0x56 = 86, 0227 = 151, etc) during semantic analysis - but ENCODE HERE ITSELF
 	| STRING_LITERAL		{ $$ = $1; } // encode as (const char *) - or some other appropriate enc.
@@ -108,6 +109,7 @@ postfix_expression
 			)) { repErr($3->pos, "array index not compatible to integer type", _FORE_RED_); t1->isErr = true; }
 			$$->type = t1;
 		}
+		$$->type->lvalue = true;
 	}
 	| postfix_expression '(' ')' {
 		$2->tok = FUNC_CALL; $2->label = "() [func-call]"; $2->attr = func_call_attr; $$ = op( $2, 0, 1, ej($1) );
@@ -132,6 +134,7 @@ postfix_expression
 				} else $$->type = clone(f->retType);
 			}
 		}
+		$$->type->lvalue = false;
 	}
 	| postfix_expression '(' argument_expression_list ')' {
 		$2->tok = FUNC_CALL; $2->label = "() [func-call]"; $2->attr = func_call_attr; $$ = op( $2, 0, 2, ej($1), ej($3) );
@@ -193,6 +196,7 @@ postfix_expression
 			}
 		}
 		if (!($$->type)) { $$->type = new Base(INT_B); $$->type->isErr = true; } // just a precaution
+		$$->type->lvalue = false;
 	}
 	| postfix_expression '.' IDENTIFIER						{ $$ = op( $2, 0, 2, ej($1), ej($3) ); } // search for definition by name of "struct|union _abc"
 	| postfix_expression PTR_OP IDENTIFIER					{ $$ = op( $2, 0, 2, ej($1), ej($3) ); } // search for definition by name of "struct|union _abc"
@@ -207,6 +211,7 @@ postfix_expression
 			}
 		}
 		$$->type = t;
+		$$->type->lvalue = false;
 	}
 	| postfix_expression DEC_OP								{ $$ = op( $2, 0, 1, ej($1) ); // not allowed on function, array, void, struct, union
 		Type *t = $1->type; grp_t g = t->grp();
@@ -219,6 +224,7 @@ postfix_expression
 			}
 		}
 		$$->type = t;
+		$$->type->lvalue = false;
 	}
 	;
 
@@ -242,6 +248,7 @@ unary_expression
 			}
 		}
 		$$->type = t;
+		$$->type->lvalue = false;
 	}
 	| DEC_OP unary_expression			{ $$ = op( $1, 0, 1, ej($2) ); // not allowed on function, array, void, struct, union
 		Type *t = $2->type; grp_t g = t->grp();
@@ -254,9 +261,11 @@ unary_expression
 			}
 		}
 		$$->type = t;
+		$$->type->lvalue = false;
 	}
 	| unary_operator cast_expression	{ $$ = op( $1, 0, 1, ej($2) );
 		Type *t = $2->type; grp_t g = t->grp(); base_t bs; bool tilda_good = false;
+		Arr *a; Ptr *p;
 		if (t->isErr) { $$->type = t; }
 		else switch ($1->tok) {
 			case '+' : case '-' :
@@ -268,7 +277,7 @@ unary_expression
 						repErr($1->pos, "unary plus/minus used with pure \"void\" type, a struct or a union", _FORE_RED_); t->isErr = true;
 					}
 				}
-				$$->type = t;
+				$$->type = t; $$->type->lvalue = false;
 				break;
 			
 			case '!' :
@@ -278,7 +287,7 @@ unary_expression
 						repErr($1->pos, "unary exclamation mark used with pure \"void\" type, a struct or a union", _FORE_RED_); t->isErr = true;
 					}
 				}
-				$$->type = t;
+				$$->type = t; $$->type->lvalue = false;
 				break;
 			
 			case '~': // bitwise NOT
@@ -287,29 +296,60 @@ unary_expression
 					if ((bs == CHAR_B) || (bs == INT_B) || (bs == LONG_B) || (bs == LONG_LONG_B) || (bs == ENUM_B)) tilda_good = true;
 				}
 				if (!tilda_good) { repErr($1->pos, "bitwise NOT operator (~) used with incompatible type", _FORE_RED_); t->isErr = true; }
-				$$->type = t;
+				$$->type = t; $$->type->lvalue = false;
 				break;
 
-			/* case '*' : */
+			case '*' : // only if array, pointer or function
+				switch (g) {
+					case ARR_G :
+						a = (Arr *) t;
+						if (a->dims.size() > 1) { a->dims.erase(a->dims.begin()); $$->type = a; }
+                		else if (a->dims.size() == 1) $$->type = a->item;
+						break;
+					case PTR_G :
+						p = (Ptr *) t;
+						cout << str(p) << endl;
+						if (p->ptrs.size() > 1) { p->ptrs.pop_back(); $$->type = p; }
+						else if (p->ptrs.size() == 1) { $$->type = p->pt; }
+						break;
+					case FUNC_G :
+						$$->type = t;
+						break;
+					default : 
+						repErr($1->pos, "cannot dereference a value that is not an array, a pointer or a function", _FORE_RED_); t->isErr = true; $$->type = t;
+				}
+				$$->type->lvalue = true;
+				break;
 
+			case '&' :
+				if (!(t->lvalue)) {
+					repErr($1->pos, "cannot use address-of operator on an rvalue", _FORE_RED_); t->isErr = true; $$->type = t;
+				} else if (t->grp() == PTR_G) {
+					((Ptr *)t)->newPtr(true, false); // const pointer inserted
+					$$->type = t;
+				}
+				else $$->type = new Ptr(t);
+				$$->type->lvalue = false;
 		}
 	}
 	| SIZEOF unary_expression			{ $$ = op( $1, 0, 1, ej($2) );
 		Base *b = new Base(LONG_B); b->sign = UNSIGNED_X;
 		b->isErr |= $2->type->isErr;
 		$$->type = b;
+		$$->type->lvalue = false;
 	}
 	| SIZEOF '(' type_name ')'			{ $$ = op( $1, 0, 1, ej($3) );
 		Base *b = new Base(LONG_B); b->sign = UNSIGNED_X;
 		b->isErr |= $3->type->isErr;
 		$$->type = b;
+		$$->type->lvalue = false;
 	}
 	;
 
 // todo
 unary_operator
-	: '&' { $$ = $1; }
-	| '*' { $$ = $1; }
+	: '&' { $$ = $1; } // handled
+	| '*' { $$ = $1; } // handled
 	| '+' { $$ = $1; } // handled
 	| '-' { $$ = $1; } // handled
 	| '~' { $$ = $1; } // handled 
@@ -335,6 +375,7 @@ cast_expression
 			repErr($2->pos, string("could not type cast from \"") + str(t2) + "\" to \"" + str(t1) + "\"", _FORE_RED_); t1->isErr = true;
 		}
 		$$->type = t1;
+		$$->type->lvalue = false;
 	}
 	;
 

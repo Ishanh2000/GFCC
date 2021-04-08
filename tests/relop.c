@@ -15,12 +15,12 @@ void foo3(int, int);
 // void foo3(int x, int y) {
 // }
 int main(int argc, char *argv[]) {
-  int a, *p;
-  float b, *pf;
-  unsigned long long c, *d,**e;
-  double ee[10];
-  int arr[] = { 1, 2 };
-  int arr1[12];
+  // int a, *p;
+  // float b, *pf;
+  // unsigned long long c, *d,**e;
+  // double ee[10];
+  // int arr[] = { 1, 2 };
+  // int arr1[12];
   // a = a < p;
   // a = a<b;
   // p = c > d;
@@ -38,7 +38,7 @@ int main(int argc, char *argv[]) {
   // ee[22222+21212212121212221];
   // ee[pf];
   // ee[a];
-  struct _x { int x; int y; } l;
+  // struct _x { int x; int y; } l;
   
   // ee+ p;
   // 1+foo1();
@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
   // ~a;
 
   // sizeof(void);
-  sizeof(main);
+  // sizeof(main);
 
   // ++main;
   // ++foo1();
@@ -93,19 +93,42 @@ int main(int argc, char *argv[]) {
   // foo3(1, "ll");
 
   // foo(0);
-  {
-    struct loc_t { int x; int y; } d;
-    (struct loc_t *[])9;
-    (void)9;
-    (int)foo1;
-  }
+  // {
+    // struct loc_t { int x; int y; } d;
+    // (struct loc_t *[])9;
+    // (void)9;
+    // (int)foo1;
+    
+  // }
+
+  // int ****l;
+  // *l;
+  // **l;
+  // ***l;
+  // ****l;
+  // *****l;
+  // &l;
+  // &(&l);
+
+  int **x;
+  int y[3][4][5];
+  *x;
+  **x;
+  ***x;
+  *y;
+  **y;
+  ***y;
+  ****y;
+  &(****y);
+
+  
 
   return 0;
 }
 
-struct _aaa *myFunc(struct _x*);
+// struct _aaa *myFunc(struct _x*);
 
-struct _aaa *myFunc(struct _x*c) {
+// struct _aaa *myFunc(struct _x*c) {
 
-}
+// }
 

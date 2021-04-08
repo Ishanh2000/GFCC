@@ -48,6 +48,7 @@ typedef struct _qual_t { // type qualifiers
 class Type { public :
     bool isErr = false;
     strg_t strg = NONE_S;
+    bool lvalue = false;
 
     // late binding : use "virtual"
     virtual grp_t grp(); // NONE_G

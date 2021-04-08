@@ -48,7 +48,7 @@ class Type *bin(int opr, node_t *left, node_t *right)
             if ((gl == BASE_G) && (priority[bl->base] <= priority[LONG_LONG_B])) { // int + arr
                 ar = (Arr *) tr;
                 if (ar->dims.size() > 1) { ar->dims.erase(ar->dims.begin()); return new Ptr(ar); }
-                if (ar->dims.size() == 1) return new Ptr(ar->item);
+                else if (ar->dims.size() == 1) return new Ptr(ar->item);
             }
             if ((gr == BASE_G) && (priority[br->base] <= priority[LONG_LONG_B])) { // arr + int
                 al = (Arr *) tl;

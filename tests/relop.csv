@@ -9,30 +9,10 @@ NAME, LOCATION, TYPE
       foo2,   6 :   6,  "extern void ()(int, int, ...)"
       foo3,   7 :   6,  "extern void ()(int, int)"
       main,  17 :   5,  "int ()(int, char *[])"
-struct _aaa, 106 :   8,  "struct _aaa <not yet defined>"
- struct _x, 106 :  28,  "struct _x <not yet defined>"
-    myFunc, 108 :  14,  "struct _aaa <not yet defined> *()(struct _x <not yet defined> *)"
 
 ############ Scope = Global >> func main ############,
       argc,  17 :  14,  "int"
       argv,  17 :  26,  "char *[]"
-         a,  18 :   7,  "int"
-         p,  18 :  11,  "int *"
-         b,  19 :   9,  "float"
-        pf,  19 :  13,  "float *"
-         c,  20 :  22,  "unsigned long long int"
-         d,  20 :  26,  "unsigned long long int *"
-         e,  20 :  30,  "unsigned long long int **"
-        ee,  21 :  10,  "double []"
-       arr,  22 :   7,  "int"
-      arr1,  23 :   7,  "int []"
- struct _x,  41 :  10,  "struct _x { x [int], y [int] }"
-         l,  41 :  31,  "struct _x { x [int], y [int] }"
-
-############ Scope = Global >> func main >> _unnamed_0 ############,
-struct loc_t,  97 :  12,  "struct loc_t { x [int], y [int] }"
-         d,  97 :  36,  "struct loc_t { x [int], y [int] }"
-
-############ Scope = Global >> _unnamed_1 ############,
-         c, 108 :  31,  "struct _x <not yet defined> *"
+         x, 113 :   9,  "int **"
+         y, 114 :   7,  "int [][][]"
 
