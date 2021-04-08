@@ -24,14 +24,14 @@ const char jump_attr[] = "style=filled,fillcolor=orange";
 const char iter_attr[] = "style=filled,fillcolor=lightblue";
 const char select_attr[] = "style=filled,fillcolor=yellow";
 const char sizeof_attr[] = "style=filled,fillcolor=lightgreen";
-const char empty_attr[] = "style=filled,fillcolor=graymay propagate thorughout "; // empty statment ';' / empty block '{}'
+const char empty_attr[] = "style=filled,fillcolor=gray"; // empty statment ';' / empty block '{}'
 const char file_name_attr[] = "shape=box";
 const char func_call_attr[] = "shape=box";
 const char label_attr[] = "style=filled,fillcolor=magenta"; // labeled statemets like "abc : func();", "case 34 : func();", "default : func()".
 
 char lexer_help[] = "\
 This compiler uses tab length = 4. So, the location of errors and warnings may differ from the location shown on your editor. \n\
-Use [-t <tab_len>] option for changing the tab length. Use "--help" or "-h" for more help.\n\
+Use [-t <tab_len>] option for changing the tab length. Use \"--help\" or \"-h\" for more help.\n\
 This compiler is not exhaustive. Almost all operations are supported but highly complex inputs may result in segmentation\n\
 fault or unexpected errors. \n\
 Usage: <exec-name> [options] files... [--output|-o] output-files...\n\

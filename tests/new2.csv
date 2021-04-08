@@ -1,14 +1,31 @@
 # File Name:, tests/new2.c
 
-NAME , LOCATION
+NAME, LOCATION, TYPE
 
-###### Scope = Global ######,
-newint , 0:0 "typedef int * const *"
-x , 40:5 "int ()()"
-func , 54:6 "void ()(int, int, char **)"
-###### Scope = Global >> _unnamed_0 ######,
-###### Scope = Global >> _unnamed_1 ######,
-###### Scope = Global >> _unnamed_2 ######,
-f , 54:15 "int"
-j , 54:22 "int"
-x , 54:32 "char **"
+############ Scope = Global ############,
+    newint,   0 :   0,  "typedef int * const *"
+         x,   1 :   9,  "error_type"
+         g,   3 :  12,  "error_type"
+         f,   8 :  37,  "int * const * volatile"
+         F,  16 :   8,  "extern int (**)()"
+        ff,  29 :  14,  "error_type"
+         l,  30 :  30,  "const int ** const * volatile"
+      main,  33 :   5,  "extern int ()(int)"
+      func,  54 :   6,  "void ()(int, int, char **)"
+         h,  59 :  10,  "long int"
+         k,  60 :  17,  "const long long int"
+
+############ Scope = Global >> _unnamed_0 ############,
+
+############ Scope = Global >> _unnamed_1 ############,
+
+############ Scope = Global >> func func ############,
+         f,  54 :  15,  "int"
+         j,  54 :  22,  "int"
+         x,  54 :  32,  "char **"
+
+############ Scope = Global >> _unnamed_3 ############,
+         d,  64 :  22,  "const double [][][]"
+         f,  65 :  13,  "extern int ()()"
+        lp,  68 :  20,  "extern int"
+

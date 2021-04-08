@@ -4,12 +4,12 @@ NAME, LOCATION, TYPE
 
 ############ Scope = Global ############,
     newint,   0 :   0,  "typedef int * const *"
-         f,   5 :   3,  "struct _unnamed_0 { x [int], f [char ***(*(*)[])()] }"
-         g,  10 :   3,  "union _unnamed_0 { x [int], f [char ***(*(*)[])()] }"
-      main,  11 :   5,  "int ()()"
+         f,   4 :   3,  "struct _unnamed_0 { x [int], f [char ***(*(*)[])()] }"
+         g,   8 :   3,  "union _unnamed_0 { x [int], f [char ***(*(*)[])()] }"
+      main,   9 :   5,  "int ()()"
 
 ############ Scope = Global >> func main ############,
-struct _loc_t,  27 :  12,  "struct _loc_t { x [int], y [int] }"
-     loc_t,  28 :  27,  "typedef struct _loc_t { x [int], y [int] }"
-         k,  31 :  19,  "struct _loc_t { x [int], y [int] }"
+struct _loc_t,  10 :  12,  "struct _loc_t { x [int], y [int] }"
+     loc_t,  11 :  27,  "typedef struct _loc_t { x [int], y [int] }"
+         k,  14 :  19,  "struct _loc_t { x [int], y [int] }"
 

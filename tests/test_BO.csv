@@ -1,0 +1,33 @@
+# File Name:, tests/test_BO.c
+
+NAME, LOCATION, TYPE
+
+############ Scope = Global ############,
+    newint,   0 :   0,  "typedef int * const *"
+      main,   4 :   5,  "int ()()"
+
+############ Scope = Global >> func main ############,
+         p,   6 :   7,  "int"
+         q,   6 :  10,  "int"
+         r,   6 :  15,  "int"
+         s,   6 :  18,  "int"
+         a,   7 :   7,  "int"
+         b,   7 :  13,  "int"
+         c,   7 :  19,  "int"
+         d,   8 :   7,  "int"
+         e,   8 :  16,  "int"
+
+############ Scope = Global >> func main >> _unnamed_0 ############,
+
+############ Scope = Global >> func main >> _unnamed_0 >> _unnamed_0 ############,
+
+############ Scope = Global >> func main >> _unnamed_1 ############,
+
+############ Scope = Global >> func main >> _unnamed_1 >> _unnamed_0 ############,
+
+############ Scope = Global >> func main >> _unnamed_1 >> _unnamed_1 ############,
+
+############ Scope = Global >> func main >> _unnamed_2 ############,
+
+############ Scope = Global >> func main >> _unnamed_3 ############,
+

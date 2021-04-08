@@ -1,0 +1,38 @@
+# File Name:, tests/test_func_def.c
+
+NAME, LOCATION, TYPE
+
+############ Scope = Global ############,
+    newint,   0 :   0,  "typedef int * const *"
+         a,   1 :   6,  "long int ()(int, int)"
+         q,   5 :   5,  "int ()()"
+        q1,   6 :   5,  "int ()()"
+        q2,   7 :   5,  "int ()(int, float)"
+        q3,   8 :   7,  "char *()()"
+        q4,   9 :   5,  "int ()(int, ...)"
+        q5,  10 :   5,  "int ()()"
+      main,  11 :  11,  "short int ()()"
+
+############ Scope = Global >> func a ############,
+        a1,   1 :  12,  "int"
+        b1,   1 :  19,  "int"
+
+############ Scope = Global >> func q ############,
+
+############ Scope = Global >> func q1 ############,
+
+############ Scope = Global >> func q2 ############,
+         b,   7 :  12,  "int"
+         c,   7 :  20,  "float"
+
+############ Scope = Global >> func q3 ############,
+
+############ Scope = Global >> func q4 ############,
+         g,   9 :  12,  "int"
+       ...,   9 :  15,  "..."
+
+############ Scope = Global >> func q5 ############,
+
+############ Scope = Global >> func main ############,
+      abcd,  15 :  29,  "register"
+
