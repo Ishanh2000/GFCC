@@ -1,0 +1,23 @@
+# File Name:, tests/relop.c
+
+NAME, LOCATION, TYPE
+
+############ Scope = Global ############,
+    newint,   0 :   0,  "typedef int * const *"
+       foo,   4 :   5,  "int ()()"
+      main,   7 :   5,  "int ()(int, char *[])"
+
+############ Scope = Global >> func foo ############,
+
+############ Scope = Global >> func main ############,
+      argc,   7 :  14,  "int"
+      argv,   7 :  26,  "char *[]"
+         a,   8 :   7,  "int"
+         p,   8 :  11,  "int *"
+         b,   9 :   9,  "float"
+        pf,   9 :  13,  "float *"
+         c,  10 :  22,  "unsigned long long int"
+         d,  10 :  26,  "unsigned long long int *"
+         e,  10 :  30,  "unsigned long long int **"
+        ee,  11 :  10,  "double []"
+

@@ -71,8 +71,10 @@ using namespace std;
 primary_expression
 	: IDENTIFIER			{ $$ = $1;
 		sym* ret = SymRoot->gLookup($1->label);
-		if (ret) $$->type = clone(ret->type); // success - start by making a copy of type.
-		else {
+		if (ret) {
+			if (ret->type) $$->type = clone(ret->type); // success - start by making a copy of type.
+			else { $$->type = new Type(); $$->type->isErr = true; }
+		} else {
 			repErr($1->pos, "variable undeclared in this scope", _FORE_RED_);
 			Type* t = $$->type = new Type(); t->isErr = true;
 		}
@@ -82,9 +84,31 @@ primary_expression
 	| '(' expression ')'	{ $$ = $2; }
 	;
 
+// todo
 postfix_expression
-	: primary_expression									{ $$ = $1; }
-	| postfix_expression '[' expression ']'					{ $$ = op( $2, 0, 2, ej($1), ej($3) ); }
+	: primary_expression									{ $$ = $1; } // do nothing
+	| postfix_expression '[' expression ']'					{ $$ = op( $2, 0, 2, ej($1), ej($3) );
+		Type *t1 = $1->type, *t2 = $3->type; // assume both not NULL
+		if (t1->isErr) { repErr($1->pos, "using \"error_type\"", _FORE_RED_); $$->type = t1; }
+		if (t2->isErr) { repErr($3->pos, "using \"error_type\"", _FORE_RED_); $$->type = t2; }
+		if (!(t1->isErr || t2->isErr)) {
+			grp_t g1 = t1->grp(), g2 = t2->grp();
+			if (g1 != ARR_G && g1 != PTR_G) { repErr($3->pos, "subscript operator not used on pointer or array", _FORE_RED_); t1->isErr = true; }
+			else if (g1 == ARR_G) {
+				Arr *a1 = (Arr *) t1; a1->dims.erase(a1->dims.begin());
+				if (a1->dims.size() == 0) { t1 = a1->item; }
+			} else {
+				Ptr *p1 = (Ptr *) t1; p1->ptrs.pop_back();
+				if (p1->ptrs.size() == 0) { t1 = p1->pt; }
+			}
+			Base *b2 = (Base *) t2;
+			if (!(
+				(g2 == BASE_G) &&
+				(b2->base == CHAR_B || b2->base == INT_B || b2->base == LONG_B || b2->base == LONG_LONG_B || b2->base == ENUM_B)
+			)) { repErr($3->pos, "array index not compatible to integer type", _FORE_RED_); t1->isErr = true; }
+			$$->type = t1;
+		}
+	}
 	| postfix_expression '(' ')' {
 		$2->tok = FUNC_CALL; $2->label = "() [func-call]"; $2->attr = func_call_attr;
 		$$ = op( $2, 0, 1, ej($1) );
@@ -105,15 +129,19 @@ argument_expression_list
 	| argument_expression_list ',' assignment_expression	{ $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
+// todo
 unary_expression
 	: postfix_expression				{ $$ = $1; }
 	| INC_OP unary_expression			{ $$ = op( $1, 0, 1, ej($2) ); }
 	| DEC_OP unary_expression			{ $$ = op( $1, 0, 1, ej($2) ); }
-	| unary_operator cast_expression	{ $$ = op( $1, 0, 1, ej($2) ); }
+	| unary_operator cast_expression	{ $$ = op( $1, 0, 1, ej($2) );
+		if ($1->tok == '-') $$->type = $2->type;
+	}
 	| SIZEOF unary_expression			{ $$ = op( $1, 0, 1, ej($2) ); }
 	| SIZEOF '(' type_name ')'			{ $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
+// todo
 unary_operator
 	: '&' { $$ = $1; }
 	| '*' { $$ = $1; }
@@ -123,6 +151,7 @@ unary_operator
 	| '!' { $$ = $1; }
 	;
 
+// todo
 cast_expression
 	: unary_expression { $$ = $1; }
 	| '(' type_name ')' cast_expression { $$ = op(
@@ -132,9 +161,9 @@ cast_expression
 
 multiplicative_expression
 	: cast_expression { $$ = $1; }
-	| multiplicative_expression '*' cast_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('*', $1, $3);}
-	| multiplicative_expression '/' cast_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('/', $1, $3);}
-	| multiplicative_expression '%' cast_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('%', $1, $3);}
+	| multiplicative_expression '*' cast_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('*', $1, $3); }
+	| multiplicative_expression '/' cast_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('/', $1, $3); }
+	| multiplicative_expression '%' cast_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('%', $1, $3); }
 	;
 
 additive_expression
@@ -145,22 +174,22 @@ additive_expression
 
 shift_expression
 	: additive_expression { $$ = $1; }
-	| shift_expression LEFT_OP additive_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('a', $1, $3);}
-	| shift_expression RIGHT_OP additive_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('b', $1, $3);}
+	| shift_expression LEFT_OP additive_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('a', $1, $3); }
+	| shift_expression RIGHT_OP additive_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('b', $1, $3); }
 	;
 
 relational_expression
 	: shift_expression { $$ = $1; }
-	| relational_expression '<' shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) );  $$->type = bin('<', $1, $3);}
-	| relational_expression '>' shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) );  $$->type = bin('>', $1, $3);}
-	| relational_expression LE_OP shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); }
-	| relational_expression GE_OP shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); }
+	| relational_expression '<' shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('<', $1, $3); }
+	| relational_expression '>' shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('>', $1, $3); }
+	| relational_expression LE_OP shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('>', $1, $3); }
+	| relational_expression GE_OP shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('>', $1, $3); }
 	;
 
 equality_expression
 	: relational_expression { $$ = $1; }
-	| equality_expression EQ_OP relational_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); }
-	| equality_expression NE_OP relational_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); }
+	| equality_expression EQ_OP relational_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('>', $1, $3); }
+	| equality_expression NE_OP relational_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('>', $1, $3); }
 	;
 
 and_expression
@@ -178,16 +207,19 @@ inclusive_or_expression
 	| inclusive_or_expression '|' exclusive_or_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('|', $1, $3); }
 	;
 
+// todo
 logical_and_expression
 	: inclusive_or_expression { $$ = $1; }
 	| logical_and_expression AND_OP inclusive_or_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); }
 	;
 
+// todo
 logical_or_expression
 	: logical_and_expression { $$ = $1; }
 	| logical_or_expression OR_OP logical_and_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); }
 	;
 
+// todo
 conditional_expression
 	: logical_or_expression { $$ = $1; }
 	| logical_or_expression '?' expression ':' conditional_expression { $$ = op( $2, 0, 3,
@@ -195,6 +227,7 @@ conditional_expression
 	); }
 	;
 
+// todo
 assignment_expression
 	: conditional_expression { $$ = $1; }
 	| unary_expression assignment_operator assignment_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); }
@@ -214,13 +247,12 @@ assignment_operator
 	| OR_ASSIGN		{ $$ = $1; }
 	;
 
-// Here, comma is an operator, and is not treated like a list delimiter
+// Here, comma is an operator, and is not treated like a list delimiter (aka 'separator')
 expression
 	: assignment_expression { $$ = $1; }
-	| expression ',' assignment_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); }
+	| expression ',' assignment_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = $3->type; } // comma returns first operand's type;
 	;
 
-// nothing to do
 constant_expression
 	: conditional_expression { $$ = $1; }
 	;
