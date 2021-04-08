@@ -1,6 +1,9 @@
 build/
 bin/
 generated/
+# Only track .c files in tests
+tests/*
+!tests/*.c
 
 # Editor stuff
 .vscode/
