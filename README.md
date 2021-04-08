@@ -6,7 +6,7 @@ Official name of compiler will be "gfcc".
 
 Source (S): C.
 
-Implemetation (I): C (maybe C++ later on, if required, especially in case of object orientation).
+Implemetation (I): C++.
 
 Target (T): MIPS (might change, if backend can be better implemented on another target).
 
@@ -44,9 +44,6 @@ Use help flag for more details.
  - Prashant Kumar (180539) - praskr@iitk.ac.in
  - Priyanshu Agrarwal (180559) - priyanag@iitk.ac.in
  - Rwit Panda (180635) - rwit@iitk.ac.in
-
-### TODO:
- - Try updating repositry to CPP, if required in future.
 
 ### Dependecies
  - flex v2.6.4
