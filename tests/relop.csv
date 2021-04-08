@@ -5,21 +5,28 @@ NAME, LOCATION, TYPE
 ############ Scope = Global ############,
     newint,   0 :   0,  "typedef int * const *"
        foo,   4 :   5,  "int ()()"
-      main,   7 :   5,  "int ()(int, char *[])"
+      foo1,   7 :   6,  "void ()()"
+      main,   9 :   5,  "int ()(int, char *[])"
 
 ############ Scope = Global >> func foo ############,
 
+############ Scope = Global >> func foo1 ############,
+
 ############ Scope = Global >> func main ############,
-      argc,   7 :  14,  "int"
-      argv,   7 :  26,  "char *[]"
-         a,   8 :   7,  "int"
-         p,   8 :  11,  "int *"
-         b,   9 :   9,  "float"
-        pf,   9 :  13,  "float *"
-         c,  10 :  22,  "unsigned long long int"
-         d,  10 :  26,  "unsigned long long int *"
-         e,  10 :  30,  "unsigned long long int **"
-        ee,  11 :  10,  "double []"
-       arr,  12 :   7,  "int"
-      arr1,  13 :   7,  "int []"
+      argc,   9 :  14,  "int"
+      argv,   9 :  26,  "char *[]"
+         a,  10 :   7,  "int"
+         p,  10 :  11,  "int *"
+         b,  11 :   9,  "float"
+        pf,  11 :  13,  "float *"
+         c,  12 :  22,  "unsigned long long int"
+         d,  12 :  26,  "unsigned long long int *"
+         e,  12 :  30,  "unsigned long long int **"
+        ee,  13 :  10,  "double []"
+       arr,  14 :   7,  "int"
+      arr1,  15 :   7,  "int []"
+ struct _x,  33 :  10,  "struct _x { x [int], y [int] }"
+         l,  33 :  31,  "struct _x { x [int], y [int] }"
+
+############ Scope = Global >> func main >> _unnamed_0 ############,
 

@@ -4,6 +4,8 @@
 int foo() {
   return 0;
 }
+void foo1() {
+}
 int main(int argc, char *argv[]) {
   int a, *p;
   float b, *pf;
@@ -28,9 +30,47 @@ int main(int argc, char *argv[]) {
   // ee[22222+21212212121212221];
   // ee[pf];
   // ee[a];
+  struct _x { int x; int y; } l;
   
   // ee+ p;
+  // 1+foo1();
+  // ee[foo1()];
+  // +foo1();
+  // !foo1();
+  // !l;
+
+
+  // ~l;
+  // ~main;
+  // ~p;
+  // ~(ee[7]);
+  // ~b;
+  // ~arr1;
+  // ~y;
+  // ~3;
+  // ~a;
+
+  // sizeof(void);
+  sizeof(main);
+
+  // ++main;
+  // ++foo1();
+  // ++foo();  // problematic
+  // ++arr;
+  // ++a;
+  // ++p;
+  // ++l;
+
+  switch (arr1) {
+  case arr1:
+    /* code */
+    break;
   
+  default:
+    break;
+  }
+  
+  while (foo1) ;
 
   return 0;
 }

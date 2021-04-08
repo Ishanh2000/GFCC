@@ -112,6 +112,7 @@ postfix_expression
 	| postfix_expression '(' ')' {
 		$2->tok = FUNC_CALL; $2->label = "() [func-call]"; $2->attr = func_call_attr;
 		$$ = op( $2, 0, 1, ej($1) );
+		$$->type = new Base(VOID_B);
 	}
 	| postfix_expression '(' argument_expression_list ')' {
 		$2->tok = FUNC_CALL; $2->label = "() [func-call]"; $2->attr = func_call_attr;
@@ -119,8 +120,30 @@ postfix_expression
 	}
 	| postfix_expression '.' IDENTIFIER						{ $$ = op( $2, 0, 2, ej($1), ej($3) ); } // search for definition by name of "struct|union _abc"
 	| postfix_expression PTR_OP IDENTIFIER					{ $$ = op( $2, 0, 2, ej($1), ej($3) ); } // search for definition by name of "struct|union _abc"
-	| postfix_expression INC_OP								{ $$ = op( $2, 0, 1, ej($1) ); }
-	| postfix_expression DEC_OP								{ $$ = op( $2, 0, 1, ej($1) ); }
+	| postfix_expression INC_OP								{ $$ = op( $2, 0, 1, ej($1) ); // not allowed on function, array, void, struct, union
+		Type *t = $1->type; grp_t g = t->grp();
+		if (g == FUNC_G) { repErr($2->pos, "unary inrement operator used on a function", _FORE_RED_); t->isErr = true; }
+		if (g == ARR_G) { repErr($2->pos, "unary inrement operator used on an array", _FORE_RED_); t->isErr = true; }
+		if (g == BASE_G) {
+			base_t bs = ((Base *) t)->base;
+			if ((bs == VOID_B) || (bs == STRUCT_B) || (bs == UNION_B)) {
+				repErr($2->pos, "unary inrement operator used on pure \"void\" type, a struct or a union", _FORE_RED_); t->isErr = true;
+			}
+		}
+		$$->type = t;
+	}
+	| postfix_expression DEC_OP								{ $$ = op( $2, 0, 1, ej($1) ); // not allowed on function, array, void, struct, union
+		Type *t = $1->type; grp_t g = t->grp();
+		if (g == FUNC_G) { repErr($2->pos, "unary inrement operator used on a function", _FORE_RED_); t->isErr = true; }
+		if (g == ARR_G) { repErr($2->pos, "unary inrement operator used on an array", _FORE_RED_); t->isErr = true; }
+		if (g == BASE_G) {
+			base_t bs = ((Base *) t)->base;
+			if ((bs == VOID_B) || (bs == STRUCT_B) || (bs == UNION_B)) {
+				repErr($2->pos, "unary inrement operator used on pure \"void\" type, a struct or a union", _FORE_RED_); t->isErr = true;
+			}
+		}
+		$$->type = t;
+	}
 	;
 
 // nothing to do
@@ -132,29 +155,89 @@ argument_expression_list
 // todo
 unary_expression
 	: postfix_expression				{ $$ = $1; }
-	| INC_OP unary_expression			{ $$ = op( $1, 0, 1, ej($2) );
-
+	| INC_OP unary_expression			{ $$ = op( $1, 0, 1, ej($2) ); // not allowed on function, array, void, struct, union
+		Type *t = $2->type; grp_t g = t->grp();
+		if (g == FUNC_G) { repErr($2->pos, "unary inrement operator used on a function", _FORE_RED_); t->isErr = true; }
+		if (g == ARR_G) { repErr($2->pos, "unary inrement operator used on an array", _FORE_RED_); t->isErr = true; }
+		if (g == BASE_G) {
+			base_t bs = ((Base *) t)->base;
+			if ((bs == VOID_B) || (bs == STRUCT_B) || (bs == UNION_B)) {
+				repErr($2->pos, "unary inrement operator used on pure \"void\" type, a struct or a union", _FORE_RED_); t->isErr = true;
+			}
+		}
+		$$->type = t;
 	}
-	| DEC_OP unary_expression			{ $$ = op( $1, 0, 1, ej($2) ); }
+	| DEC_OP unary_expression			{ $$ = op( $1, 0, 1, ej($2) ); // not allowed on function, array, void, struct, union
+		Type *t = $2->type; grp_t g = t->grp();
+		if (g == FUNC_G) { repErr($2->pos, "unary inrement operator used on a function", _FORE_RED_); t->isErr = true; }
+		if (g == ARR_G) { repErr($2->pos, "unary inrement operator used on an array", _FORE_RED_); t->isErr = true; }
+		if (g == BASE_G) {
+			base_t bs = ((Base *) t)->base;
+			if ((bs == VOID_B) || (bs == STRUCT_B) || (bs == UNION_B)) {
+				repErr($2->pos, "unary inrement operator used on pure \"void\" type, a struct or a union", _FORE_RED_); t->isErr = true;
+			}
+		}
+		$$->type = t;
+	}
 	| unary_operator cast_expression	{ $$ = op( $1, 0, 1, ej($2) );
+		Type *t = $2->type; grp_t g = t->grp(); base_t bs; bool tilda_good = false;
+		if (t->isErr) { $$->type = t; }
+		else switch ($1->tok) {
+			case '+' : case '-' :
+				if (g != BASE_G) {
+					repErr($1->pos, "unary plus/minus used with function, array or pointer", _FORE_RED_); t->isErr = true;
+				} else {
+					bs = ((Base *)t)->base;
+					if ((bs == VOID_B) || (bs == STRUCT_B) || (bs == UNION_B)) {
+						repErr($1->pos, "unary plus/minus used with pure \"void\" type, a struct or a union", _FORE_RED_); t->isErr = true;
+					}
+				}
+				$$->type = t;
+				break;
+			
+			case '!' :
+				if (g == BASE_G) {
+					bs = ((Base *)t)->base;
+					if ((bs == VOID_B) || (bs == STRUCT_B) || (bs == UNION_B)) {
+						repErr($1->pos, "unary exclamation mark used with pure \"void\" type, a struct or a union", _FORE_RED_); t->isErr = true;
+					}
+				}
+				$$->type = t;
+				break;
+			
+			case '~': // bitwise NOT
+				if (g == BASE_G) {
+					bs = ((Base *)t)->base;
+					if ((bs == CHAR_B) || (bs == INT_B) || (bs == LONG_B) || (bs == LONG_LONG_B) || (bs == ENUM_B)) tilda_good = true;
+				}
+				if (!tilda_good) { repErr($1->pos, "bitwise NOT operator (~) used with incompatible type", _FORE_RED_); t->isErr = true; }
+				$$->type = t;
+				break;
 
-		/* if ($1->tok == '-') {
-			if ($2->base-.grp)
-			$$->type = $2->type;
-		} */
+			/* case '*' : */
+
+		}
 	}
-	| SIZEOF unary_expression			{ $$ = op( $1, 0, 1, ej($2) ); }
-	| SIZEOF '(' type_name ')'			{ $$ = op( $1, 0, 1, ej($3) ); }
+	| SIZEOF unary_expression			{ $$ = op( $1, 0, 1, ej($2) );
+		Base *b = new Base(LONG_B); b->sign = UNSIGNED_X;
+		b->isErr |= $2->type->isErr;
+		$$->type = b;
+	}
+	| SIZEOF '(' type_name ')'			{ $$ = op( $1, 0, 1, ej($3) );
+		Base *b = new Base(LONG_B); b->sign = UNSIGNED_X;
+		b->isErr |= $3->type->isErr;
+		$$->type = b;
+	}
 	;
 
 // todo
 unary_operator
 	: '&' { $$ = $1; }
 	| '*' { $$ = $1; }
-	| '+' { $$ = $1; }
-	| '-' { $$ = $1; }
-	| '~' { $$ = $1; }
-	| '!' { $$ = $1; }
+	| '+' { $$ = $1; } // handled
+	| '-' { $$ = $1; } // handled
+	| '~' { $$ = $1; } // handled 
+	| '!' { $$ = $1; } // handled
 	;
 
 // todo
@@ -900,8 +983,16 @@ identifier_list
 	;
 
 type_name
-	: specifier_qualifier_list                        { $$ = op( nd(TYPE_NAME, "type-name", { 0, 0 }), 0, 1, ej($1) ); }
-	| specifier_qualifier_list abstract_declarator    { $$ = op( $1, 0, 1, ej($2) ); }
+	: specifier_qualifier_list                        { $$ = op( nd(TYPE_NAME, "type-name", { 0, 0 }), 0, 1, ej($1) ); $$->type = $1->type; }
+	| specifier_qualifier_list abstract_declarator    { $$ = op( $1, 0, 1, ej($2) );
+		Type *t1 = $1->type, *t2 = $2->type, *tt = tail(t2);
+        if (t1->strg != NONE_S) { repErr($1->pos, "storage class specifier given in parameter", _FORE_RED_); t1->isErr = true; }
+        if ((t1->grp() == BASE_G) && (((Base*)t1)->base == VOID_B)) { // t2's tail must not be array or NULL
+            if (!t2) { repErr($2->pos, "pure \"void\" type given", _FORE_RED_); t1->isErr = true; } // void x;
+            else if (tt->grp() == ARR_G) { repErr($2->pos, "array of \"voids\" given", _FORE_RED_); t2->isErr = true; } // void x[];
+        }
+        $$->type = unify(t1, t2);
+	}
 	;
 
 abstract_declarator
@@ -1026,7 +1117,15 @@ statement
 
 labeled_statement
 	: IDENTIFIER ':' statement                { ($1)->attr = label_attr; $$ = op( $1, 0, 1, ej($3) ); }
-	| CASE constant_expression ':' statement  { $$ = op( $1, 0, 2, ej($2), ej($4) ); }
+	| CASE constant_expression ':' statement  { $$ = op( $1, 0, 2, ej($2), ej($4) );
+		Type *t = $2->type; grp_t g = t->grp();
+		if (g != BASE_G) repErr($2->pos, "invalid expression type for case label", _FORE_RED_);
+		else {
+			base_t bs = ((Base*)t)->base;
+			if (!(bs == CHAR_B || bs == INT_B || bs == LONG_B || bs == LONG_LONG_B || bs == ENUM_B))
+				repErr($2->pos, "invalid expression type for case label", _FORE_RED_);
+		}
+	}
 	| DEFAULT ':' statement                   { $$ = op( $1 , 0, 1, ej($3) ); }
 	;
 
@@ -1065,31 +1164,58 @@ expression_statement
 	| expression ';'	{ $$ = $1; }
 	;
 
+// void, struct, union not allowed
 selection_statement
-	: IF '(' expression ')' statement { $$ = op( $1, 0, 2,
-		Ej($3, "cond", NULL), Ej($5, "stmts", NULL)
-	); }
-	| IF '(' expression ')' statement ELSE statement { $$ = op( $6, 0, 3,
-		Ej($3, "cond", NULL), Ej($5, "stmts (if TRUE)", NULL), Ej($7, "stmts (if FALSE)", NULL)
-	); }
-	| SWITCH '(' expression ')' statement { $$ = op( $1, 0, 2,
-		Ej($3, "expr", NULL), Ej($5, "stmts", NULL)
-	); }
+	: IF '(' expression ')' statement { $$ = op( $1, 0, 2, Ej($3, "cond", NULL), Ej($5, "stmts", NULL) );
+		Type *t = $3->type;
+		if (t->grp() == BASE_G) {
+			base_t bs = ((Base*)t)->base;
+			if (bs == VOID_B || bs == STRUCT_B || bs == UNION_B) repErr($3->pos, "expression is of pure \"void\" type, a struct or a union", _FORE_RED_);
+		}
+	}
+	| IF '(' expression ')' statement ELSE statement { $$ = op( $6, 0, 3, Ej($3, "cond", NULL), Ej($5, "stmts (if TRUE)", NULL), Ej($7, "stmts (if FALSE)", NULL) );
+		Type *t = $3->type;
+		if (t->grp() == BASE_G) {
+			base_t bs = ((Base*)t)->base;
+			if (bs == VOID_B || bs == STRUCT_B || bs == UNION_B) repErr($3->pos, "expression is of pure \"void\" type, a struct or a union", _FORE_RED_);
+		}
+	}
+	| SWITCH '(' expression ')' statement { $$ = op( $1, 0, 2, Ej($3, "expr", NULL), Ej($5, "stmts", NULL) );
+		Type *t = $3->type; grp_t g = t->grp();
+		cout << "Here\n";
+		if (g != BASE_G) repErr($3->pos, "invalid expression type for switch statement", _FORE_RED_);
+		else {
+			base_t bs = ((Base*)t)->base;
+			if (!(bs == CHAR_B || bs == INT_B || bs == LONG_B || bs == LONG_LONG_B || bs == ENUM_B))
+				repErr($3->pos, "invalid expression type for switch statement", _FORE_RED_);
+		}
+	}
 	;
 
 iteration_statement
-	: WHILE '(' expression ')' statement { $$ = op( $1, 0, 2,
-		Ej($3, "expr", NULL), Ej($5, "stmts", NULL)
-	); }
-	| DO statement WHILE '(' expression ')' ';' { $$ = op( $1, 0, 2,
-		Ej($2, "stmts", NULL), Ej($5, "expr", NULL)
-	); }
-	| FOR '(' expression_statement expression_statement ')' statement { $$ = op( $1, 0, 3,
-		Ej($3, "expr", NULL), Ej($4, "expr", NULL), Ej($6, "stmts", NULL)
-	); }
-	| FOR '(' expression_statement expression_statement expression ')' statement  { $$ = op( $1, 0, 4,
-		Ej($3, "expr", NULL), Ej($4, "expr", NULL), Ej($5, "expr", NULL), Ej($7, "stmts", NULL)
-	); }
+	: WHILE '(' expression ')' statement { $$ = op( $1, 0, 2, Ej($3, "expr", NULL), Ej($5, "stmts", NULL) );
+		Type *t = $3->type;
+		if (t->grp() == BASE_G) {
+			base_t bs = ((Base*)t)->base;
+			if (bs == VOID_B || bs == STRUCT_B || bs == UNION_B) repErr($3->pos, "expression is of pure \"void\" type, a struct or a union", _FORE_RED_);
+		}
+	}
+	| DO statement WHILE '(' expression ')' ';' { $$ = op( $1, 0, 2, Ej($2, "stmts", NULL), Ej($5, "expr", NULL) );
+		Type *t = $5->type;
+		if (t->grp() == BASE_G) {
+			base_t bs = ((Base*)t)->base;
+			if (bs == VOID_B || bs == STRUCT_B || bs == UNION_B) repErr($5->pos, "expression is of pure \"void\" type, a struct or a union", _FORE_RED_);
+		}
+	}
+	| FOR '(' expression_statement expression_statement ')' statement { $$ = op( $1, 0, 3, Ej($3, "expr", NULL), Ej($4, "expr", NULL), Ej($6, "stmts", NULL) ); }
+	| FOR '(' expression_statement expression_statement expression ')' statement  {
+		$$ = op( $1, 0, 4, Ej($3, "expr", NULL), Ej($4, "expr", NULL), Ej($5, "expr", NULL), Ej($7, "stmts", NULL) );
+		Type *t = $5->type;
+		if (t->grp() == BASE_G) {
+			base_t bs = ((Base*)t)->base;
+			if (bs == VOID_B || bs == STRUCT_B || bs == UNION_B) repErr($5->pos, "expression is of pure \"void\" type, a struct or a union", _FORE_RED_);
+		}
+	}
 	;
 
 jump_statement
