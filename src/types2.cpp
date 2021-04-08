@@ -393,6 +393,15 @@ bool checkArrDims(class Type *t) { // recursively check that all array bounds mu
     return true;
 }
 
+bool impCast(class Type *from, class Type *to) { // implicit type-casing
+    return true;
+}
+
+bool expCast(class Type *from, class Type *to) { // explicit type-casting (may differ from implicit version)
+    return impCast(from, to);
+}
+
+
 
 /************************************************/
 /****************** TEST SUITE ******************/

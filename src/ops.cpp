@@ -149,12 +149,12 @@ class Type *bin(int opr, node_t *left, node_t *right)
     case '<': case '>':
         if(gl==BASE_G && gr == BASE_G){
             // ! return int type
-            bl = new Base(INT_B); bl->isConst = true;
+            bl = new Base(INT_B);
             return bl;
         }
         if(gl==gr){
             // ! return int type
-            bl = new Base(INT_B); bl->isConst = true;
+            bl = new Base(INT_B);
             return bl;
         }
         if(gl==BASE_G || gr == BASE_G){
@@ -165,7 +165,7 @@ class Type *bin(int opr, node_t *left, node_t *right)
         repErr(left->pos,"comparison of distinct pointer types lacks a cast",_FORE_MAGENTA_);
         return tl;
     case AND_OP : case OR_OP :
-        bl = new Base(INT_B); bl->isConst = true;
+        bl = new Base(INT_B);
         return bl;
     }    
 }

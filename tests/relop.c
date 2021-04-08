@@ -1,10 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int foo() {
+int foo(int j) {
   return 0;
 }
 void foo1() {
+}
+void foo2(int x, int y, ...) {
+}
+void foo3(int x, int y) {
 }
 int main(int argc, char *argv[]) {
   int a, *p;
@@ -61,16 +65,22 @@ int main(int argc, char *argv[]) {
   // ++p;
   // ++l;
 
-  switch (arr1) {
-  case arr1:
-    /* code */
-    break;
+  // switch (arr1) {
+  // case arr1:
+  //   /* code */
+  //   break;
   
-  default:
-    break;
-  }
+  // default:
+  //   break;
+  // }
   
-  while (foo1) ;
+  // while (foo1) ;
+
+  !foo();
+  foo1();
+  foo2();
+  foo2(45, 45, "ll");
+  foo3();
 
   return 0;
 }

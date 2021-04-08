@@ -110,13 +110,97 @@ postfix_expression
 		}
 	}
 	| postfix_expression '(' ')' {
-		$2->tok = FUNC_CALL; $2->label = "() [func-call]"; $2->attr = func_call_attr;
-		$$ = op( $2, 0, 1, ej($1) );
-		$$->type = new Base(VOID_B);
+		$2->tok = FUNC_CALL; $2->label = "() [func-call]"; $2->attr = func_call_attr; $$ = op( $2, 0, 1, ej($1) );
+		Type *t = $1->type;
+		if (t->isErr) { $$->type = new Base(INT_B); $$->type->isErr = true; }
+		else {
+ 			grp_t g = t->grp();	Func *f = NULL;
+			if (g == FUNC_G) f = (Func *)t;
+			else if ((g == PTR_G) && (((Ptr*)t)->pt->grp() == FUNC_G)) f = (Func *)(((Ptr*)t)->pt);
+			else {
+				repErr($1->pos, "called expression is not a function or a function-pointer", _FORE_RED_);
+				$$->type = new Base(INT_B); $$->type->isErr = true;
+			}
+
+			if (f) {
+				if (f->params.size()) {
+					Type *_last = f->params.back(); // not NULL (assume)
+					if ((_last->grp() == BASE_G) && (((Base *)_last)->base == ELLIPSIS_B))
+						repErr($2->pos, string("expected at least ") + to_string(f->params.size() - 1) + " argument(s); specified none", _FORE_RED_);
+					else repErr($2->pos, string("expected ") + to_string(f->params.size()) + " argument(s); specified none", _FORE_RED_);
+					$$->type = new Base(INT_B); $$->type->isErr = true;
+				} else $$->type = clone(f->retType);
+			}
+		}
 	}
 	| postfix_expression '(' argument_expression_list ')' {
-		$2->tok = FUNC_CALL; $2->label = "() [func-call]"; $2->attr = func_call_attr;
-		$$ = op( $2, 0, 2, ej($1), ej($3) );
+				cout << "Here2\n";
+		$2->tok = FUNC_CALL; $2->label = "() [func-call]"; $2->attr = func_call_attr; $$ = op( $2, 0, 2, ej($1), ej($3) );
+		int numArg = $3->numChild;
+
+		Type *t = $1->type;
+		if (t->isErr) { $$->type = new Base(INT_B); $$->type->isErr = true; }
+		else {
+				cout << "Here3\n";
+
+ 			grp_t g = t->grp();	Func *f = NULL;
+			if (g == FUNC_G) f = (Func *)t;
+			else if ((g == PTR_G) && (((Ptr*)t)->pt->grp() == FUNC_G)) f = (Func *)(((Ptr*)t)->pt);
+			else {
+				repErr($1->pos, "called expression is not a function or a function-pointer", _FORE_RED_);
+				$$->type = new Base(INT_B); $$->type->isErr = true;
+			}
+
+			if (f) {
+				cout << "here5" << endl;
+
+				if (f->params.size() == 0) {
+					repErr($3->pos, string("expected no argument; specified ") + to_string(numArg) + " argument(s)", _FORE_RED_);
+					$$->type = new Base(INT_B); $$->type->isErr = true;
+				} else {
+					Type *_last = f->params.back();
+					if ((_last->grp() == BASE_G) && (((Base *)_last)->base == ELLIPSIS_B)) { // ellipsis call
+						int least = f->params.size() - 1; // assured least > 0
+						cout << "Here6" << endl;
+
+						if (numArg < least) {
+							repErr($3->pos, string("expected at least ") + to_string(least) + " argument(s); specified " + to_string(numArg) + " argument(s)", _FORE_RED_);
+							$$->type = new Base(INT_B); $$->type->isErr = true;
+						} else {
+							bool _good = true;
+							for (int i = 0; i < least; i++) {
+								Type *proto = f->params[i], *given = $3->ch(i)->type;
+								if (!impCast(given, proto)) { // check given against proto
+									repErr($3->ch(i)->pos, "expected argument of type \"" + str(proto) + "\", but got type \"" + str(given) + "\"", _FORE_RED_);
+									_good = false;
+								}
+							}
+							if (_good) $$->type = clone(f->retType);
+							else { $$->type = new Base(INT_B); $$->type->isErr = true; }
+						}
+					} else { // not an ellipsis call
+					cout << "Here1" << endl;
+						int numProto = f->params.size();
+						if (numProto != numArg) {
+							repErr($3->pos, string("expected ") + to_string(numProto) + " argument(s); specified " + to_string(numArg) + " argument(s)", _FORE_RED_);
+							$$->type = new Base(INT_B); $$->type->isErr = true;
+						} else {
+							bool _good = true;
+							for (int i = 0; i < numProto; i++) {
+								Type *proto = f->params[i], *given = $3->ch(i)->type;
+								if (!impCast(given, proto)) { // check given against proto
+									repErr($3->ch(i)->pos, "expected argument of type \"" + str(proto) + "\", but got type \"" + str(given) + "\"", _FORE_RED_);
+									_good = false;
+								}
+							}
+							if (_good) $$->type = clone(f->retType);
+							else { $$->type = new Base(INT_B); $$->type->isErr = true; }
+						}
+					}
+				}
+			}
+		}
+		if (!($$->type)) { $$->type = new Base(INT_B); $$->type->isErr = true; } // just a precaution
 	}
 	| postfix_expression '.' IDENTIFIER						{ $$ = op( $2, 0, 2, ej($1), ej($3) ); } // search for definition by name of "struct|union _abc"
 	| postfix_expression PTR_OP IDENTIFIER					{ $$ = op( $2, 0, 2, ej($1), ej($3) ); } // search for definition by name of "struct|union _abc"
@@ -246,7 +330,9 @@ cast_expression
 	| '(' type_name ')' cast_expression { $$ = op( nd(CAST_EXPR, "cast_expression", { 0, 0 }), 0, 2, Ej($2, "type", NULL), Ej($4, "expression", NULL) );
 		Type *t1 = $2->type, *t2 = $4->type; // assume both not NULL
 		t2->isErr |= t1->isErr;
-		// todo: check here whether conversion from one type to another is possible
+		if (!expCast(t2, t1)) {
+			repErr($2->pos, "could not type cast from \"" + str(t2) + "\" to \"" + str(t1) + "\"", _FORE_RED_); t1->isErr = true;
+		}
 		$$->type = t1;
 	}
 	;
@@ -299,16 +385,14 @@ inclusive_or_expression
 	| inclusive_or_expression '|' exclusive_or_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('|', $1, $3); }
 	;
 
-// todo
 logical_and_expression
 	: inclusive_or_expression { $$ = $1; }
-	| logical_and_expression AND_OP inclusive_or_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); }
+	| logical_and_expression AND_OP inclusive_or_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin(AND_OP, $1, $3); }
 	;
 
-// todo
 logical_or_expression
 	: logical_and_expression { $$ = $1; }
-	| logical_or_expression OR_OP logical_and_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); }
+	| logical_or_expression OR_OP logical_and_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin(OR_OP, $1, $3); }
 	;
 
 // todo
@@ -1280,7 +1364,10 @@ function_definition
 				if (cnode->tok == DECLARATOR) cnode = cnode->ch(1);
 				cnode = cnode->ch(1); // cnode->tok = PARAM_TYPE_LIST
 				for (int i = 0; i < l; i++) {
-					node_t * x = cnode->ch(i)->ch(1); while (x->tok != IDENTIFIER) x = x->ch((x->tok== DECLARATOR) ? 1 : 0);
+					node_t * x = cnode->ch(i);
+					if (x->tok != ELLIPSIS) {
+						x = x->ch(1); while (x->tok != IDENTIFIER) x = x->ch((x->tok== DECLARATOR) ? 1 : 0);
+					}
 					SymRoot->pushSym(x->label, f->params[i], x->pos);
 				}
 			}
@@ -1319,7 +1406,10 @@ function_definition
 				if (cnode->tok == DECLARATOR) cnode = cnode->ch(1);
 				cnode = cnode->ch(1); // cnode->tok = PARAM_TYPE_LIST
 				for (int i = 0; i < l; i++) {
-					node_t * x = cnode->ch(i)->ch(1); while (x->tok != IDENTIFIER) x = x->ch((x->tok== DECLARATOR) ? 1 : 0);
+					node_t * x = cnode->ch(i);
+					if (x->tok != ELLIPSIS) {
+						x = x->ch(1); while (x->tok != IDENTIFIER) x = x->ch((x->tok== DECLARATOR) ? 1 : 0);
+					}
 					SymRoot->pushSym(x->label, f->params[i], x->pos);
 				}
 			}

@@ -129,4 +129,8 @@ bool tMatch(class Type *, class Type *); // compatibility under "extern"
 
 bool checkArrDims(class Type *); // recursively check that all array bounds must be present
 
+bool impCast(class Type *, class Type *); // implicit type-casing
+
+bool expCast(class Type *, class Type *); // explicit type-casing
+
 #endif
