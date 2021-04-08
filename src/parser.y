@@ -643,6 +643,14 @@ declaration
 					if (!t2) { repErr(cnode->pos, "pure \"void\" type given", _FORE_RED_); t1->isErr = true; } // void x;
 					else if (tt->grp() == ARR_G) { repErr(cnode->pos, "array of \"voids\" given", _FORE_RED_); t2->isErr = true; } // void x[];
 				}
+				if (t2 && t2->grp() == ARR_G && (((Arr *)t2)->dims[0] == NULL))  {
+					  if (initNode && (initNode->tok == INIT_LIST)) {
+					    node_t* n = nd(CONSTANT, to_string(initNode->numChild).c_str(), initNode->pos);
+					    Base *b = new Base(INT_B); b->isConst = true; n->type = b;
+					    cout << "abcd" << endl;
+					    ((Arr *) t2)->dims[0] = n;
+					  }
+					}
 				Type *ut = unify(t1, t2); grp_t g = ut->grp();
 				if ( (g == FUNC_G) || ( (g == PTR_G) && ((Ptr *)ut)->pt && (((Ptr *)ut)->pt->grp() == FUNC_G) ) )
 				ut->strg = EXTERN_S; // if a function (or a pointer to a function) strg is EXTERN_S
@@ -811,6 +819,7 @@ init_declarator
 			t1->isErr = true;
 		}
 	}
+	$$->type=t1;
 	;
 
 storage_class_specifier
