@@ -67,7 +67,6 @@ using namespace std;
 /************************************** EXPRESSIONS BEGIN **************************************/
 /***********************************************************************************************/
 
-// done
 primary_expression
 	: IDENTIFIER			{ $$ = $1;
 		sym* ret = SymRoot->gLookup($1->label);
@@ -96,7 +95,12 @@ postfix_expression
 			grp_t g1 = t1->grp(), g2 = t2->grp();
 			if (g1 != ARR_G && g1 != PTR_G) { repErr($3->pos, "subscript operator not used on pointer or array", _FORE_RED_); t1->isErr = true; }
 			else if (g1 == ARR_G) {
-				Arr *a1 = (Arr *) t1; a1->dims.erase(a1->dims.begin());
+				Arr *a1 = (Arr *) t1;
+				int *bound = eval(a1->dims[0]), *query = eval($3);
+				if (bound && query) {
+					if ((*query < 0) || (*query >= *bound)) repErr($3->pos, "warning: array index not within bound", _FORE_MAGENTA_);
+				}
+				a1->dims.erase(a1->dims.begin());
 				if (a1->dims.size() == 0) { t1 = a1->item; }
 			} else {
 				Ptr *p1 = (Ptr *) t1; p1->ptrs.pop_back();
@@ -198,8 +202,54 @@ postfix_expression
 		if (!($$->type)) { $$->type = new Base(INT_B); $$->type->isErr = true; } // just a precaution
 		$$->type->lvalue = false;
 	}
-	| postfix_expression '.' IDENTIFIER						{ $$ = op( $2, 0, 2, ej($1), ej($3) ); } // search for definition by name of "struct|union _abc"
-	| postfix_expression PTR_OP IDENTIFIER					{ $$ = op( $2, 0, 2, ej($1), ej($3) ); } // search for definition by name of "struct|union _abc"
+	| postfix_expression '.' IDENTIFIER						{ $$ = op( $2, 0, 2, ej($1), ej($3) ); // search for definition by name of "struct|union _abc"
+		Type *t1 = $1->type;
+		if (t1->isErr) { $$->type = t1; }
+		else if (!( (t1->grp() == BASE_G) &&  (   ((Base *)t1)->base == STRUCT_B || ((Base *)t1)->base == UNION_B   ))) {
+			repErr($1->pos, "left operand for member access is not a struct or a union", _FORE_RED_); t1->isErr = true;
+			$$->type = t1;
+		} else { // try finding latest definition for the above struct
+			// must get name of struct now
+			Base *b = (Base *)t1;
+			string srch = string((b->base == STRUCT_B) ? "struct " : "union ") + b->subDef->name;
+			/* try finding latest definition for the above struct */
+			if (!( b->subDef && b->subDef->syms.size() )) {
+				repErr($1->pos, srch + " has not yet been defined", _FORE_RED_);
+				t1->isErr = true; $$->type = t1;
+			} else {
+				sym *member = b->subDef->srchSym($3->label);
+				if (!member) {
+					repErr($3->pos, string("no member named \"") + $3->label + "\" in " + srch, _FORE_RED_); t1->isErr = true;
+					$$->type = t1;
+				} else $$->type = clone(member->type);
+			}
+		}
+		$$->type->lvalue = true;
+	}
+	| postfix_expression PTR_OP IDENTIFIER					{ $$ = op( $2, 0, 2, ej($1), ej($3) ); // search for definition by name of "struct|union _abc"
+		Type *t1 = $1->type;
+		if (t1->isErr) { $$->type = t1; }
+		else if (!( (t1->grp() == PTR_G) && (((Ptr *)t1)->pt->grp() == BASE_G) && (   ((Base *)(((Ptr *)t1)->pt))->base == STRUCT_B || ((Base *)(((Ptr *)t1)->pt))->base == UNION_B   ))) {
+			repErr($1->pos, "left operand for member access is not a pointer to a struct or a union", _FORE_RED_); t1->isErr = true;
+			$$->type = t1;
+		} else { // try finding latest definition for the above struct
+			// must get name of struct now
+			Base *b = (Base *)(((Ptr *)t1)->pt);
+			string srch = string((b->base == STRUCT_B) ? "struct " : "union ") + b->subDef->name;
+			/* try finding latest definition for the above struct */
+			if (!( b->subDef && b->subDef->syms.size() )) {
+				repErr($1->pos, srch + " has not yet been defined", _FORE_RED_);
+				t1->isErr = true; $$->type = t1;
+			} else {
+				sym *member = b->subDef->srchSym($3->label);
+				if (!member) {
+					repErr($3->pos, string("no member named \"") + $3->label + "\" in " + srch, _FORE_RED_); t1->isErr = true;
+					$$->type = t1;
+				} else $$->type = clone(member->type);
+			}
+		}
+		$$->type->lvalue = true;
+	}
 	| postfix_expression INC_OP								{ $$ = op( $2, 0, 1, ej($1) ); // not allowed on function, array, void, struct, union
 		Type *t = $1->type; grp_t g = t->grp();
 		if (g == FUNC_G) { repErr($2->pos, "unary inrement operator used on a function", _FORE_RED_); t->isErr = true; }
@@ -228,13 +278,11 @@ postfix_expression
 	}
 	;
 
-// nothing to do
 argument_expression_list
 	: assignment_expression									{ $$ = op( nd(ARG_EXPR_LIST, "arg-expr-list", { 0, 0 }), 0, 1, ej($1) ); }
 	| argument_expression_list ',' assignment_expression	{ $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
-// todo
 unary_expression
 	: postfix_expression				{ $$ = $1; }
 	| INC_OP unary_expression			{ $$ = op( $1, 0, 1, ej($2) ); // not allowed on function, array, void, struct, union
@@ -306,15 +354,18 @@ unary_expression
 						if (a->dims.size() > 1) { a->dims.erase(a->dims.begin()); $$->type = a; }
                 		else if (a->dims.size() == 1) $$->type = a->item;
 						break;
+
 					case PTR_G :
 						p = (Ptr *) t;
 						cout << str(p) << endl;
 						if (p->ptrs.size() > 1) { p->ptrs.pop_back(); $$->type = p; }
 						else if (p->ptrs.size() == 1) { $$->type = p->pt; }
 						break;
-					case FUNC_G :
+
+					case FUNC_G : // buggy implementation
 						$$->type = t;
 						break;
+
 					default : 
 						repErr($1->pos, "cannot dereference a value that is not an array, a pointer or a function", _FORE_RED_); t->isErr = true; $$->type = t;
 				}
@@ -346,17 +397,15 @@ unary_expression
 	}
 	;
 
-// todo
 unary_operator
-	: '&' { $$ = $1; } // handled
-	| '*' { $$ = $1; } // handled
-	| '+' { $$ = $1; } // handled
-	| '-' { $$ = $1; } // handled
-	| '~' { $$ = $1; } // handled 
-	| '!' { $$ = $1; } // handled
+	: '&' { $$ = $1; }
+	| '*' { $$ = $1; }
+	| '+' { $$ = $1; }
+	| '-' { $$ = $1; }
+	| '~' { $$ = $1; } 
+	| '!' { $$ = $1; }
 	;
 
-// todo
 cast_expression
 	: unary_expression { $$ = $1; }
 	| '(' type_name ')' cast_expression { $$ = op( nd(CAST_EXPR, "cast_expression", { 0, 0 }), 0, 2, Ej($2, "type", NULL), Ej($4, "expression", NULL) );
@@ -381,60 +430,60 @@ cast_expression
 
 multiplicative_expression
 	: cast_expression { $$ = $1; }
-	| multiplicative_expression '*' cast_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('*', $1, $3); }
-	| multiplicative_expression '/' cast_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('/', $1, $3); }
-	| multiplicative_expression '%' cast_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('%', $1, $3); }
+	| multiplicative_expression '*' cast_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('*', $1, $3); $$->type->lvalue = false; }
+	| multiplicative_expression '/' cast_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('/', $1, $3); $$->type->lvalue = false; }
+	| multiplicative_expression '%' cast_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('%', $1, $3); $$->type->lvalue = false; }
 	;
 
 additive_expression
 	: multiplicative_expression { $$ = $1; }
-	| additive_expression '+' multiplicative_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('+', $1, $3); }
-	| additive_expression '-' multiplicative_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('-', $1, $3); }
+	| additive_expression '+' multiplicative_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('+', $1, $3); $$->type->lvalue = false; }
+	| additive_expression '-' multiplicative_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('-', $1, $3); $$->type->lvalue = false; }
 	;
 
 shift_expression
 	: additive_expression { $$ = $1; }
-	| shift_expression LEFT_OP additive_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('a', $1, $3); }
-	| shift_expression RIGHT_OP additive_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('b', $1, $3); }
+	| shift_expression LEFT_OP additive_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('a', $1, $3); $$->type->lvalue = false; }
+	| shift_expression RIGHT_OP additive_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('b', $1, $3); $$->type->lvalue = false; }
 	;
 
 relational_expression
 	: shift_expression { $$ = $1; }
-	| relational_expression '<' shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('<', $1, $3); }
-	| relational_expression '>' shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('>', $1, $3); }
-	| relational_expression LE_OP shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('<', $1, $3); }
-	| relational_expression GE_OP shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('>', $1, $3); }
+	| relational_expression '<' shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('<', $1, $3); $$->type->lvalue = false; }
+	| relational_expression '>' shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('>', $1, $3); $$->type->lvalue = false; }
+	| relational_expression LE_OP shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('<', $1, $3); $$->type->lvalue = false; }
+	| relational_expression GE_OP shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('>', $1, $3); $$->type->lvalue = false; }
 	;
 
 equality_expression
 	: relational_expression { $$ = $1; }
-	| equality_expression EQ_OP relational_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('>', $1, $3); }
-	| equality_expression NE_OP relational_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('>', $1, $3); }
+	| equality_expression EQ_OP relational_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('>', $1, $3); $$->type->lvalue = false; }
+	| equality_expression NE_OP relational_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('>', $1, $3); $$->type->lvalue = false; }
 	;
 
 and_expression
 	: equality_expression { $$ = $1; }
-	| and_expression '&' equality_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('&', $1, $3); }
+	| and_expression '&' equality_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('&', $1, $3); $$->type->lvalue = false; }
 	;
 
 exclusive_or_expression
 	: and_expression { $$ = $1; }
-	| exclusive_or_expression '^' and_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('^', $1, $3); }
+	| exclusive_or_expression '^' and_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('^', $1, $3); $$->type->lvalue = false; }
 	;
 
 inclusive_or_expression
 	: exclusive_or_expression { $$ = $1; }
-	| inclusive_or_expression '|' exclusive_or_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('|', $1, $3); }
+	| inclusive_or_expression '|' exclusive_or_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('|', $1, $3); $$->type->lvalue = false; }
 	;
 
 logical_and_expression
 	: inclusive_or_expression { $$ = $1; }
-	| logical_and_expression AND_OP inclusive_or_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin(AND_OP, $1, $3); }
+	| logical_and_expression AND_OP inclusive_or_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin(AND_OP, $1, $3); $$->type->lvalue = false; }
 	;
 
 logical_or_expression
 	: logical_and_expression { $$ = $1; }
-	| logical_or_expression OR_OP logical_and_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin(OR_OP, $1, $3); }
+	| logical_or_expression OR_OP logical_and_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin(OR_OP, $1, $3); $$->type->lvalue = false; }
 	;
 
 // todo
@@ -494,10 +543,10 @@ declaration
 		// single pass over variables
 		for (int i = 0; i < l2; i++) { // first check that there is no var in scope
 			node_t *cnode = $2->ch(i); // "concerned node" - get directly
-			Type *t2 = cnode->type;
+			Type *t2 = cnode->type; node_t *initNode = NULL;
 
 			// pass down tree $2 until name & position found.
-			if (cnode->tok == '=') { cnode = cnode->ch(0); useful++;
+			if (cnode->tok == '=') { initNode = cnode->ch(1); cout << "will define" << endl; cnode = cnode->ch(0); useful++;
 				if (t1->strg == EXTERN_S) repErr($1->pos, "initialized after using \"extern\"", _FORE_RED_);
 			} // "init_declarator"
 			while (cnode->tok != IDENTIFIER) cnode = cnode->ch((cnode->tok == DECLARATOR) ? 1 : 0); // rules of "direct_decl"
@@ -525,7 +574,11 @@ declaration
 						}
 					}
 				}
+				
 				SymRoot->pushSym(cnode->label, ut, cnode->pos);
+
+				// initialization
+				/* if (initNode) cout << "Will initialize " << cnode->label << endl; */
 
 			} else { // already exists - check if "extern" or a "function"
 				if ((retval->type->strg != EXTERN_S) && (t1->strg != EXTERN_S) && (t2 && (t2->grp() != FUNC_G))) {
@@ -666,7 +719,6 @@ init_declarator
 			repErr($2->pos, "function initialized like a variable", _FORE_RED_);
 			t1->isErr = true;
 		}
-		// TODO: Check assignment compatibility of declarator with intializer.
 	}
 	;
 
@@ -693,15 +745,6 @@ type_specifier
 	| enum_specifier				{ $$ = $1; }
 	| TYPE_NAME						{ $$ = $1; }
 	;
-
-	/* {
-		int x;
-		struct x var;
-		var.k
-		struct x { int i; } v1;
-		struct x { int i; int j; } v1;
-
-	} */
 
 struct_or_union_specifier
 	: struct_or_union IDENTIFIER '{' struct_declaration_list '}' { $$ = op( $1, 0, 2, ej($2), ej($4) );
@@ -940,6 +983,9 @@ direct_declarator
 	: IDENTIFIER									{ $$ = $1; }
 	| '(' declarator ')'							{ $$ = $2; brackPut = true; }
 	| direct_declarator '[' constant_expression ']'	{ loc_t bra = $2->pos; $$ = op( $2, 0, 2, ej($1), ej($3) );
+		int *bound = eval($3); bool negErr = bound && (*bound < 0);
+		if (negErr) repErr($3->pos, "negative array bound specified", _FORE_RED_);
+
 		Type *t1 = $1->type, *tt = tail(t1);
 		if (brackPut && tt && (tt->grp() == PTR_G)) { ((Ptr *)tt)->pt = new Arr(NULL, $3); $$->type = t1; }
 		else if (!t1) $$->type = new Arr(NULL, $3);
@@ -949,6 +995,7 @@ direct_declarator
 			else { repErr(bra, "function returns an array", _FORE_RED_); $$->type = t1; t1->isErr = true; }
 		}
 		brackPut = false;
+		$$->type->isErr |= negErr;
 	}
 	| direct_declarator '[' ']'						{ loc_t bra = $2->pos; $$ = op( $2, 0, 1, ej($1) );
 		Type *t1 = $1->type, *tt = tail(t1);
@@ -1178,7 +1225,12 @@ abstract_declarator
 direct_abstract_declarator
 	: '(' abstract_declarator ')'                                { $$ = $2; brackPut = true; }
 	| '[' ']'                                                    { $$ = $1; $$->type = new Arr(NULL, NULL); /* neither item nor bound is known */ }
-	| '[' constant_expression ']'                                { $$ = op( $1, 0, 1, ej($2)); $$->type = new Arr(NULL, $2); /* item unknown */ }
+	| '[' constant_expression ']'                                { $$ = op( $1, 0, 1, ej($2));
+		$$->type = new Arr(NULL, $2); /* item unknown */
+		int *bound = eval($2); bool negErr = bound && (*bound < 0);
+		if (negErr) repErr($2->pos, "negative array bound specified", _FORE_RED_);
+		$$->type->isErr |= negErr;
+	}
 	| direct_abstract_declarator '[' ']'                         { loc_t bra = $2->pos; $$ = op( $2, 0, 1, ej($1) );
 		Type *t1 = $1->type, *tt = tail(t1);
 		if (brackPut && tt && (tt->grp() == PTR_G)) { ((Ptr *)tt)->pt = new Arr(NULL); $$->type = t1; }
@@ -1190,6 +1242,9 @@ direct_abstract_declarator
 		brackPut = false;
 	}
 	| direct_abstract_declarator '[' constant_expression ']'     { loc_t bra = $2->pos; $$ = op( $2, 0, 2, ej($1), ej($3) );
+		int *bound = eval($3); bool negErr = bound && (*bound < 0);
+		if (negErr) repErr($3->pos, "negative array bound specified", _FORE_RED_);
+
 		Type *t1 = $1->type, *tt = tail(t1);
 		if (brackPut && tt && (tt->grp() == PTR_G)) { ((Ptr *)tt)->pt = new Arr(NULL, $3); $$->type = t1; }
 		else if (!t1) $$->type = new Arr(NULL, $3);
@@ -1199,6 +1254,7 @@ direct_abstract_declarator
 			else { repErr(bra, "function returns an array", _FORE_RED_); $$->type = t1; t1->isErr = true; }
 		}
 		brackPut = false;
+		$$->type->isErr |= negErr;
 	}
 	| '(' ')'                                                    { $1->tok = ABST_DCLN; $1->label = "() abst-dcln"; $$ = $1;
 		$$->type = new Func(NULL); // function of unknown return type

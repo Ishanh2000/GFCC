@@ -11,7 +11,9 @@
 
 #include <iostream>
 #include <iomanip>
+#include <unordered_map>
 
+#include <parser.tab.h>
 #include <gfcc_colors.h>
 #include <types2.h>
 #include <symtab.h>
@@ -24,6 +26,10 @@ const static bool dbg = false;
 #endif
 
 using namespace std;
+
+std::unordered_map<base_t, int> priority1 =
+    {{CHAR_B, 0}, {SHORT_B, 1}, {INT_B, 2}, {LONG_B, 3}, {LONG_LONG_B, 4}, {FLOAT_B, 5}, {DOUBLE_B, 6}, {LONG_DOUBLE_B, 7}};
+
 
 bool brackPut = false;
 bool tpdef = false;
@@ -393,6 +399,7 @@ bool checkArrDims(class Type *t) { // recursively check that all array bounds mu
     return true;
 }
 
+
 bool impCast(class Type *from, class Type *to) { // implicit type-casting
     if (!from || !to) return false;
     grp_t gf = from->grp(), gt = to->grp();
@@ -401,50 +408,60 @@ bool impCast(class Type *from, class Type *to) { // implicit type-casting
     Arr *af = (Arr *)from, *at = (Arr *)to;
     Func *ff = (Func *)from, *ft = (Func *)to;
     
-    if (gf == BASE_G && gt == BASE_G) {
-        // conversion TO a void, struct or union is not allowed
-        return !(bt->base == VOID_B || bt->base == STRUCT_B || bt->base == UNION_B);
-    }
-
-
-
+    if( gt == FUNC_G ) return false;
+    
+    if( gt == BASE_G && ( bt->base == VOID_B || bt->base == STRUCT_B || bt->base == UNION_B ) ) return false;
+    if( gf == BASE_G && ( bf->base == VOID_B || bf->base == STRUCT_B || bf->base == UNION_B ) ) return false;
+    
     if (gt == PTR_G && (pt->pt->grp() == BASE_G) && (((Base *)(pt->pt))->base == VOID_B)) {
         if (gf == PTR_G || gf == ARR_G || gf == FUNC_G) return true; // any pointer/array/function is convertible to void *
     }
+    
+    if( gf == BASE_G )
+    {
+        if( gt == BASE_G )
+        {
+            return true;
+        }
+        else
+        {
+            if( gt == ARR_G ) return false;
+            if( priority1[bf->base] > priority1[LONG_LONG_B] ) return false;
+            return true;
+        }
+    }
+    else
+    {
+        if( gt == BASE_G )
+        {
+            if( priority1[bt->base] > priority1[LONG_LONG_B] ) return false;
+            return true;
+        }
+        else if( gt != PTR_G ) return false;
+        return true;
+    }
 
-    // arr/func -> ptr
-    // but not opposite
-    if (gf == PTR_G && (gt == ARR_G || gt == FUNC_G)) return false;
-
-
+    
     return true;
 }
 
 bool expCast(class Type *from, class Type *to) { // explicit type-casting (may differ from implicit version)
-    if (!from || !to) return false;
-    grp_t gf = from->grp(), gt = to->grp();
-    Base *bf = (Base *)from, *bt = (Base *)to;
-    Ptr *pf = (Ptr *)from, *pt = (Ptr *)to;
-    Arr *af = (Arr *)from, *at = (Arr *)to;
-    Func *ff = (Func *)from, *ft = (Func *)to;
-    
-    if (gf == BASE_G && gt == BASE_G) {
-        // conversion TO a void, struct or union is not allowed
-        return !(bt->base == VOID_B || bt->base == STRUCT_B || bt->base == UNION_B);
+    return impCast(from,to);
+}
+
+
+int *eval(struct _node_t *n) { // evaluate bounds for arrays
+    bool minus = false;
+    if (n->tok == '-') { minus = true; n = n->ch(0); }
+    if (n->tok == '+') { n = n->ch(0); }
+    // assume n is now an integer or a char
+    Type *t = n->type;
+    if (n->tok == CONSTANT) {
+        base_t bs = ((Base*)t)->base;
+        if (bs == INT_B) return new int(stoi(n->label) * (minus ? (-1) : 1));
+        else if (bs == CHAR_B) return new int(n->label[0] * (minus ? (-1) : 1));
     }
-
-
-
-    if (gt == PTR_G && (pt->pt->grp() == BASE_G) && (((Base *)(pt->pt))->base == VOID_B)) {
-        if (gf == PTR_G || gf == ARR_G || gf == FUNC_G) return true; // any pointer/array/function is convertible to void *
-    }
-
-    // arr/func -> ptr
-    // but not opposite
-    if (gf == PTR_G && (gt == ARR_G || gt == FUNC_G)) return false;
-
-
-    return true;
+    return NULL;
 }
 
 

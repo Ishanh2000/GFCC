@@ -8,11 +8,13 @@ NAME, LOCATION, TYPE
       foo1,   5 :   6,  "extern void ()()"
       foo2,   6 :   6,  "extern void ()(int, int, ...)"
       foo3,   7 :   6,  "extern void ()(int, int)"
-      main,  17 :   5,  "int ()(int, char *[])"
+ struct _x,  18 :   8,  "struct _x { x [int], y [int] }"
+      main,  22 :   5,  "int ()(int, char *[])"
 
 ############ Scope = Global >> func main ############,
-      argc,  17 :  14,  "int"
-      argv,  17 :  26,  "char *[]"
-         x, 113 :   9,  "int **"
-         y, 114 :   7,  "int [][][]"
+      argc,  22 :  14,  "int"
+      argv,  22 :  26,  "char *[]"
+struct _xc, 144 :  10,  "struct _xc { x [int], y [int] }"
+         p, 145 :  15,  "struct _xc { x [int], y [int] } *"
+         o, 146 :  14,  "struct _xc { x [int], y [int] }"
 

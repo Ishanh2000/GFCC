@@ -14,6 +14,11 @@ void foo3(int, int);
 // }
 // void foo3(int x, int y) {
 // }
+
+struct _x {
+  int x; int y;
+};
+
 int main(int argc, char *argv[]) {
   // int a, *p;
   // float b, *pf;
@@ -110,18 +115,41 @@ int main(int argc, char *argv[]) {
   // &l;
   // &(&l);
 
-  int **x;
-  int y[3][4][5];
-  *x;
-  **x;
-  ***x;
-  *y;
-  **y;
-  ***y;
-  ****y;
-  &(****y);
+  // int **x;
+  // int y[3][4][5];
+  // int f();
+  // **f; // problematic
+  // *x;
+  // **x;
+  // ***x;
+  // *y;
+  // **y;
+  // ***y;
+  // ****y;
+  // &(****y);
 
-  
+  // struct { int a; int b; } p;
+  // p.g;
+  // struct _x l;
+  // struct _x c = l;
+  // // c = l;
+
+  // int *arr[-89];
+  // arr[89];
+
+  // int a = 90, b = a;
+  // int arr[] = {1, 2, 3, 4};
+  // struct _x {int x;};
+  // struct _xc *pp; // problematic
+  // struct _xc {int x; int y; };
+  // struct _xc *p;
+  // struct _xc o;
+  // p->m;
+  // p->x;
+
+  // o.x;
+  // o.l;
+
 
   return 0;
 }

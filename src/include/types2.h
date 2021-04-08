@@ -17,6 +17,8 @@ enum base_t {
 	ELLIPSIS_B,
 };
 
+extern std::unordered_map<base_t, int> priority1;
+
 // sign types
 enum sign_t { NONE_X, SIGNED_X, UNSIGNED_X };
 
@@ -133,5 +135,7 @@ bool checkArrDims(class Type *); // recursively check that all array bounds must
 bool impCast(class Type *, class Type *); // implicit type-casing
 
 bool expCast(class Type *, class Type *); // explicit type-casing
+
+int *eval(struct _node_t *); // evaluate bounds for arrays
 
 #endif
