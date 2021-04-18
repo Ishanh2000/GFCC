@@ -135,10 +135,10 @@ int main (int argc , char *argv[]) {
 
 		SymRoot = new symRoot(); 
 		// int *const *
-		Base *b = new Base(INT_B);
-		Ptr *p = new Ptr(b, true, false); p->newPtr();
-		p->strg = TYPEDEF_S;
-		SymRoot->pushSym("newint", p, {0, 0});
+		// Base *b = new Base(INT_B);
+		// Ptr *p = new Ptr(b, true, false); p->newPtr();
+		// p->strg = TYPEDEF_S;
+		// SymRoot->pushSym("newint", p, {0, 0});
 
 		offsets.push_back(0); // line 1 starts at offsets[0] = 0
 
