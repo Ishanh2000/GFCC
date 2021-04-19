@@ -63,7 +63,14 @@ void backpatch(vector<unsigned int> & lst, string jmpinstr) {
     }
 }
 
-void handle(node_t* dollar, node_t* one, node_t* three, char op) {
+std::vector<unsigned int>  merge(
+    std::vector<unsigned int> & l1, std::vector<unsigned int> &l2) {
+    std::vector<unsigned int> merged = l1;
+    merged.insert(merged.end(), l2.begin(), l2.end());
+    return merged;
+}
+
+void handle(node_t* dollar, node_t* one, node_t* three, int op, string op_label) {
 
     string e1 = one->eval, e2 = three->eval;
     bool r1 = isReal(one->type), r2 = isReal(three->type);
@@ -95,20 +102,24 @@ void handle(node_t* dollar, node_t* one, node_t* three, char op) {
     string opr;
     if(tr->grp() == BASE_G) {
             Base* b = (Base*) tr;
-            cout<<priority1[b->base]<<endl;
             if(priority1[b->base] >= priority1[FLOAT_B] ) {
                 opr = "real";
             }
     }
     dollar->eval = newTmp();
-    emit(dollar->eval, opr+op, e1, e2);
+    // switch(op){
+    //     case 'a': opr += "<<"; break;
+    //     case 'b': opr += ">>"; break;
+    //     default: opr += to_string(op);
+    // }
+    emit(dollar->eval, opr+op_label, e1, e2);
     dollar->type = tr;
     dollar->type->lvalue = false;
 
 
 }
 
-Type* handle_as(char op,node_t* one,node_t* three, std::string & e1, std::string & e2, bool r1,bool r2) {
+Type* handle_as(int op,node_t* one,node_t* three, std::string & e1, std::string & e2, bool r1,bool r2) {
 
     Type* tr;
 

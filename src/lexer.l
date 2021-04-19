@@ -142,7 +142,7 @@ L?\"(\\.|[^\\"])*\"		{ // const char *
 "%="			{ count(); yylval.node = nd(MOD_ASSIGN, "%=", gpos); return (MOD_ASSIGN); }
 "&="			{ count(); yylval.node = nd(AND_ASSIGN, "&=", gpos); return (AND_ASSIGN); }
 "^="			{ count(); yylval.node = nd(XOR_ASSIGN, "^=", gpos); return (XOR_ASSIGN); }
-"|="			{ count(); yylval.node = nd(OR_ASSIGN, "|=", gpos); return ( OR_ASSIGN); }
+"|="			{ count(); yylval.node = nd(OR_ASSIGN, "|=", gpos); return (OR_ASSIGN); }
 ">>"			{ count(); yylval.node = nd(RIGHT_OP, ">>", gpos); return (RIGHT_OP); }
 "<<"			{ count(); yylval.node = nd(LEFT_OP, "<<", gpos); return (LEFT_OP); }
 "++"			{ count(); yylval.node = nd(INC_OP, "++", gpos); return (INC_OP); }

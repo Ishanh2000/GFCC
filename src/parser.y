@@ -83,7 +83,7 @@ primary_expression
 		}
 		$$->type->lvalue = true;
 	}
-	| CONSTANT				{ $$ = $1;
+	| CONSTANT { $$ = $1;
 			if(!$$->type->isErr){
 				$$->eval = $$->label;
 			}	
@@ -271,6 +271,20 @@ postfix_expression
 				repErr($1->pos, "cannot use increment / decrement of a \"const\" value", _FORE_RED_); t->isErr = true;
 			}
 		}
+
+		$$->eval = newTmp();
+		emit($$->eval, eps, $1->eval);
+		if(g == BASE_G){
+			base_t bs = ((Base *) t)->base;
+			if(priority1[bs] >= priority1[FLOAT_B]){
+				emit($1->eval, "real+", $1->eval, "1");
+			}
+			else emit($1->eval, "+", $1->eval, "1");
+		}
+		/* #########TODO for Pointer###########*/
+		else emit($1->eval, "+", $1->eval, "1");
+
+
 		$$->type = t;
 		$$->type->lvalue = false;
 	}
@@ -287,6 +301,19 @@ postfix_expression
 				repErr($1->pos, "cannot use increment / decrement of a \"const\" value", _FORE_RED_); t->isErr = true;
 			}
 		}
+
+		$$->eval = newTmp();
+		emit($$->eval, eps, $1->eval);
+		if(g == BASE_G){
+			base_t bs = ((Base *) t)->base;
+			if(priority1[bs] >= priority1[FLOAT_B]){
+				emit($1->eval, "real-", $1->eval, "1");
+			}
+			else emit($1->eval, "-", $1->eval, "1");
+		}
+		/* #########TODO for Pointer###########*/
+		else emit($1->eval, "-", $1->eval, "1");
+		
 		$$->type = t;
 		$$->type->lvalue = false;
 	}
@@ -312,6 +339,19 @@ unary_expression
 				repErr($1->pos, "cannot use increment / decrement of a \"const\" value", _FORE_RED_); t->isErr = true;
 			}
 		}
+
+		$$->eval = newTmp();
+		if(g == BASE_G){
+			base_t bs = ((Base *) t)->base;
+			if(priority1[bs] >= priority1[FLOAT_B]){
+				emit($2->eval, "real+", $2->eval, "1");
+			}
+			else emit($2->eval, "+", $2->eval, "1");
+		}
+		/* #########TODO for Pointer###########*/
+		else emit($2->eval, "+", $2->eval, "1");
+		emit($$->eval, eps, $2->eval);
+
 		$$->type = t;
 		$$->type->lvalue = false;
 	}
@@ -328,6 +368,19 @@ unary_expression
 				repErr($1->pos, "cannot use increment / decrement of a \"const\" value", _FORE_RED_); t->isErr = true;
 			}
 		}
+
+		$$->eval = newTmp();
+		if(g == BASE_G){
+			base_t bs = ((Base *) t)->base;
+			if(priority1[bs] >= priority1[FLOAT_B]){
+				emit($2->eval, "real-", $2->eval, "1");
+			}
+			else emit($2->eval, "-", $2->eval, "1");
+		}
+		/* #########TODO for Pointer###########*/
+		else emit($2->eval, "-", $2->eval, "1");
+		emit($$->eval, eps, $2->eval);
+
 		$$->type = t;
 		$$->type->lvalue = false;
 	}
@@ -448,15 +501,15 @@ multiplicative_expression
 	: cast_expression { $$ = $1; }
 	| multiplicative_expression '*' cast_expression { 
 		$$ = op( $2, 0, 2, ej($1), ej($3) );
-		handle($$,$1,$3,'*');
+		handle($$,$1,$3,'*', "*");
 	 }
 	| multiplicative_expression '/' cast_expression { 
 		$$ = op( $2, 0, 2, ej($1), ej($3) ); 
-		handle($$,$1,$3,'/');
+		handle($$,$1,$3,'/', "/");
 	}
 	| multiplicative_expression '%' cast_expression { 
 		$$ = op( $2, 0, 2, ej($1), ej($3) ); 
-		handle($$,$1,$3,'%');
+		handle($$,$1,$3,'%', "%");
 	 }
 	;
 
@@ -464,60 +517,101 @@ additive_expression
 	: multiplicative_expression { $$ = $1; }
 	| additive_expression '+' multiplicative_expression { 
 		$$ = op( $2, 0, 2, ej($1), ej($3));
-		handle($$,$1,$3,'+');
+		handle($$,$1,$3,'+', "+");
 	}
 	| additive_expression '-' multiplicative_expression { 
 		$$ = op( $2, 0, 2, ej($1), ej($3) );
-		handle($$,$1,$3,'-');
+		handle($$,$1,$3,'-', "-");
 	}
 	;
 
 shift_expression
 	: additive_expression { $$ = $1; }
-	| shift_expression LEFT_OP additive_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('a', $1, $3); $$->type->lvalue = false; }
-	| shift_expression RIGHT_OP additive_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('b', $1, $3); $$->type->lvalue = false; }
+	| shift_expression LEFT_OP additive_expression	{ 
+		$$ = op( $2, 0, 2, ej($1), ej($3) );
+		handle($$,$1,$3,'a', "<<");
+		/* $$->type = bin('a', $1, $3);
+		$$->type->lvalue = false; */
+	}
+	| shift_expression RIGHT_OP additive_expression	{ 
+		$$ = op( $2, 0, 2, ej($1), ej($3) ); 
+		handle($$,$1,$3,'b', ">>");
+	}
 	;
 
 relational_expression
 	: shift_expression { $$ = $1; }
-	| relational_expression '<' shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('<', $1, $3); $$->type->lvalue = false; }
-	| relational_expression '>' shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('>', $1, $3); $$->type->lvalue = false; }
-	| relational_expression LE_OP shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('<', $1, $3); $$->type->lvalue = false; }
-	| relational_expression GE_OP shift_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('>', $1, $3); $$->type->lvalue = false; }
+	| relational_expression '<' shift_expression	{ 
+		$$ = op( $2, 0, 2, ej($1), ej($3) ); 
+		handle($$,$1,$3,'<', "<");
+	 }
+	| relational_expression '>' shift_expression	{ 
+		$$ = op( $2, 0, 2, ej($1), ej($3) ); 
+		handle($$,$1,$3,'>', ">");
+		}
+	| relational_expression LE_OP shift_expression	{ 
+		$$ = op( $2, 0, 2, ej($1), ej($3) );
+		handle($$,$1,$3,'<', "<=");
+		}
+	| relational_expression GE_OP shift_expression	{ 
+		$$ = op( $2, 0, 2, ej($1), ej($3) ); 
+		handle($$,$1,$3,'>', ">=");
+		}
 	;
 
 equality_expression
 	: relational_expression { $$ = $1; }
-	| equality_expression EQ_OP relational_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('>', $1, $3); $$->type->lvalue = false; }
-	| equality_expression NE_OP relational_expression	{ $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('>', $1, $3); $$->type->lvalue = false; }
+	| equality_expression EQ_OP relational_expression	{ 
+		$$ = op( $2, 0, 2, ej($1), ej($3) ); 
+		handle($$,$1,$3,'>', "==");
+		}
+	| equality_expression NE_OP relational_expression	{ 
+		$$ = op( $2, 0, 2, ej($1), ej($3) ); 
+		handle($$,$1,$3,'>', "!=");
+		}
 	;
 
 and_expression
 	: equality_expression { $$ = $1; }
-	| and_expression '&' equality_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('&', $1, $3); $$->type->lvalue = false; }
+	| and_expression '&' equality_expression { 
+		$$ = op( $2, 0, 2, ej($1), ej($3) );
+		handle($$,$1,$3,'&', "&");
+	}
 	;
 
 exclusive_or_expression
 	: and_expression { $$ = $1; }
-	| exclusive_or_expression '^' and_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('^', $1, $3); $$->type->lvalue = false; }
+	| exclusive_or_expression '^' and_expression { 
+		$$ = op( $2, 0, 2, ej($1), ej($3) ); 
+		handle($$,$1,$3,'^', "^");
+		}
 	;
 
 inclusive_or_expression
 	: exclusive_or_expression { $$ = $1; }
-	| inclusive_or_expression '|' exclusive_or_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('|', $1, $3); $$->type->lvalue = false; }
+	| inclusive_or_expression '|' exclusive_or_expression { 
+		$$ = op( $2, 0, 2, ej($1), ej($3) ); 
+		handle($$,$1,$3,'|', "|");
+		}
 	;
 
 logical_and_expression
 	: inclusive_or_expression { $$ = $1; }
-	| logical_and_expression AND_OP inclusive_or_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin(AND_OP, $1, $3); $$->type->lvalue = false; }
+	| logical_and_expression AND_OP inclusive_or_expression { 
+		$$ = op( $2, 0, 2, ej($1), ej($3) ); 
+		handle($$,$1,$3, AND_OP, "&&");
+		}
 	;
 
 logical_or_expression
 	: logical_and_expression { $$ = $1; }
-	| logical_or_expression OR_OP logical_and_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin(OR_OP, $1, $3); $$->type->lvalue = false; }
+	| logical_or_expression OR_OP logical_and_expression { 
+		$$ = op( $2, 0, 2, ej($1), ej($3) ); 
+		handle($$,$1,$3, OR_OP, "||");
+		}
 	;
 
-// todo
+// TODO
 conditional_expression
 	: logical_or_expression { $$ = $1; }
 	| logical_or_expression '?' expression ':' conditional_expression { $$ = op( $2, 0, 3,
@@ -573,7 +667,6 @@ assignment_expression
 			string opr;
 			if(tr->grp() == BASE_G) {
 				Base* b = (Base*) tr;
-				cout<<priority1[b->base]<<endl;
 				if(priority1[b->base] >= priority1[FLOAT_B] ) {
 					opr = "real";
 				}
@@ -1518,7 +1611,8 @@ expression_statement
 
 // void, struct, union not allowed
 selection_statement
-	: IF '(' expression ')' statement { $$ = op( $1, 0, 2, Ej($3, "cond", NULL), Ej($5, "stmts", NULL) );
+	: IF '(' expression ')' statement { 
+		$$ = op( $1, 0, 2, Ej($3, "cond", NULL), Ej($5, "stmts", NULL) );
 		Type *t = $3->type;
 		if (t->grp() == BASE_G) {
 			base_t bs = ((Base*)t)->base;

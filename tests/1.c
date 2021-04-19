@@ -1,7 +1,7 @@
 int main() {
     int a, b;
     float c;
-
+    a = a>>1;
     a += 6.0;
     a /= 6.0;
     a *= 6.0;
