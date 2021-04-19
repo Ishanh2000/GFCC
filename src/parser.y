@@ -446,56 +446,30 @@ cast_expression
 
 multiplicative_expression
 	: cast_expression { $$ = $1; }
-	| multiplicative_expression '*' cast_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('*', $1, $3); $$->type->lvalue = false; }
-	| multiplicative_expression '/' cast_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('/', $1, $3); $$->type->lvalue = false; }
-	| multiplicative_expression '%' cast_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('%', $1, $3); $$->type->lvalue = false; }
+	| multiplicative_expression '*' cast_expression { 
+		$$ = op( $2, 0, 2, ej($1), ej($3) );
+		handle($$,$1,$3,'*');
+	 }
+	| multiplicative_expression '/' cast_expression { 
+		$$ = op( $2, 0, 2, ej($1), ej($3) ); 
+		handle($$,$1,$3,'/');
+	}
+	| multiplicative_expression '%' cast_expression { 
+		$$ = op( $2, 0, 2, ej($1), ej($3) ); 
+		handle($$,$1,$3,'%');
+	 }
 	;
 
 additive_expression
 	: multiplicative_expression { $$ = $1; }
 	| additive_expression '+' multiplicative_expression { 
 		$$ = op( $2, 0, 2, ej($1), ej($3));
-		string e1 = $1->eval, e2 = $3->eval;
-		bool r1 = isReal($1->type), r2 = isReal($3->type);
-		Type *tr = bin('+', $1, $3);
-		if(isReal(tr)) {
-			if(!r1) {
-				string tmp = newTmp();
-				emit(tmp, "int2real", e1, eps);
-				e1 = tmp;
-			}
-			if(!r2) {
-				string tmp = newTmp();
-				emit(tmp, "int2real", e2, eps);
-				e2 = tmp;
-			}
-		}
-		else {
-			if(r1) {
-				string tmp = newTmp();
-				emit(tmp, "real2int", e1, eps);
-				e1 = tmp;
-			}
-			if(r2) {
-				string tmp = newTmp();
-				emit(tmp, "real2int", e2, eps);
-				e2 = tmp;
-			}
-		}
-		string opr;
-		if(tr->grp() == BASE_G) {
-				Base* b = (Base*) tr;
-				cout<<priority1[b->base]<<endl;
-				if(priority1[b->base] >= priority1[FLOAT_B] ) {
-					opr = "real";
-				}
-		}
-		$$->eval = newTmp();
-		emit($$->eval, opr+"+", e1, e2);
-		$$->type = tr;
-		$$->type->lvalue = false;
+		handle($$,$1,$3,'+');
 	}
-	| additive_expression '-' multiplicative_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('-', $1, $3); $$->type->lvalue = false; }
+	| additive_expression '-' multiplicative_expression { 
+		$$ = op( $2, 0, 2, ej($1), ej($3) );
+		handle($$,$1,$3,'-');
+	}
 	;
 
 shift_expression
@@ -574,39 +548,17 @@ assignment_expression
 					break;
 				
 				case MUL_ASSIGN : case DIV_ASSIGN :
-					if (!impCast(bin('*', $1, $3), t1)) { repErr($2->pos, stdErs, _FORE_RED_); t1->isErr = true; }
+					tr = handle_as('*',$1,$3,e1,e2,r1,r2);
+					if (!impCast(tr, t1)) { repErr($2->pos, stdErs, _FORE_RED_); t1->isErr = true; }
 					break;
 
 				case MOD_ASSIGN :
-					if (!impCast(bin('%', $1, $3), t1)) { repErr($2->pos, stdErs, _FORE_RED_); t1->isErr = true; }
+					tr = handle_as('%',$1,$3,e1,e2,r1,r2);
+					if (!impCast(tr, t1)) { repErr($2->pos, stdErs, _FORE_RED_); t1->isErr = true; }
 					break;
 
 				case ADD_ASSIGN : case SUB_ASSIGN :
-					tr = bin('+', $1, $3);
-					if(isReal(tr)) {
-						if(!r1) {
-							string tmp = newTmp();
-							emit(tmp, "int2real", e1, eps);
-							e1 = tmp;
-						}
-						if(!r2) {
-							string tmp = newTmp();
-							emit(tmp, "int2real", e2, eps);
-							e2 = tmp;
-						}
-					}
-					else {
-						if(r1) {
-							string tmp = newTmp();
-							emit(tmp, "real2int", e1, eps);
-							e1 = tmp;
-						}
-						if(r2) {
-							string tmp = newTmp();
-							emit(tmp, "real2int", e2, eps);
-							e2 = tmp;
-						}
-					}
+					tr = handle_as('+',$1,$3,e1,e2,r1,r2);
 					if (!impCast(tr, t1)) { repErr($2->pos, stdErs, _FORE_RED_); t1->isErr = true; }
 					break;
 

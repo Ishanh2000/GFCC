@@ -50,4 +50,7 @@ std::string newTmp(); // generate a unique new temproray
 void backpatch(std::vector<unsigned int> &, unsigned int);
 void backpatch(std::vector<unsigned int> &, std::string);
 
+void handle(node_t*,node_t*,node_t*, char);
+Type* handle_as(char ,node_t*,node_t*, std::string &, std::string &, bool, bool);
+
 #endif

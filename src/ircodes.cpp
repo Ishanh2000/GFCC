@@ -9,6 +9,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <ops.h>
 // #include <unordered_map>
 
 #include <ircodes.h>
@@ -60,6 +61,84 @@ void backpatch(vector<unsigned int> & lst, string jmpinstr) {
     for(auto i: lst){
         IRDump[i].src1 = jmpinstr;
     }
+}
+
+void handle(node_t* dollar, node_t* one, node_t* three, char op) {
+
+    string e1 = one->eval, e2 = three->eval;
+    bool r1 = isReal(one->type), r2 = isReal(three->type);
+    Type *tr = bin(op, one, three);
+    if(isReal(tr)) {
+        if(!r1) {
+            string tmp = newTmp();
+            emit(tmp, "int2real", e1, eps);
+            e1 = tmp;
+        }
+        if(!r2) {
+            string tmp = newTmp();
+            emit(tmp, "int2real", e2, eps);
+            e2 = tmp;
+        }
+    }
+    else {
+        if(r1) {
+            string tmp = newTmp();
+            emit(tmp, "real2int", e1, eps);
+            e1 = tmp;
+        }
+        if(r2) {
+            string tmp = newTmp();
+            emit(tmp, "real2int", e2, eps);
+            e2 = tmp;
+        }
+    }
+    string opr;
+    if(tr->grp() == BASE_G) {
+            Base* b = (Base*) tr;
+            cout<<priority1[b->base]<<endl;
+            if(priority1[b->base] >= priority1[FLOAT_B] ) {
+                opr = "real";
+            }
+    }
+    dollar->eval = newTmp();
+    emit(dollar->eval, opr+op, e1, e2);
+    dollar->type = tr;
+    dollar->type->lvalue = false;
+
+
+}
+
+Type* handle_as(char op,node_t* one,node_t* three, std::string & e1, std::string & e2, bool r1,bool r2) {
+
+    Type* tr;
+
+    tr = bin(op, one, three);
+    if(isReal(tr)) {
+        if(!r1) {
+            string tmp = newTmp();
+            emit(tmp, "int2real", e1, eps);
+            e1 = tmp;
+        }
+        if(!r2) {
+            string tmp = newTmp();
+            emit(tmp, "int2real", e2, eps);
+            e2 = tmp;
+        }
+    }
+    else {
+        if(r1) {
+            string tmp = newTmp();
+            emit(tmp, "real2int", e1, eps);
+            e1 = tmp;
+        }
+        if(r2) {
+            string tmp = newTmp();
+            emit(tmp, "real2int", e2, eps);
+            e2 = tmp;
+        }
+    }
+
+    return tr;
 }
 
 void dumpIR(ofstream &f, vector<irquad_t> &irArr) { // dump into a file
