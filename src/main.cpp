@@ -8,6 +8,7 @@
 #include <gfcc_lexer.h>
 #include <symtab.h>
 #include <typo.h>
+#include <ircodes.h>
 
 using namespace std;
 
@@ -97,7 +98,7 @@ int main (int argc , char *argv[]) {
 		// doing this to seek independently of 'yyin' when printing errors.
 		in_file.open(argv[_in]); // TODO: must gracefully handle errors
 
-		ofstream dot_out, csv_out;
+		ofstream dot_out, csv_out, a3c_out("tmp.a3c");
 
 		if ( o_flag_index >= 0 ) {
 			int _dot = o_flag_index + 1 + (2 * i), _csv = _dot + 1; // CLA index of dot and csv output files, if provided "-o"
@@ -155,10 +156,11 @@ int main (int argc , char *argv[]) {
 			csv_out << "# File Name:, " << argv[_in] << endl << endl;
 			csv_out << csvHeaders << endl << endl; /// CSV HEADERS
 			SymRoot->dump(csv_out);
+			dumpIR(a3c_out, IRDump);
 		}
 		
 		// PREPARE FOR NEXT FILE (ITERATION)
-		in_file.close(); dot_out.close(); csv_out.close();
+		in_file.close(); dot_out.close(); csv_out.close(); a3c_out.close();
 		purgeAST(AstRoot); // frees the current AST
 		delete SymRoot; // frees the current symbol tables
 		PLB.clear(); // clear the parameter lookup buffer

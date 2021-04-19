@@ -22,8 +22,13 @@ string eps = ""; // empty string (epsilon)
 string nextQuadLabel = ""; // label for next (upcoming) instruction
 
 unsigned int totLabels = 0;
+unsigned int totalTmp = 0;
 
 _irquad_t::_irquad_t(string opr, string dst, string src1, string src2) : opr(opr), dst(dst), src1(src1), src2(src2) { }
+
+unsigned int nextIdx() {
+    return IRDump.size();
+}
 
 void emit(string dst, string opr, string src1, string src2) { // emit into global (incremental) code stream
     irquad_t q = _irquad_t(opr, dst, src1, src2);
@@ -41,19 +46,37 @@ string newLabel(string prefName) { // generate a unique new label (with preffere
     return nextQuadLabel;
 }
 
+string newTmp() {
+    return "t_" + to_string(totalTmp++);
+}
+
+void backpatch(vector<unsigned int> & lst, unsigned int jmpinstr) {
+    for(auto i: lst){
+        IRDump[i].src1 = to_string(jmpinstr);
+    }
+}
+
+void backpatch(vector<unsigned int> & lst, string jmpinstr) {
+    for(auto i: lst){
+        IRDump[i].src1 = jmpinstr;
+    }
+}
+
 void dumpIR(ofstream &f, vector<irquad_t> &irArr) { // dump into a file
     int l = irArr.size(), _w = to_string(l).size();
 
     for (int i = 0; i < l; i++) {
         irquad_t &q = irArr[i];
         if (q.label != eps) f << q.label << " :" << endl;
-        f << setw(_w) << (i + 1) << " : ";
+        f << setw(_w) << (i) << " : ";
 
         if (q.opr == "goto") {
-            if (q.src2 == eps) f << "goto " << q.src1; // goto <src1>
-            else f << "if " << q.src2 << " goto " << q.src1; // if <src2> goto <src1>
-
-        } else {
+            f << "goto " << q.src1; // goto <src1>
+        }
+        else if (q.opr == "ifgoto") {
+            f << "if " << q.src2 << " then goto " << q.src1; // if <src2> then goto <src1>
+        }
+         else {
             if (q.opr == eps) f << q.dst << " = " << q.src1; // dst = <src1> [load/store/move]
             else {
                 if (q.src2 == eps) f << q.dst << " = " << q.opr << " " << q.src1; // <dst> = <opr> <src1> [unary]
@@ -66,10 +89,12 @@ void dumpIR(ofstream &f, vector<irquad_t> &irArr) { // dump into a file
 }
 
 #ifdef TEST_IRCODES
+vector<unsigned int> nextlist = {1,2,5};
 
 void testIRCodes_1() { // a = b*-c + b*-c
     emit("t1", "-", "c"); // t1 = -c
     emit("t2", "*", "b", "t1"); // t2 = b * t1
+    cout<<nextIdx()<<endl;
     emit("t3", "-", "c"); // t3 = -c
     emit("t4", "*", "b", "t3"); // t4 = b * t3
     emit("t5", "+", "t2", "t4"); // t5 = t2 + t4
@@ -84,12 +109,23 @@ void testIRCodes_1() { // a = b*-c + b*-c
     f.close();
 }
 
-void testIRCodes_2() { }
+void testIRCodes_2() { 
+    emit(eps, "goto", "---"); // goto ---
+    emit(eps, "goto", "---"); // goto ---
+    emit(eps, "goto", "---"); // goto ---
+    emit(eps, "goto", "---"); // goto ---
+    emit(eps, "goto", "---"); // goto ---
+    emit(eps, "goto", "---"); // goto ---
+    backpatch(nextlist, "100");
+    ofstream f; f.open("irTest_2.txt");
+    dumpIR(f, IRDump);
+    f.close();
+}
 
 void testIRCodes_3() { }
 
 int main() {
-    testIRCodes_1();
+    // testIRCodes_1();
     testIRCodes_2();
     testIRCodes_3();
 

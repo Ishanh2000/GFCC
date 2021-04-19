@@ -1,10 +1,10 @@
-1 : t1 = - c
-2 : t2 = b * t1
-3 : t3 = - c
-4 : t4 = b * t3
-5 : t5 = t2 + t4
+0 : t1 = - c
+1 : t2 = b * t1
+2 : t3 = - c
+3 : t4 = b * t3
+4 : t5 = t2 + t4
 LABEL_0 :
-6 : a = t5
-7 : res = t1 < t2
-8 : if res goto 101
-9 : goto 104
+5 : a = t5
+6 : res = t1 < t2
+7 : goto 101
+8 : goto 104

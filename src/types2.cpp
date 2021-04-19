@@ -465,6 +465,14 @@ int *eval(struct _node_t *n) { // evaluate bounds for arrays
     return NULL;
 }
 
+bool isReal(class Type* t) {
+    if(t && !t->isErr && t->grp() == BASE_G){
+        Base* b = (Base*) t;
+        if(priority1[b->base] >= priority1[FLOAT_B])
+            return true;
+    }
+    return false;
+}
 
 
 /************************************************/

@@ -138,4 +138,6 @@ bool expCast(class Type *, class Type *); // explicit type-casing
 
 int *eval(struct _node_t *); // evaluate bounds for arrays
 
+bool isReal(class Type *);
+
 #endif

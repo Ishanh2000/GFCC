@@ -1,0 +1,6 @@
+0 : goto ---
+1 : goto 100
+2 : goto 100
+3 : goto ---
+4 : goto ---
+5 : goto 100

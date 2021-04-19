@@ -41,6 +41,8 @@ node_t* Nd(int tok, const char* label, const char* attr, loc_t pos) {
 	node->label = newlabel;
 
 	node->pos = pos; node->type = NULL;
+	node->offset = 0;
+	node->eval = "";
 
 	return node;
 }

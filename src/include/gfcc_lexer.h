@@ -86,7 +86,9 @@ typedef struct _node_t {
 	struct _edge_t **edges;
 	loc_t pos;
 	class Type *type;
-
+	std::vector<unsigned int> truelist, falselist, nextlist, breaklist, contlist;
+	std::string eval;
+	int offset;
 	struct _node_t *ch(int); // getting child without much effort
 } node_t;
 

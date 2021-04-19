@@ -14,6 +14,7 @@
 #include <types2.h>
 #include <typo.h>
 #include <ops.h>
+#include <ircodes.h>
 
 using namespace std;
 
@@ -77,9 +78,16 @@ primary_expression
 			repErr($1->pos, "variable undeclared in this scope", _FORE_RED_);
 			Type* t = $$->type = new Type(); t->isErr = true;
 		}
+		if(!$$->type->isErr){
+			$$->eval = $$->label; // TODO
+		}
 		$$->type->lvalue = true;
 	}
-	| CONSTANT				{ $$ = $1; } // get sematic number (means 0x56 = 86, 0227 = 151, etc) during semantic analysis - but ENCODE HERE ITSELF
+	| CONSTANT				{ $$ = $1;
+			if(!$$->type->isErr){
+				$$->eval = $$->label;
+			}	
+		} // get sematic number (means 0x56 = 86, 0227 = 151, etc) during semantic analysis - but ENCODE HERE ITSELF
 	| STRING_LITERAL		{ $$ = $1; } // encode as (const char *) - or some other appropriate enc.
 	| '(' expression ')'	{ $$ = $2; }
 	;
@@ -445,7 +453,48 @@ multiplicative_expression
 
 additive_expression
 	: multiplicative_expression { $$ = $1; }
-	| additive_expression '+' multiplicative_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('+', $1, $3); $$->type->lvalue = false; }
+	| additive_expression '+' multiplicative_expression { 
+		$$ = op( $2, 0, 2, ej($1), ej($3));
+		string e1 = $1->eval, e2 = $3->eval;
+		bool r1 = isReal($1->type), r2 = isReal($3->type);
+		Type *tr = bin('+', $1, $3);
+		if(isReal(tr)) {
+			if(!r1) {
+				string tmp = newTmp();
+				emit(tmp, "int2real", e1, eps);
+				e1 = tmp;
+			}
+			if(!r2) {
+				string tmp = newTmp();
+				emit(tmp, "int2real", e2, eps);
+				e2 = tmp;
+			}
+		}
+		else {
+			if(r1) {
+				string tmp = newTmp();
+				emit(tmp, "real2int", e1, eps);
+				e1 = tmp;
+			}
+			if(r2) {
+				string tmp = newTmp();
+				emit(tmp, "real2int", e2, eps);
+				e2 = tmp;
+			}
+		}
+		string opr;
+		if(tr->grp() == BASE_G) {
+				Base* b = (Base*) tr;
+				cout<<priority1[b->base]<<endl;
+				if(priority1[b->base] >= priority1[FLOAT_B] ) {
+					opr = "real";
+				}
+		}
+		$$->eval = newTmp();
+		emit($$->eval, opr+"+", e1, e2);
+		$$->type = tr;
+		$$->type->lvalue = false;
+	}
 	| additive_expression '-' multiplicative_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); $$->type = bin('-', $1, $3); $$->type->lvalue = false; }
 	;
 
@@ -507,7 +556,10 @@ assignment_expression
 	: conditional_expression { $$ = $1; }
 	| unary_expression assignment_operator assignment_expression { $$ = op( $2, 0, 2, ej($1), ej($3) );
 		Type *t1 = $1->type, *t2 = $3->type;
+		bool r1 = isReal(t1), r2 = isReal(t2);
+		string e1 = $1->eval, e2 = $3->eval;
 		t1->isErr |= t2->isErr;
+		Type *tr;
 		string stdErs = "incompatible operand types under assigment operator";
 		if (t1->lvalue) {
 			Base *b = (Base*)t1; Ptr *p = (Ptr*)t1; Arr *a; grp_t g = t1->grp();
@@ -517,70 +569,102 @@ assignment_expression
 
 			} else switch ($2->tok) {
 				case '=' :
-					if (!impCast(t2, t1)) { repErr($2->pos, stdErs, _FORE_RED_); t1->isErr; }
+					tr = t2;
+					if (!impCast(t2, t1)) { repErr($2->pos, stdErs, _FORE_RED_); t1->isErr = true; }
 					break;
 				
 				case MUL_ASSIGN : case DIV_ASSIGN :
-					if (!impCast(bin('*', $1, $3), t1)) { repErr($2->pos, stdErs, _FORE_RED_); t1->isErr; }
+					if (!impCast(bin('*', $1, $3), t1)) { repErr($2->pos, stdErs, _FORE_RED_); t1->isErr = true; }
 					break;
 
 				case MOD_ASSIGN :
-					if (!impCast(bin('%', $1, $3), t1)) { repErr($2->pos, stdErs, _FORE_RED_); t1->isErr; }
+					if (!impCast(bin('%', $1, $3), t1)) { repErr($2->pos, stdErs, _FORE_RED_); t1->isErr = true; }
 					break;
 
 				case ADD_ASSIGN : case SUB_ASSIGN :
-					if (!impCast(bin('+', $1, $3), t1)) { repErr($2->pos, stdErs, _FORE_RED_); t1->isErr; }
+					tr = bin('+', $1, $3);
+					if(isReal(tr)) {
+						if(!r1) {
+							string tmp = newTmp();
+							emit(tmp, "int2real", e1, eps);
+							e1 = tmp;
+						}
+						if(!r2) {
+							string tmp = newTmp();
+							emit(tmp, "int2real", e2, eps);
+							e2 = tmp;
+						}
+					}
+					else {
+						if(r1) {
+							string tmp = newTmp();
+							emit(tmp, "real2int", e1, eps);
+							e1 = tmp;
+						}
+						if(r2) {
+							string tmp = newTmp();
+							emit(tmp, "real2int", e2, eps);
+							e2 = tmp;
+						}
+					}
+					if (!impCast(tr, t1)) { repErr($2->pos, stdErs, _FORE_RED_); t1->isErr = true; }
 					break;
 
 				case LEFT_ASSIGN : case RIGHT_ASSIGN : case AND_ASSIGN : case XOR_ASSIGN : case OR_ASSIGN :
-					if (!impCast(bin('&', $1, $3), t1)) { repErr($2->pos, stdErs, _FORE_RED_); t1->isErr; }
+					if (!impCast(bin('&', $1, $3), t1)) { repErr($2->pos, stdErs, _FORE_RED_); t1->isErr = true; }
 					break;
 			}
-	
-			/* if (false)
-			switch (t1->grp()) {
-				case BASE_G :
-					b = (Base *)t1;
-					if (b->isConst) { repErr($1->pos, "cannot assign to a \"const\" value", _FORE_RED_); t1->isErr = true; break; }
-					if (b->base == VOID_B) { repErr($1->pos, "cannot assign to pure type \"void\"", _FORE_RED_); t1->isErr; break; }
-					if ((b->base == STRUCT_B || b->base == UNION_B) && ($2->tok != '=')) { repErr($1->pos, "invalid operator for struct or void", _FORE_RED_); t1->isErr; break; }
-					// t1 (base, non-void) ?= t2
-					if (!impCast(t2, t1)) {
-						repErr($3->pos, "incompatible operand types under assigment operator", _FORE_RED_); t1->isErr;
-					}
-					break;
-
-				case PTR_G : // only =, +=, -= allowed
-					if ($2->tok == '=' || $2->tok == ADD_ASSIGN || $2->tok == SUB_ASSIGN) {
-						// check compatibility of t1 += t2
-						g = t2->grp();
-						if (!( ($2->tok == '=') && (g == ARR_G || g == PTR_G || g == FUNC_G) )) {
-							repErr($3->pos, "pointer gets assigned a value that is not a pointer, a function or an array", _FORE_RED_); t1->isErr = true;
-						}
-						if ($2->tok == ADD_ASSIGN || $2->tok == SUB_ASSIGN) { // t2 must be integer related type
-							if (t2->grp() == BASE_G) {
-								b = (Base*)t2;
-								if (!(b->base == CHAR_B || b->base == INT_B || b->base == LONG_B || b->base == LONG_LONG_B || b->base == ENUM_B)) {
-									repErr($2->pos, "non-integer related value used with += or -= for pointer assignment", _FORE_RED_); t1->isErr = true;
-								}
-							} else {
-								repErr($2->pos, "non-integer related value used with += or -= for pointer assignment", _FORE_RED_); t1->isErr = true;
-							}
-						}
-					} else {
-						repErr($2->pos, string("invalid operand for types \"") + str(t1) + "\" and \"" + str(t2) + "\"", _FORE_RED_); t1->isErr = true;
-					}
-
-					break;
-
-				case ARR_G : repErr($1->pos, "cannot assign to an array", _FORE_RED_); t1->isErr = true;
-					break;
-
-				case FUNC_G : repErr($1->pos, "cannot assign to a function", _FORE_RED_); t1->isErr = true;
-					break;
-			} */
 		} else { repErr($1->pos, "left operand for '=' is not an lvalue", _FORE_RED_); t1->isErr = true; }
 		$$->type = t1;
+
+		if(tr && !tr->isErr) { // TODO remove tr check
+			string opr;
+			if(tr->grp() == BASE_G) {
+				Base* b = (Base*) tr;
+				cout<<priority1[b->base]<<endl;
+				if(priority1[b->base] >= priority1[FLOAT_B] ) {
+					opr = "real";
+				}
+			}
+			switch($2->tok) {
+				case '=' : opr = "="; break;
+				case MUL_ASSIGN : opr += "*"; break;
+				case DIV_ASSIGN : opr += "/"; break;
+				case MOD_ASSIGN : opr += "%"; break;
+				case ADD_ASSIGN : opr += "+"; break;
+				case SUB_ASSIGN : opr += "-"; break;
+				case LEFT_ASSIGN : opr = "<<"; break;
+				case RIGHT_ASSIGN : opr = ">>"; break;
+				case AND_ASSIGN : opr = "&"; break;
+				case XOR_ASSIGN : opr = "^"; break;
+				case OR_ASSIGN : opr = "|"; break;
+			}
+			
+			bool cast_flag = false;
+			if(isReal(tr) != isReal(t1)) {
+				cast_flag = true;
+			}
+			
+			if(opr == "="){
+				opr = eps;
+				if(cast_flag) {
+					if(isReal(t1)) opr = "int2real";
+					else opr = "real2int";
+				}
+				emit($1->eval, opr, e2);
+			}
+			else{
+				if(cast_flag) {
+					string tmp = newTmp();
+					emit(tmp, opr, e1, e2);
+					if(isReal(t1)) emit($1->eval, "int2real", tmp, eps);
+					else emit($1->eval, "real2int", tmp, eps);
+				}
+				else emit($1->eval, opr, e1, e2);
+			}
+			
+			$$->eval = e1;
+		}
 	}
 	;
 
