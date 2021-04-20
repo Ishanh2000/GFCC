@@ -169,18 +169,27 @@ void dumpIR(ofstream &f, vector<irquad_t> &irArr) { // dump into a file
         if (q.label != eps) f << q.label << " :" << endl;
         f << setw(_w) << (i) << " : ";
 
-        if (q.opr == "goto") {
-            f << "goto " << q.src1; // goto <src1>
-        }
-        else if (q.opr == "ifgoto") {
-            f << "if " << q.src2 << " then goto " << q.src1; // if <src2> then goto <src1>
-        }
-         else {
-            if (q.opr == eps) f << q.dst << " = " << q.src1; // dst = <src1> [load/store/move]
-            else {
-                if (q.src2 == eps) f << q.dst << " = " << q.opr << " " << q.src1; // <dst> = <opr> <src1> [unary]
-                else f << q.dst << " = " << q.src1 << " " << q.opr << " " << q.src2; // <dst> = <src1> <opr> <src2> [real operations]
-            }
+        // goto <src1>
+        if (q.opr == "goto") f << "goto " << q.src1;
+        
+        // if <src2> then goto <src1>
+        else if (q.opr == "ifgoto") f << "if " << q.src2 << " then goto " << q.src1;
+        
+        // call <src1>, <src2>
+        else if (q.opr == "call") f << "call " << q.src1 << ", " << q.src2;
+        
+        // param <src1>
+        else if (q.opr == "param") f << "param " << q.src1;
+        
+        // dst = <src1> [load/store/move]
+        else if (q.opr == eps) f << q.dst << " = " << q.src1;
+
+        else {
+            // <dst> = <opr> <src1> [unary]
+            if (q.src2 == eps) f << q.dst << " = " << q.opr << " " << q.src1;
+
+            // <dst> = <src1> <opr> <src2> [real operations]
+            else f << q.dst << " = " << q.src1 << " " << q.opr << " " << q.src2;
         }
 
         f << endl;

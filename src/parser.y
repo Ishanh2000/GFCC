@@ -83,6 +83,8 @@ primary_expression
 		}
 		if(!$$->type->isErr){
 			$$->eval = $$->label; // TODO
+			cout << "Here" << endl;
+			cout << "\"" << $$->eval << "\"" << endl;
 		}
 		$$->type->lvalue = true;
 	}
@@ -150,6 +152,13 @@ postfix_expression
 			}
 		}
 		$$->type->lvalue = false;
+		if (!$$->type->isErr) { // param h | call main, 1 | r = retval
+			cout << "Here2" << endl;
+			cout << "\"" << $1->eval << "\"" << endl;
+			emit(eps, "call", $1->eval, "0"); // call <func / func_ptr>, 0
+			$$->eval = newTmp();
+			emit($$->eval, eps, "retval"); // call <func / func_ptr>, 0
+		}
 	}
 	| postfix_expression '(' argument_expression_list ')' {
 		$2->tok = FUNC_CALL; $2->label = "() [func-call]"; $2->attr = func_call_attr; $$ = op( $2, 0, 2, ej($1), ej($3) );
@@ -212,6 +221,16 @@ postfix_expression
 		}
 		if (!($$->type)) { $$->type = new Base(INT_B); $$->type->isErr = true; } // just a precaution
 		$$->type->lvalue = false;
+
+		if (!$$->type->isErr) { // param h | call main, 1 | r = retval
+			int l = $3->numChild;
+			for (int i = 0; i < l; i++) {
+				node_t *ch = $3->ch(i); if (ch) emit(eps, "param", ch->eval); // param <ch->eval>
+			}
+			emit(eps, "call", $1->eval, to_string(l)); // call <func / func_ptr>, l
+			$$->eval = newTmp();
+			emit($$->eval, eps, "retval"); // call <func / func_ptr>, 0
+		}
 	}
 	| postfix_expression '.' IDENTIFIER						{ $$ = op( $2, 0, 2, ej($1), ej($3) ); // search for definition by name of "struct|union _abc"
 		Type *t1 = $1->type;
@@ -1692,7 +1711,7 @@ jump_statement
 	: GOTO IDENTIFIER ';'	{ $$ = op( $1, 0, 1, ej($2) );
 												 emit(eps, "goto", "---"); /*TODO*/} // ignore for now
 	| CONTINUE ';'			{ $$ = $1; 
-											$$->contlist.push_back(nextIdx())); emit(eps, "goto", "---");}
+											$$->contlist.push_back(nextIdx()); emit(eps, "goto", "---");}
 	| BREAK ';'				{ $$ = $1; 
 										$$->breaklist.push_back(nextIdx()); emit(eps, "goto", "---");}
 	| RETURN ';'			{ $$ = $1;}

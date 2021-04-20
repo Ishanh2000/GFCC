@@ -1,4 +1,10 @@
-0 : if 1 then goto 2
-1 : goto 3
-2 : a = 1
-3 : b = 1
+ 0 : if 1 then goto 2
+ 1 : goto 3
+ 2 : a = 1
+ 3 : b = 1
+ 4 : call main, 0
+ 5 : t_0 = retval
+ 6 : param 12
+ 7 : call main, 1
+ 8 : t_1 = retval
+ 9 : t_2 = t_1 + 90
