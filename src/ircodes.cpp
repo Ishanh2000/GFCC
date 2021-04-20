@@ -52,15 +52,14 @@ string newTmp() {
 }
 
 void backpatch(vector<unsigned int> & lst, unsigned int jmpinstr) {
-    for(auto i: lst){
-        IRDump[i].src1 = to_string(jmpinstr);
-    }
+    backpatch(lst, to_string(jmpinstr));
 }
 
 void backpatch(vector<unsigned int> & lst, string jmpinstr) {
     for(auto i: lst){
         IRDump[i].src1 = jmpinstr;
     }
+    lst = {};
 }
 
 std::vector<unsigned int>  merge(
@@ -69,6 +68,16 @@ std::vector<unsigned int>  merge(
     merged.insert(merged.end(), l2.begin(), l2.end());
     return merged;
 }
+
+std::vector<unsigned int> merge(std::vector<std::vector<unsigned int>> vl) {
+    std::vector<unsigned int> merged;
+    for(auto lst: vl){
+        merged.insert(merged.end(), lst.begin(), lst.end());
+    }
+    return merged;
+}
+
+
 
 void handle(node_t* dollar, node_t* one, node_t* three, int op, string op_label) {
 

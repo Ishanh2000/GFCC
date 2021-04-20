@@ -55,6 +55,9 @@ using namespace std;
 
 // new (copied) introductions
 /* %type <node> declarator */
+/* New markers */
+ /* for if, if-else */
+%type <node> M1
 
 // Provide types to fixed literals (to avoid warnings)
 %type <node> '(' ')' '[' ']' '{' '}' '+' '-' '=' '*' '/' '%' '&' '~' '!' '>' '<' '|' '^' ',' ';' ':' '.' '?'
@@ -1611,21 +1614,35 @@ expression_statement
 
 // void, struct, union not allowed
 selection_statement
-	: IF '(' expression ')' statement { 
-		$$ = op( $1, 0, 2, Ej($3, "cond", NULL), Ej($5, "stmts", NULL) );
-		Type *t = $3->type;
-		if (t->grp() == BASE_G) {
-			base_t bs = ((Base*)t)->base;
-			if (bs == VOID_B || bs == STRUCT_B || bs == UNION_B) repErr($3->pos, "expression is of pure \"void\" type, a struct or a union", _FORE_RED_);
+	: M1 statement
+		{ 
+			/* $$ = op( $1, 0, 2, Ej($3, "cond", NULL), Ej($6, "stmts", NULL) ); */
+			Type *t = $1->type;
+			if (t->grp() == BASE_G) {
+				base_t bs = ((Base*)t)->base;
+				if (bs == VOID_B || bs == STRUCT_B || bs == UNION_B) repErr($1->pos, "expression is of pure \"void\" type, a struct or a union", _FORE_RED_);
+			}
+			$$->nextlist = merge({$1->falselist, $1->nextlist, $2->nextlist});
+			$$->breaklist = merge({$1->breaklist, $2->breaklist});
+			$$->contlist = merge({$1->contlist, $2->contlist});
 		}
-	}
-	| IF '(' expression ')' statement ELSE statement { $$ = op( $6, 0, 3, Ej($3, "cond", NULL), Ej($5, "stmts (if TRUE)", NULL), Ej($7, "stmts (if FALSE)", NULL) );
-		Type *t = $3->type;
-		if (t->grp() == BASE_G) {
-			base_t bs = ((Base*)t)->base;
-			if (bs == VOID_B || bs == STRUCT_B || bs == UNION_B) repErr($3->pos, "expression is of pure \"void\" type, a struct or a union", _FORE_RED_);
+
+	| M1 statement ELSE 
+		{
+			backpatch($1->falselist, nextIdx());
 		}
-	}
+	statement 
+		{ 
+			/* $$ = op( $7, 0, 3, Ej($3, "cond", NULL), Ej($6, "stmts (if TRUE)", NULL), Ej($9, "stmts (if FALSE)", NULL) ); */
+			Type *t = $1->type;
+			if (t->grp() == BASE_G) {
+				base_t bs = ((Base*)t)->base;
+				if (bs == VOID_B || bs == STRUCT_B || bs == UNION_B) repErr($1->pos, "expression is of pure \"void\" type, a struct or a union", _FORE_RED_);
+			}
+			$$->nextlist = merge({$1->nextlist, $2->nextlist, $5->nextlist});
+			$$->breaklist = merge({$2->breaklist, $5->breaklist});
+			$$->contlist = merge({$2->contlist, $5->contlist});
+		}
 	| SWITCH '(' expression ')' statement { $$ = op( $1, 0, 2, Ej($3, "expr", NULL), Ej($5, "stmts", NULL) );
 		Type *t = $3->type; grp_t g = t->grp();
 		if (g != BASE_G) repErr($3->pos, "invalid expression type for switch statement", _FORE_RED_);
@@ -1636,6 +1653,14 @@ selection_statement
 		}
 	}
 	;
+	M1: IF '(' expression ')'
+		{
+			emit(eps, "ifgoto", to_string(nextIdx()+2), $3->eval);
+			$3->falselist.push_back(nextIdx());
+			emit(eps, "goto", "---");
+			backpatch($3->truelist, nextIdx());
+			$$ = $3;
+		}
 
 iteration_statement
 	: WHILE '(' expression ')' statement { $$ = op( $1, 0, 2, Ej($3, "expr", NULL), Ej($5, "stmts", NULL) );
@@ -1664,10 +1689,13 @@ iteration_statement
 	;
 
 jump_statement
-	: GOTO IDENTIFIER ';'	{ $$ = op( $1, 0, 1, ej($2) ); } // ignore for now
-	| CONTINUE ';'			{ $$ = $1; }
-	| BREAK ';'				{ $$ = $1; }
-	| RETURN ';'			{ $$ = $1; }
+	: GOTO IDENTIFIER ';'	{ $$ = op( $1, 0, 1, ej($2) );
+												 emit(eps, "goto", "---"); /*TODO*/} // ignore for now
+	| CONTINUE ';'			{ $$ = $1; 
+											$$->contlist.push_back(nextIdx())); emit(eps, "goto", "---");}
+	| BREAK ';'				{ $$ = $1; 
+										$$->breaklist.push_back(nextIdx()); emit(eps, "goto", "---");}
+	| RETURN ';'			{ $$ = $1;}
 	| RETURN expression ';'	{ $$ = op( $1, 0, 1, ej($2) ); }
 	;
 

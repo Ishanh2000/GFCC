@@ -1,20 +1,4 @@
- 0 : t_0 = a >> 1
- 1 : a = t_0
- 2 : t_1 = int2real a
- 3 : t_2 = t_1 real+ 6.0
- 4 : a = real2int t_2
- 5 : t_3 = int2real a
- 6 : t_4 = t_3 real/ 6.0
- 7 : a = real2int t_4
- 8 : t_5 = int2real a
- 9 : t_6 = t_5 real* 6.0
-10 : a = real2int t_6
-11 : t_7 = int2real a
-12 : t_8 = t_7 real+ 4.0
-13 : a = real2int t_8
-14 : t_9 = int2real a
-15 : t_10 = t_9 real* 4.0
-16 : a = real2int t_10
-17 : t_11 = int2real a
-18 : t_12 = t_11 real/ 4.0
-19 : a = real2int t_12
+0 : if 1 then goto 2
+1 : goto 3
+2 : a = 1
+3 : b = 1
