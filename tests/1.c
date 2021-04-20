@@ -1,15 +1,11 @@
 int main() {
     int a, b;
-    if(1){
-        a = 1;
-    }
-    else {
+    for(a=1; a<10;) {
         b = 1;
+        continue;
+        b = 3;
+        break;
+        b = 2;
+        a++;
     }
-    main();
-    {
-        int main(int);
-        int r = main(12) + 90;
-    }
-    return 0;
 }

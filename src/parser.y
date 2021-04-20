@@ -22,6 +22,7 @@ using namespace std;
 
 %union { // Add more if required (but carefully, as type conversions may be required).
 	struct _node_t *node;
+	unsigned int nxtIstr;
 }
 
 /* Terminals: Don't change this order. */
@@ -58,6 +59,10 @@ using namespace std;
 /* New markers */
  /* for if, if-else */
 %type <node> M1
+/* for for loops */
+%type <node> M2
+/* get  next instr line no. */
+%type <nxtIstr> M
 
 // Provide types to fixed literals (to avoid warnings)
 %type <node> '(' ')' '[' ']' '{' '}' '+' '-' '=' '*' '/' '%' '&' '~' '!' '>' '<' '|' '^' ',' ';' ':' '.' '?'
@@ -1622,8 +1627,18 @@ declaration_list
 	;
 
 statement_list
-	: statement                { $$ = op( nd(STMT_LIST, "stmt-list", { 0, 0 }), 0, 1, ej($1) ); }
-	| statement_list statement { $$ = op( $1, 0, 1, ej($2) ); }
+	: statement                { $$ = op( nd(STMT_LIST, "stmt-list", { 0, 0 }), 0, 1, ej($1) ); 
+															 $$->nextlist = $1->nextlist;
+															 $$->contlist = $1->contlist;
+															 $$->breaklist = $1->breaklist;
+															}
+	| statement_list M statement {
+			$$ = op( $1, 0, 1, ej($3) ); 
+			$$->nextlist = $3->nextlist;
+			$$->breaklist = merge($1->breaklist, $3->breaklist);
+			$$->contlist = merge($1->contlist, $3->contlist);
+			backpatch($1->nextlist, $2);
+		}
 	;
 
 expression_statement
@@ -1644,6 +1659,7 @@ selection_statement
 			$$->nextlist = merge({$1->falselist, $1->nextlist, $2->nextlist});
 			$$->breaklist = merge({$1->breaklist, $2->breaklist});
 			$$->contlist = merge({$1->contlist, $2->contlist});
+			backpatch($$->nextlist, nextIdx());
 		}
 
 	| M1 statement ELSE 
@@ -1661,6 +1677,7 @@ selection_statement
 			$$->nextlist = merge({$1->nextlist, $2->nextlist, $5->nextlist});
 			$$->breaklist = merge({$2->breaklist, $5->breaklist});
 			$$->contlist = merge({$2->contlist, $5->contlist});
+			backpatch($$->nextlist, nextIdx());
 		}
 	| SWITCH '(' expression ')' statement { $$ = op( $1, 0, 2, Ej($3, "expr", NULL), Ej($5, "stmts", NULL) );
 		Type *t = $3->type; grp_t g = t->grp();
@@ -1672,40 +1689,98 @@ selection_statement
 		}
 	}
 	;
-	M1: IF '(' expression ')'
-		{
-			emit(eps, "ifgoto", to_string(nextIdx()+2), $3->eval);
-			$3->falselist.push_back(nextIdx());
-			emit(eps, "goto", "---");
-			backpatch($3->truelist, nextIdx());
-			$$ = $3;
-		}
+
+M1: IF '(' expression ')'
+	{
+		emit(eps, "ifgoto", to_string(nextIdx()+2), $3->eval);
+		$3->falselist.push_back(nextIdx());
+		emit(eps, "goto", "---");
+		backpatch($3->truelist, nextIdx());
+		$$ = $3;
+	}
+
+
 
 iteration_statement
-	: WHILE '(' expression ')' statement { $$ = op( $1, 0, 2, Ej($3, "expr", NULL), Ej($5, "stmts", NULL) );
-		Type *t = $3->type;
+	: WHILE '('	M expression ')' 
+		{
+			emit(eps, "ifgoto", to_string(nextIdx()+2), $4->eval);
+			$4->falselist.push_back(nextIdx());
+			emit(eps, "goto", "---");
+			backpatch($4->truelist, nextIdx());
+		}
+	statement { 
+		$$ = op( $1, 0, 2, Ej($4, "expr", NULL), Ej($7, "stmts", NULL) );
+		Type *t = $4->type;
 		if (t->grp() == BASE_G) {
 			base_t bs = ((Base*)t)->base;
-			if (bs == VOID_B || bs == STRUCT_B || bs == UNION_B) repErr($3->pos, "expression is of pure \"void\" type, a struct or a union", _FORE_RED_);
+			if (bs == VOID_B || bs == STRUCT_B || bs == UNION_B) repErr($4->pos, "expression is of pure \"void\" type, a struct or a union", _FORE_RED_);
 		}
+		emit(eps, "goto", to_string($3));
+		backpatch($7->nextlist, $3);
+		backpatch($7->contlist, $3);
+		$$->nextlist = merge({$7->breaklist, $4->falselist});
+		backpatch($$->nextlist, nextIdx());
+
 	}
-	| DO statement WHILE '(' expression ')' ';' { $$ = op( $1, 0, 2, Ej($2, "stmts", NULL), Ej($5, "expr", NULL) );
-		Type *t = $5->type;
+	| DO M statement WHILE '(' M expression ')' ';' {
+		$$ = op( $1, 0, 2, Ej($3, "stmts", NULL), Ej($7, "expr", NULL) );
+		Type *t = $7->type;
 		if (t->grp() == BASE_G) {
 			base_t bs = ((Base*)t)->base;
-			if (bs == VOID_B || bs == STRUCT_B || bs == UNION_B) repErr($5->pos, "expression is of pure \"void\" type, a struct or a union", _FORE_RED_);
+			if (bs == VOID_B || bs == STRUCT_B || bs == UNION_B) repErr($7->pos, "expression is of pure \"void\" type, a struct or a union", _FORE_RED_);
 		}
+		emit(eps, "ifgoto", to_string($2), $7->eval);
+		backpatch($3->nextlist, $6);
+		backpatch($3->contlist, $6);
+		backpatch($7->nextlist, $2);
+		backpatch($7->truelist, $2);
+		$$->nextlist = merge({$3->breaklist, $7->falselist});
+		backpatch($$->nextlist, nextIdx());
 	}
-	| FOR '(' expression_statement expression_statement ')' statement { $$ = op( $1, 0, 3, Ej($3, "expr", NULL), Ej($4, "expr", NULL), Ej($6, "stmts", NULL) ); }
-	| FOR '(' expression_statement expression_statement expression ')' statement  {
-		$$ = op( $1, 0, 4, Ej($3, "expr", NULL), Ej($4, "expr", NULL), Ej($5, "expr", NULL), Ej($7, "stmts", NULL) );
-		Type *t = $5->type;
-		if (t->grp() == BASE_G) {
-			base_t bs = ((Base*)t)->base;
-			if (bs == VOID_B || bs == STRUCT_B || bs == UNION_B) repErr($5->pos, "expression is of pure \"void\" type, a struct or a union", _FORE_RED_);
+	| FOR '(' expression_statement M M2 ')' M statement 
+		{ 
+			/* $$ = op( $1, 0, 3, Ej($3, "expr", NULL), Ej($4, "expr", NULL), Ej($6, "stmts", NULL) ); */
+			emit(eps, "goto", to_string($4));
+			backpatch($8->nextlist, $4);
+			backpatch($8->contlist, $4);
+			backpatch($5->truelist, $7);
+			backpatch($3->nextlist, $4);
+			$$->nextlist = merge({$8->breaklist, $5->falselist});
+			backpatch($$->nextlist, nextIdx());
 		}
-	}
+
+	| FOR '(' expression_statement M M2 M expression 
+		{
+			emit(eps, "goto", to_string($4));
+			backpatch($7->nextlist, $4);
+		}
+	')' M statement  
+		{
+			/* $$ = op( $1, 0, 4, Ej($3, "expr", NULL), Ej($5, "expr", NULL), Ej($7, "expr", NULL), Ej($7, "stmts", NULL) ); */
+			Type *t = $7->type;
+			if (t->grp() == BASE_G) {
+				base_t bs = ((Base*)t)->base;
+				if (bs == VOID_B || bs == STRUCT_B || bs == UNION_B) repErr($7->pos, "expression is of pure \"void\" type, a struct or a union", _FORE_RED_);
+			}
+			emit(eps, "goto", to_string($6));
+			backpatch($11->nextlist, $6);
+			backpatch($11->contlist, $6);
+			backpatch($5->truelist, $10);
+			backpatch($3->nextlist, $4);
+			$$->nextlist = merge({$11->breaklist, $5->falselist});
+			backpatch($$->nextlist, nextIdx());
+		}
 	;
+
+M2 : expression_statement 
+	{
+		$$ = $1;
+		$$->truelist.push_back(nextIdx());
+		emit(eps, "ifgoto", "---", $1->eval);
+		$$->falselist.push_back(nextIdx());
+		emit(eps, "goto", "---");
+	}
 
 jump_statement
 	: GOTO IDENTIFIER ';'	{ $$ = op( $1, 0, 1, ej($2) );
@@ -1842,5 +1917,7 @@ function_definition
 		}
 	} compound_statement { $$ = op( nd(FUNC_DEF, "function_definition", { 0, 0 }), 0, 2, ej($1), ej($3) ); }
 	;
+
+	M: %empty { $$ = nextIdx(); }
 
 %%
