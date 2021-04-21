@@ -1,11 +1,33 @@
+
+
+
+
 int main() {
-    int a, b;
-    for(a=1; a<10;) {
-        b = 1;
-        continue;
-        b = 3;
-        break;
-        b = 2;
-        a++;
+    int a = 2, b = 5;
+    switch(a+2)
+    {
+        case b-4 : a = 3;
+        case 2 : {a = 4; break;}
+        case 4 : 
+        {
+            switch(b)
+            {
+                case 132 : {b = 5;}
+                default : b = 7; 
+            }
+        }
+        default : a = 10;
     }
 }
+
+// int f(int a,int b)
+// {
+//     a = b;
+//     return a;
+// }
+// int main()
+// {
+//     int a,b;
+//     int c = f(a,b);
+//     return 0;
+// }

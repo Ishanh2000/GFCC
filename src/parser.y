@@ -61,6 +61,8 @@ using namespace std;
 %type <node> M1
 /* for for loops */
 %type <node> M2
+/* for switch case */
+%type <node> M3
 /* get  next instr line no. */
 %type <nxtIstr> M
 
@@ -88,8 +90,8 @@ primary_expression
 		}
 		if(!$$->type->isErr){
 			$$->eval = $$->label; // TODO
-			cout << "Here" << endl;
-			cout << "\"" << $$->eval << "\"" << endl;
+			// cout << "Here" << endl;
+			// cout << "\"" << $$->eval << "\"" << endl;
 		}
 		$$->type->lvalue = true;
 	}
@@ -1586,19 +1588,44 @@ statement
 	| iteration_statement  { $$ = $1; }
 	| jump_statement       { $$ = $1; }
 	;
+M3 : CASE constant_expression ':' {
+		$$ = $2;
+		$$->caselist.push_back(nextIdx());
+		string tmp = $2->eval;
+		$$->eval = newTmp();
+		emit($$->eval,"==","---",tmp);
+		$$->truelist.push_back(nextIdx());
+		emit(eps, "ifgoto", "---", $$->eval);
+		$$->falselist.push_back(nextIdx());
+		emit(eps,"goto","---");
+		// CHECK LATER
+		// $$->eval = tmp;
+	}
 
 labeled_statement
 	: IDENTIFIER ':' statement                { ($1)->attr = label_attr; $$ = op( $1, 0, 1, ej($3) ); }
-	| CASE constant_expression ':' statement  { $$ = op( $1, 0, 2, ej($2), ej($4) );
-		Type *t = $2->type; grp_t g = t->grp();
-		if (g != BASE_G) repErr($2->pos, "invalid expression type for case label", _FORE_RED_);
+	| M3 M statement  { 
+		// $$ = op( $1, 0, 2, ej($2), ej($6) );
+		Type *t = $1->type; grp_t g = t->grp();
+		if (g != BASE_G) repErr($1->pos, "invalid expression type for case label", _FORE_RED_);
 		else {
 			base_t bs = ((Base*)t)->base;
 			if (!(bs == CHAR_B || bs == INT_B || bs == LONG_B || bs == LONG_LONG_B || bs == ENUM_B))
-				repErr($2->pos, "invalid expression type for case label", _FORE_RED_);
+				repErr($1->pos, "invalid expression type for case label", _FORE_RED_);
 		}
+		backpatch($1->truelist,$2);
+		$3->nextlist = merge($3->nextlist,$1->falselist);
+		$$->breaklist = $3->breaklist;
+		$$->nextlist = $3->nextlist;
+		$$->contlist = $3->contlist;
+		$$->caselist = $1->caselist;
+		backpatch($$->nextlist,nextIdx());
+
 	}
-	| DEFAULT ':' statement                   { $$ = op( $1 , 0, 1, ej($3) ); }
+	| DEFAULT ':' statement                   { $$ = op( $1 , 0, 1, ej($3) ); 
+		$$->nextlist = $3->nextlist;
+		$$->breaklist = $3->breaklist;
+	}
 	;
 
 // useless iff EMPTY_BLOCK (can't substitute NULL, since EMPTY_BLOCK is still a valid function definition)
@@ -1631,12 +1658,14 @@ statement_list
 															 $$->nextlist = $1->nextlist;
 															 $$->contlist = $1->contlist;
 															 $$->breaklist = $1->breaklist;
+															 $$->caselist = $1->caselist;
 															}
 	| statement_list M statement {
 			$$ = op( $1, 0, 1, ej($3) ); 
 			$$->nextlist = $3->nextlist;
 			$$->breaklist = merge($1->breaklist, $3->breaklist);
 			$$->contlist = merge($1->contlist, $3->contlist);
+			$$->caselist = merge($1->caselist, $3->caselist);
 			backpatch($1->nextlist, $2);
 		}
 	;
@@ -1687,6 +1716,10 @@ selection_statement
 			if (!(bs == CHAR_B || bs == INT_B || bs == LONG_B || bs == LONG_LONG_B || bs == ENUM_B))
 				repErr($3->pos, "invalid expression type for switch statement", _FORE_RED_);
 		}
+		backpatch($5->caselist,$3->eval);
+		backpatch($5->nextlist,nextIdx());
+		backpatch($5->breaklist,nextIdx());
+		$$->contlist = $5->contlist;		
 	}
 	;
 
