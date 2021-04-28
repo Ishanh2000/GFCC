@@ -95,11 +95,8 @@ primary_expression
 		}
 		$$->type->lvalue = true;
 	}
-	| CONSTANT { $$ = $1;
-			if(!$$->type->isErr){
-				$$->eval = $$->label;
-			}	
-		} // get sematic number (means 0x56 = 86, 0227 = 151, etc) during semantic analysis - but ENCODE HERE ITSELF
+	| CONSTANT { $$ = $1; $$->eval = $$->label; }
+	// get sematic number (means 0x56 = 86, 0227 = 151, etc) during semantic analysis - but ENCODE HERE ITSELF
 	| STRING_LITERAL		{ $$ = $1; } // encode as (const char *) - or some other appropriate enc.
 	| '(' expression ')'	{ $$ = $2; }
 	;
@@ -134,6 +131,8 @@ postfix_expression
 			$$->type = t1;
 		}
 		$$->type->lvalue = true;
+
+		$$->eval = $1->eval + "[" + $3->eval + "]"; // handle at assembly code generation
 	}
 	| postfix_expression '(' ')' {
 		$2->tok = FUNC_CALL; $2->label = "() [func-call]"; $2->attr = func_call_attr; $$ = op( $2, 0, 1, ej($1) );
@@ -428,6 +427,9 @@ unary_expression
 					}
 				}
 				$$->type = t; $$->type->lvalue = false;
+				if ($1->tok == '+') $$->eval = $2->eval;
+				else if ($2->tok == CONSTANT) $$->eval = "-" + $2->eval;
+				else emit($$->eval = newTmp(), "-", $2->eval); // t_1 = - t_0
 				break;
 			
 			case '!' :
@@ -485,12 +487,14 @@ unary_expression
 		}
 	}
 	| SIZEOF unary_expression			{ $$ = op( $1, 0, 1, ej($2) );
+		$$->eval = to_string(getSize($2->type));
 		Base *b = new Base(LONG_B); b->sign = UNSIGNED_X;
 		b->isErr |= $2->type->isErr;
 		$$->type = b;
 		$$->type->lvalue = false;
 	}
 	| SIZEOF '(' type_name ')'			{ $$ = op( $1, 0, 1, ej($3) );
+		$$->eval = to_string(getSize($3->type));
 		Base *b = new Base(LONG_B); b->sign = UNSIGNED_X;
 		b->isErr |= $3->type->isErr;
 		$$->type = b;

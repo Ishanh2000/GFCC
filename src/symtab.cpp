@@ -29,7 +29,7 @@ typedef unsigned long int ull;
 
 using namespace std;
 
-string csvHeaders = "NAME, LOCATION, TYPE";
+string csvHeaders = "LOCATION, NAME, SIZE, TYPE, DETAILED_TYPE";
 
 bool acceptType(class Type* type) {
   // analyze type properly. eg: return 0 if "auto static int"
@@ -42,7 +42,7 @@ bool acceptType(class Type* type) {
 /************ CLASS "sym" ************/
 /*************************************/
 
-sym::sym(string _name, class Type* _type, loc_t _pos) : name(_name), type(_type), pos(_pos) {
+sym::sym(string _name, class Type* _type, loc_t _pos) : name(_name), type(_type), pos(_pos), size(getSize(_type)) {
   if (_name == "" || !acceptType(_type)) {
     if (dbg) msg(ERR) << "Invalid name \"" << _name << "\" or type \"" << str(_type) << "\" passed!";
     return;
@@ -50,9 +50,16 @@ sym::sym(string _name, class Type* _type, loc_t _pos) : name(_name), type(_type)
 }
 
 void sym::dump(ofstream &f) {
+  f << setw(8) << "(" + to_string(pos.line) + ":" + to_string(pos.column) << "), ";
   f << setw(10) << name << ", ";
-  f << setw(3) << pos.line << " : " << setw(3) << pos.column << ", ";
-  f << " \"" << str(type) << "\"" << endl; // decode type later on
+  f << setw(3) << size << ", ";
+  if (type) switch (type->grp()) {
+    case BASE_G : f << "--------, "; break;
+    case  PTR_G : f << " POINTER, "; break;
+    case  ARR_G : f << "   ARRAY, "; break;
+    case FUNC_G : f << "FUNCTION, "; break;
+  } else f << "-----------, ";
+  f << "\"" << str(type) << "\"" << endl; // decode type later on
 }
 
 /****************************************/

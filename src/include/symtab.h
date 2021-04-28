@@ -26,6 +26,8 @@ class sym { // SYMBOL
     std::string name;
     class Type* type = NULL;
     loc_t pos; // there can be two positions - last defined / last declared - later, if time permits
+    short unsigned int size = 1;
+    // unsigned int offset = 
 
     sym(std::string, class Type*, loc_t);
     void dump(std::ofstream &); // dump all info into (opened writable) file

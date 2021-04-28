@@ -140,4 +140,6 @@ int *eval(struct _node_t *); // evaluate bounds for arrays
 
 bool isReal(class Type *);
 
+short unsigned int getSize(class Type *); // implmentation like "sizeof"
+
 #endif

@@ -474,6 +474,26 @@ bool isReal(class Type* t) {
     return false;
 }
 
+short unsigned int getSize(class Type *t) { // implmentation like "sizeof"
+    if (!t) return 1;
+    Base *b = (Base *) t;
+    switch (t->grp()) {
+        case BASE_G : switch (b->base) {
+            case INT_B : case FLOAT_B : case ENUM_B : return 2;
+            case LONG_B : case DOUBLE_B : return 4;
+            case LONG_LONG_B : case LONG_DOUBLE_B : return 8;
+            case STRUCT_B : return 3; // do this
+            case UNION_B : return 3; // do this
+            default : return 1; // NONE_B, VOID_B, CHAR_B, SHORT_B, ELLIPSIS_B
+        }
+        break;
+        case PTR_G : return 4; break;
+        case ARR_G : return 4; break; // doubtful
+        case FUNC_G : return 4; // do this like a function pointer
+    }
+    return 1;
+}
+
 
 /************************************************/
 /****************** TEST SUITE ******************/
