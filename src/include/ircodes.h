@@ -25,7 +25,6 @@ typedef struct _irquad_t {
 
 extern std::vector<irquad_t> IRDump;
 
-
 extern std::string eps; // empty string (epsilon)
 
 extern std::string nextQuadLabel; // label for next (upcoming) instruction

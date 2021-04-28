@@ -142,4 +142,6 @@ bool isReal(class Type *);
 
 short unsigned int getSize(class Type *); // implmentation like "sizeof"
 
+void arrayInit(struct _loc_t, std::string, class Arr *, struct _node_t *, std::vector<int>); // check array compatibility
+
 #endif

@@ -87,52 +87,49 @@ std::vector<unsigned int> merge(std::vector<std::vector<unsigned int>> vl) {
 
 
 void handle(node_t* dollar, node_t* one, node_t* three, int op, string op_label) {
-
     string e1 = one->eval, e2 = three->eval;
     bool r1 = isReal(one->type), r2 = isReal(three->type);
     Type *tr = bin(op, one, three);
     if(isReal(tr)) {
         if(!r1) {
-            string tmp = newTmp();
+            string tmp = newTmp(clone(tr));
             emit(tmp, "int2real", e1, eps);
             e1 = tmp;
         }
         if(!r2) {
-            string tmp = newTmp();
+            string tmp = newTmp(clone(tr));
             emit(tmp, "int2real", e2, eps);
             e2 = tmp;
         }
     }
     else {
         if(r1) {
-            string tmp = newTmp();
+            string tmp = newTmp(clone(tr));
             emit(tmp, "real2int", e1, eps);
             e1 = tmp;
         }
         if(r2) {
-            string tmp = newTmp();
+            string tmp = newTmp(clone(tr));
             emit(tmp, "real2int", e2, eps);
             e2 = tmp;
         }
     }
+    
     string opr;
-    if(tr->grp() == BASE_G) {
-            Base* b = (Base*) tr;
-            if(priority1[b->base] >= priority1[FLOAT_B] ) {
-                opr = "real";
-            }
+    if (tr->grp() == BASE_G) {
+        Base* b = (Base*) tr;
+        if (priority1[b->base] >= priority1[FLOAT_B]) opr = "real";
     }
-    dollar->eval = newTmp();
+
+    dollar->eval = newTmp(clone(tr));
     // switch(op){
     //     case 'a': opr += "<<"; break;
     //     case 'b': opr += ">>"; break;
     //     default: opr += to_string(op);
     // }
-    emit(dollar->eval, opr+op_label, e1, e2);
+    emit(dollar->eval, opr + op_label, e1, e2);
     dollar->type = tr;
     dollar->type->lvalue = false;
-
-
 }
 
 Type* handle_as(int op,node_t* one,node_t* three, std::string & e1, std::string & e2, bool r1,bool r2) {
@@ -142,24 +139,24 @@ Type* handle_as(int op,node_t* one,node_t* three, std::string & e1, std::string 
     tr = bin(op, one, three);
     if(isReal(tr)) {
         if(!r1) {
-            string tmp = newTmp();
+            string tmp = newTmp(clone(tr));
             emit(tmp, "int2real", e1, eps);
             e1 = tmp;
         }
         if(!r2) {
-            string tmp = newTmp();
+            string tmp = newTmp(clone(tr));
             emit(tmp, "int2real", e2, eps);
             e2 = tmp;
         }
     }
     else {
         if(r1) {
-            string tmp = newTmp();
+            string tmp = newTmp(clone(tr));
             emit(tmp, "real2int", e1, eps);
             e1 = tmp;
         }
         if(r2) {
-            string tmp = newTmp();
+            string tmp = newTmp(clone(tr));
             emit(tmp, "real2int", e2, eps);
             e2 = tmp;
         }
@@ -187,6 +184,19 @@ void dumpIR(ofstream &f, vector<irquad_t> &irArr) { // dump into a file
         
         // param <src1>
         else if (q.opr == "param") f << "param " << q.src1;
+        
+        // func <src1>
+        else if (q.opr == "func") f << endl << "function <" + q.src1 << "> :";
+
+        // return <src1>
+        else if (q.opr == "return") f << ((q.src1 == eps) ? "return" : "return ") << q.src1;
+
+        // scope related stuff
+        else if ((q.opr == "newScope") || (q.opr == "closeScope")) {
+            // do not print if not a regular scope
+            // if (q.src1.substr(0, 5) != "func ") f << q.opr << " " << q.src1;
+            f << q.opr << " " << q.src1;
+        }
         
         // dst = <src1> [load/store/move]
         else if (q.opr == eps) f << q.dst << " = " << q.src1;

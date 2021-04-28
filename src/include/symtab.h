@@ -85,4 +85,6 @@ extern symRoot *SymRoot;
 
 extern std::vector<sym *>PLB; // parameter lookup buffer
 
+bool isFuncScope(class symtab *);
+
 #endif

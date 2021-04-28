@@ -18,6 +18,7 @@
 #include <symtab.h>
 #include <types2.h>
 #include <typo.h>
+#include <ircodes.h>
 
 #ifdef DEBUG_SYM
 const bool dbg = true;
@@ -149,6 +150,7 @@ bool symRoot::newScope(string scope_name) {
   if (!currScope) return false;
   symtab* new_scope = new symtab(scope_name, currScope);
   if (!new_scope) return false;
+  emit(eps, "newScope", scope_name + " " + to_string(gpos.line) + ":" + to_string(gpos.column));
   currScope->subScopes.push_back(new_scope);
   currScope = new_scope;
   if (dbg) cout << "Opening new scope \"" << scope_name << "\"." << endl;
@@ -158,6 +160,9 @@ bool symRoot::newScope(string scope_name) {
 void symRoot::closeScope() {
   if (currScope && (currScope != root)) {
     if (dbg) cout << "Closing existing scope \"" << currScope->name << "\"." << endl;
+    // cout << "HERE: " << currScope->name << endl;
+    if (!isFuncScope(currScope))
+      emit(eps, "closeScope", currScope->name + " " + to_string(gpos.line) + ":" + to_string(gpos.column));
     currScope = currScope->parent;
   } else {
     if (dbg) msg(WARN) << "Cannot close global scope!";
@@ -167,7 +172,7 @@ void symRoot::closeScope() {
 }
 
 sym* symRoot::lookup(string _name) {
-  if (!currScope) return NULL;  
+  if (!currScope) return NULL;
   return currScope->srchSym(_name);
 }
 
@@ -198,6 +203,10 @@ void symRoot::dump(ofstream &f) {
   root->dump(f, "");
 }
 
+bool isFuncScope(class symtab *scope) {
+  if (!scope) return false;
+  return (scope->name.substr(0, 5) == "func ");
+}
 
 /******************************************************************/
 /************************ TEST SUITES HERE ************************/

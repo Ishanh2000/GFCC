@@ -90,8 +90,7 @@ primary_expression
 		}
 		if(!$$->type->isErr){
 			$$->eval = $$->label; // TODO
-			// cout << "Here" << endl;
-			// cout << "\"" << $$->eval << "\"" << endl;
+			
 		}
 		$$->type->lvalue = true;
 	}
@@ -162,8 +161,10 @@ postfix_expression
 			cout << "Here2" << endl;
 			cout << "\"" << $1->eval << "\"" << endl;
 			emit(eps, "call", $1->eval, "0"); // call <func / func_ptr>, 0
-			$$->eval = newTmp();
-			emit($$->eval, eps, "retval"); // call <func / func_ptr>, 0
+			Type* _t = $$->type;
+			if ((!_t) || (_t->grp() != BASE_G) || (((Base*)_t)->base != VOID_B)) {
+				emit($$->eval = newTmp(clone(_t)), eps, "retval"); // call <func / func_ptr>, 0
+			}
 		}
 	}
 	| postfix_expression '(' argument_expression_list ')' {
@@ -234,8 +235,10 @@ postfix_expression
 				node_t *ch = $3->ch(i); if (ch) emit(eps, "param", ch->eval); // param <ch->eval>
 			}
 			emit(eps, "call", $1->eval, to_string(l)); // call <func / func_ptr>, l
-			$$->eval = newTmp();
-			emit($$->eval, eps, "retval"); // call <func / func_ptr>, 0
+			Type *_t = $$->type;
+			if ((!_t) || (_t->grp() != BASE_G) || (((Base*)_t)->base != VOID_B)) {
+				emit($$->eval = newTmp(clone(_t)), eps, "retval"); // call <func / func_ptr>, 0
+			}
 		}
 	}
 	| postfix_expression '.' IDENTIFIER						{ $$ = op( $2, 0, 2, ej($1), ej($3) ); // search for definition by name of "struct|union _abc"
@@ -261,6 +264,8 @@ postfix_expression
 			}
 		}
 		$$->type->lvalue = true;
+
+		$$->eval = $1->eval + "." + $3->label; // handle at assembly code generation
 	}
 	| postfix_expression PTR_OP IDENTIFIER					{ $$ = op( $2, 0, 2, ej($1), ej($3) ); // search for definition by name of "struct|union _abc"
 		Type *t1 = $1->type;
@@ -285,6 +290,7 @@ postfix_expression
 			}
 		}
 		$$->type->lvalue = true;
+		$$->eval = $1->eval + "->" + $3->label; // handle at assembly code generation
 	}
 	| postfix_expression INC_OP								{ $$ = op( $2, 0, 1, ej($1) ); // not allowed on function, array, void, struct, union
 		Type *t = $1->type; grp_t g = t->grp();
@@ -300,7 +306,7 @@ postfix_expression
 			}
 		}
 
-		$$->eval = newTmp();
+		$$->eval = newTmp(clone(t));
 		emit($$->eval, eps, $1->eval);
 		if(g == BASE_G){
 			base_t bs = ((Base *) t)->base;
@@ -330,7 +336,7 @@ postfix_expression
 			}
 		}
 
-		$$->eval = newTmp();
+		$$->eval = newTmp(clone(t));
 		emit($$->eval, eps, $1->eval);
 		if(g == BASE_G){
 			base_t bs = ((Base *) t)->base;
@@ -368,7 +374,7 @@ unary_expression
 			}
 		}
 
-		$$->eval = newTmp();
+		$$->eval = newTmp(clone(t));
 		if(g == BASE_G){
 			base_t bs = ((Base *) t)->base;
 			if(priority1[bs] >= priority1[FLOAT_B]){
@@ -397,7 +403,7 @@ unary_expression
 			}
 		}
 
-		$$->eval = newTmp();
+		$$->eval = newTmp(clone(t));
 		if(g == BASE_G){
 			base_t bs = ((Base *) t)->base;
 			if(priority1[bs] >= priority1[FLOAT_B]){
@@ -429,7 +435,7 @@ unary_expression
 				$$->type = t; $$->type->lvalue = false;
 				if ($1->tok == '+') $$->eval = $2->eval;
 				else if ($2->tok == CONSTANT) $$->eval = "-" + $2->eval;
-				else emit($$->eval = newTmp(), "-", $2->eval); // t_1 = - t_0
+				else emit($$->eval = newTmp(clone(t)), "-", $2->eval); // t_1 = - t_0
 				break;
 			
 			case '!' :
@@ -440,6 +446,7 @@ unary_expression
 					}
 				}
 				$$->type = t; $$->type->lvalue = false;
+				emit($$->eval = newTmp(clone(t)), "!", $2->eval); // t_1 = ! t_0
 				break;
 			
 			case '~': // bitwise NOT
@@ -449,6 +456,7 @@ unary_expression
 				}
 				if (!tilda_good) { repErr($1->pos, "bitwise NOT operator (~) used with incompatible type", _FORE_RED_); t->isErr = true; }
 				$$->type = t; $$->type->lvalue = false;
+				emit($$->eval = newTmp(clone(t)), "~", $2->eval); // t_1 = ~ t_0
 				break;
 
 			case '*' : // only if array, pointer or function
@@ -473,6 +481,7 @@ unary_expression
 						repErr($1->pos, "cannot dereference a value that is not an array, a pointer or a function", _FORE_RED_); t->isErr = true; $$->type = t;
 				}
 				$$->type->lvalue = true;
+				emit($$->eval = newTmp(clone($$->type)), "*", $2->eval); // t_1 = * t_0
 				break;
 
 			case '&' :
@@ -484,6 +493,7 @@ unary_expression
 				}
 				else $$->type = new Ptr(t);
 				$$->type->lvalue = false;
+				emit($$->eval = newTmp(clone($$->type)), "&", $2->eval); // t_1 = & t_0
 		}
 	}
 	| SIZEOF unary_expression			{ $$ = op( $1, 0, 1, ej($2) );
@@ -733,10 +743,9 @@ assignment_expression
 			}
 			else{
 				if(cast_flag) {
-					string tmp = newTmp();
+					string tmp = newTmp(clone(t1));
 					emit(tmp, opr, e1, e2);
-					if(isReal(t1)) emit($1->eval, "int2real", tmp, eps);
-					else emit($1->eval, "real2int", tmp, eps);
+					emit($1->eval, isReal(t1) ? "int2real" : "real2int", tmp, eps);
 				}
 				else emit($1->eval, opr, e1, e2);
 			}
@@ -789,14 +798,15 @@ declaration
 		// single pass over variables
 		for (int i = 0; i < l2; i++) { // first check that there is no var in scope
 			node_t *cnode = $2->ch(i); // "concerned node" - get directly
-			Type *t2 = cnode->type; node_t *initNode = NULL;
+			Type *t2 = cnode->type; node_t *initNode = NULL; loc_t eqPos;
 
 			// pass down tree $2 until name & position found.
-			if (cnode->tok == '=') { initNode = cnode->ch(1); cnode = cnode->ch(0); useful++;
+			if (cnode->tok == '=') {
+				initNode = cnode->ch(1); eqPos = cnode->pos; cnode = cnode->ch(0); useful++;
 				if (t1->strg == EXTERN_S) repErr($1->pos, "initialized after using \"extern\"", _FORE_RED_);
 			} // "init_declarator"
 			while (cnode->tok != IDENTIFIER) cnode = cnode->ch((cnode->tok == DECLARATOR) ? 1 : 0); // rules of "direct_decl"
-
+			
 			sym* retval = SymRoot->lookup(cnode->label);
 			if (!retval) {
 				Type *tt = tail(t2); // [tt == NULL] iff [t2 == NULL]
@@ -805,20 +815,18 @@ declaration
 					if (!t2) { repErr(cnode->pos, "pure \"void\" type given", _FORE_RED_); t1->isErr = true; } // void x;
 					else if (tt->grp() == ARR_G) { repErr(cnode->pos, "array of \"voids\" given", _FORE_RED_); t2->isErr = true; } // void x[];
 				}
-				if (t2 && t2->grp() == ARR_G && (((Arr *)t2)->dims[0] == NULL))  {
-					  if (initNode && (initNode->tok == INIT_LIST)) {
-					    node_t* n = nd(CONSTANT, to_string(initNode->numChild).c_str(), initNode->pos);
-					    Base *b = new Base(INT_B); b->isConst = true; n->type = b;
-					    cout << "abcd" << endl;
-					    ((Arr *) t2)->dims[0] = n;
-					  }
+				if (t2 && t2->grp() == ARR_G && (((Arr *)t2)->dims[0] == NULL)) { // get the dimension using initNode
+					if (initNode && (initNode->tok == INIT_LIST)) {
+						node_t* n = nd(CONSTANT, to_string(initNode->numChild).c_str(), initNode->pos);
+						Base *b = new Base(INT_B); b->isConst = true; n->type = b;
+						((Arr *) t2)->dims[0] = n;
 					}
+				}
 				Type *ut = unify(t1, t2); grp_t g = ut->grp();
 				if ( (g == FUNC_G) || ( (g == PTR_G) && ((Ptr *)ut)->pt && (((Ptr *)ut)->pt->grp() == FUNC_G) ) )
 				ut->strg = EXTERN_S; // if a function (or a pointer to a function) strg is EXTERN_S
 				if (!checkArrDims(ut)) { // go over t2 recursively and check that all array bounds must be present
-					repErr(cnode->pos, "array bounds incomplete", _FORE_RED_);
-					ut->isErr = true;
+					repErr(cnode->pos, "array bounds incomplete", _FORE_RED_); ut->isErr = true;
 				}
 				if (t1->grp() == BASE_G) { // if struct or union and not defined, check that the declarator has pointer tail - else generate error.
 					Base *_b = (Base *) t1;
@@ -829,15 +837,18 @@ declaration
 					}
 				}
 				if (initNode) {
-					if (ut->grp() == ARR_G) {
-						Arr *a = (Arr*)ut;
-						/* if ((a->dims[0] == NULL) && (initNode->tok == INIT_LIST)) cout <<  */
-						/* if */
+					cout << "will initialize " << cnode->label << endl;
+					bool lhsIsArr = (ut->grp() == ARR_G), rhsIsArr = (initNode->tok == INIT_LIST);					
+					if (lhsIsArr && rhsIsArr) arrayInit(eqPos, cnode->label, (Arr*)clone(ut), initNode, { 0 }); // a[][23] = {...}
+					else if (lhsIsArr) repErr(eqPos, "cannot initialize array using a scalar", _FORE_RED_); // a[2] = 45;
+					else if (rhsIsArr) repErr(eqPos, "cannot initialize scalar using an array", _FORE_RED_); // *a = {1, 2, 7}
+					else { // first check compatibitlity impCast(from = initNode->type, to = ut); Assume not related to array
+						if (!impCast(initNode->type, ut)) {
+							repErr(eqPos, "cannot implicitly typecast from \"" + str(initNode->type) + "\" to \"" + str(ut) + "\"", _FORE_RED_);
+						}
+						emit(cnode->label, eps, initNode->eval);
 					}
-					cout << "will initialize" << endl;
-
-					/* if (!impCast(, ut)) */
-
+					
 				}
 				SymRoot->pushSym(cnode->label, ut, cnode->pos);
 
@@ -1596,7 +1607,7 @@ M3 : CASE constant_expression ':' {
 		$$ = $2;
 		$$->caselist.push_back(nextIdx());
 		string tmp = $2->eval;
-		$$->eval = newTmp();
+		$$->eval = newTmp(clone($$->type));
 		emit($$->eval,"==","---",tmp);
 		$$->truelist.push_back(nextIdx());
 		emit(eps, "ifgoto", "---", $$->eval);
@@ -1636,7 +1647,7 @@ labeled_statement
 compound_statement
 	: '{' '}'                                 { $$ = $1; SymRoot->closeScope(); }
 	| '{' statement_list '}'                  { $$ = ($2) ? ($2) : ($1); SymRoot->closeScope(); }
-	| '{' declaration_list '}'                { $$ = ($2) ? ($2) : ($1); SymRoot->closeScope(); }
+	| '{' declaration_list '}'                { $$ = ($3) ? ($3) : ($1); SymRoot->closeScope(); }
 	| '{' declaration_list statement_list '}' {
 		if (($2) && ($3)) { $$ = op( nd(GEN_BLOCK, "block", { 0, 0 }), 0, 2, ej($2), ej($3) ); }
 		else if ($2) { $$ = $2; } // only useful decl. list.
@@ -1826,8 +1837,36 @@ jump_statement
 											$$->contlist.push_back(nextIdx()); emit(eps, "goto", "---");}
 	| BREAK ';'				{ $$ = $1; 
 										$$->breaklist.push_back(nextIdx()); emit(eps, "goto", "---");}
-	| RETURN ';'			{ $$ = $1;}
-	| RETURN expression ';'	{ $$ = op( $1, 0, 1, ej($2) ); }
+	| RETURN ';'			{ $$ = $1;
+		symtab* curr = SymRoot->currScope;
+		while (!isFuncScope(curr)) curr = curr->parent;
+		if (curr) {
+			sym* funcSym = curr->parent->srchSym(curr->name.substr(5));
+			Type *retType = NULL;
+			if (funcSym && (funcSym->type) && (funcSym->type->grp() == FUNC_G))
+				retType = ((Func*)(funcSym->type))->retType;
+			if (retType && (retType->grp() == BASE_G) && (((Base*)retType)->base != VOID_B)) {
+				repErr($1->pos, "no scalar returned for a non-void returning function", _FORE_RED_);
+				repErr(funcSym->pos, "previous declaration available here", _FORE_CYAN_);
+			}
+		}
+		emit(eps, "return", eps);
+	} // TODO: check if current function is actually "VOID_B"
+	| RETURN expression ';'	{ $$ = op( $1, 0, 1, ej($2) );
+		symtab* curr = SymRoot->currScope;
+		while (!isFuncScope(curr)) curr = curr->parent;
+		if (curr) {
+			sym* funcSym = curr->parent->srchSym(curr->name.substr(5));
+			Type *retType = NULL;
+			if (funcSym && (funcSym->type) && (funcSym->type->grp() == FUNC_G))
+				retType = ((Func*)(funcSym->type))->retType;
+			if (retType && !(impCast($2->type, retType))) { // check implicit typecasting from $2->type to retType
+				repErr($2->pos, "cannot impicitly typecast from \"" + str($2->type) + "\" to \"" + str(retType) + "\"", _FORE_RED_);
+				repErr(funcSym->pos, "previous declaration available here", _FORE_CYAN_);
+			}
+		}
+		emit(eps, "return", $2->eval);
+	}
 	;
 
 translation_unit
@@ -1856,6 +1895,7 @@ function_definition
 		// t1 - must not take some values, take care of STATIC_S too.
 		// t2 - FUNC_G, function parameters must not be abstract (but not recursively)
 		// unify t1 and t2. Get decl's identifier name - must not be already defined
+		string funcName;
 		Type *t1 = $1->type, *t2 = $2->type; strg_t s1 = t1->strg; bool _good = false;
 		if (s1 == AUTO_S || s1 == REGISTER_S || s1 == TYPEDEF_S) {
 			repErr($1->pos, "incompatible storage class specifier for function definition", _FORE_RED_);
@@ -1863,6 +1903,7 @@ function_definition
 		else { // assume params are not abstract for now
 			Type *tt = tail(t2), *ut = unify(t1, t2);
 			node_t *cnode = $2; while (cnode->tok != IDENTIFIER) cnode = cnode->ch((cnode->tok == DECLARATOR) ? 1 : 0);
+			funcName = string(cnode->label);
 			sym *ret = SymRoot->currScope->parent->srchSym(cnode->label);
 			if (ret) {
 				if (ret->type->strg != EXTERN_S) {
@@ -1886,10 +1927,18 @@ function_definition
 				else {
 					SymRoot->currScope->parent->pushSym(cnode->label, ut, cnode->pos);
 					SymRoot->currScope->name = string("func ") + cnode->label;
+					for (int i = IRDump.size() - 1; i >= 0; i--) {
+						if (IRDump[i].opr == "newScope") { IRDump.erase(IRDump.begin() + i); break; }
+					}
+					// go back in IRDump and delete the first "newScope"
 					_good = true;
 				}				
 			}
-			
+
+			cout << SymRoot->currScope->name << endl;
+			emit(eps, "func", funcName);
+
+			// now insert parameters.
 			if (_good) { // works for simple functions ans function params only - do not use a complicated declarator (like function pointers)
 				Func *f = (Func *)t2; int l = f->params.size();
 				node_t *cnode = $2;
@@ -1907,13 +1956,38 @@ function_definition
 				}
 			}
 		}
-	} compound_statement { $$ = op( nd(FUNC_DEF, "function_definition", { 0, 0 }), 0, 2, ej($2), ej($4)); }
+	} compound_statement { $$ = op( nd(FUNC_DEF, "function_definition", { 0, 0 }), 0, 2, ej($2), ej($4));
+		node_t *cnode = $2; while (cnode->tok != IDENTIFIER) cnode = cnode->ch((cnode->tok == DECLARATOR) ? 1 : 0);
+		sym* funcSym = SymRoot->gLookup(cnode->label);
+		Type *retType = NULL;
+		if (funcSym && (funcSym->type) && (funcSym->type->grp() == FUNC_G))
+			retType = ((Func*)(funcSym->type))->retType;
+		if (!( retType && (retType->grp() == BASE_G) && (((Base*)retType)->base == VOID_B) )) {
+			// check for all statements for a return statement
+			node_t *snode = $4;
+			if (snode && snode->tok == GEN_BLOCK) snode = snode->ch(1);
+			// now snode is a node whose children are all statements.
+			int l = snode->numChild;
+			bool existsReturn = false;
+			for (int i = 0; i < l; i++) {
+				node_t* ch = snode->ch(i);
+				if (ch && (ch->tok == RETURN)) { existsReturn = true; break; }
+			}
+			if (!existsReturn) {
+				if (snode->ch(l-1)) snode = snode->ch(l-1);
+				repErr(snode->pos, "return statement missing at end of non-void function", _FORE_MAGENTA_);
+				repErr(funcSym->pos, "previous declaration given here", _FORE_CYAN_);
+			}
+			emit(eps, "return", eps);
+		}
+	}
 	| declarator declaration_list compound_statement {
 		$$ = ($2)
 		? op( nd(FUNC_DEF, "function_definition", { 0, 0 }), 0, 3, ej($1), ej($2), ej($3) )
 		: op( nd(FUNC_DEF, "function_definition", { 0, 0 }), 0, 2, ej($1), ej($3) );
 	}
 	| declarator {
+		string funcName;
 		repErr($1->pos, "warning: will default to \"int\" type", _FORE_MAGENTA_);
 		Type *t1 = new Base(INT_B), *t2 = $1->type; bool _good = false;
 		if (!t2 || (t2->grp() != FUNC_G)) repErr($1->pos, "variable defined like a function", _FORE_RED_);
@@ -1932,9 +2006,12 @@ function_definition
 			} else { // good to go
 				SymRoot->currScope->parent->pushSym(cnode->label, ut, cnode->pos);
 				SymRoot->currScope->name = string("func ") + cnode->label;
+				funcName = string(cnode->label);
 				_good = true;
 			}
 			
+			emit(eps, "func", funcName);
+
 			if (_good) { // works for simple functions ans function params only - do not use a complicated declarator (like function pointers)
 				Func *f = (Func *)t2; int l = f->params.size();
 				node_t *cnode = $1;
@@ -1952,7 +2029,31 @@ function_definition
 				}
 			}
 		}
-	} compound_statement { $$ = op( nd(FUNC_DEF, "function_definition", { 0, 0 }), 0, 2, ej($1), ej($3) ); }
+	} compound_statement { $$ = op( nd(FUNC_DEF, "function_definition", { 0, 0 }), 0, 2, ej($1), ej($3) );
+		node_t *cnode = $1; while (cnode->tok != IDENTIFIER) cnode = cnode->ch((cnode->tok == DECLARATOR) ? 1 : 0);
+		sym* funcSym = SymRoot->gLookup(cnode->label);
+		Type *retType = NULL;
+		if (funcSym && (funcSym->type) && (funcSym->type->grp() == FUNC_G))
+			retType = ((Func*)(funcSym->type))->retType;
+		if (!( retType && (retType->grp() == BASE_G) && (((Base*)retType)->base == VOID_B) )) {
+			// check for all statements for a return statement
+			node_t *snode = $3;
+			if (snode && snode->tok == GEN_BLOCK) snode = snode->ch(1);
+			// now snode is a node whose children are all statements.
+			int l = snode->numChild;
+			bool existsReturn = false;
+			for (int i = 0; i < l; i++) {
+				node_t* ch = snode->ch(i);
+				if (ch && (ch->tok == RETURN)) { existsReturn = true; break; }
+			}
+			if (!existsReturn) {
+				if (snode->ch(l-1)) snode = snode->ch(l-1);
+				repErr(snode->pos, "return statement missing at end of non-void function", _FORE_MAGENTA_);
+				repErr(funcSym->pos, "previous declaration given here", _FORE_CYAN_);
+			}
+			emit(eps, "return", eps);
+		}
+	}
 	;
 
 	M: %empty { $$ = nextIdx(); }

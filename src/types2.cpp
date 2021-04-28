@@ -16,7 +16,9 @@
 #include <parser.tab.h>
 #include <gfcc_colors.h>
 #include <types2.h>
+#include <typo.h>
 #include <symtab.h>
+#include <ircodes.h>
 
 // debugging does not work as of yet - actually not required
 #ifdef DEBUG_TYPES_2
@@ -216,7 +218,12 @@ std::string Arr::_str() {
     if (!item) return "";
 
     string d; int l = dims.size();
-    for (int i = 0; i < l; i++) d += "[]"; // try getting actual number from dims' nodes, if possible.
+    for (int i = 0; i < l; i++) {
+        int *x = eval(dims[i]);
+        // try getting actual number from dims' nodes, if possible.
+        if (x) d += "[" + to_string(*x) + "]";
+        else d += "[]";
+    }
 
     string s = item->_str();
 
@@ -447,7 +454,7 @@ bool impCast(class Type *from, class Type *to) { // implicit type-casting
 }
 
 bool expCast(class Type *from, class Type *to) { // explicit type-casting (may differ from implicit version)
-    return impCast(from,to);
+    return impCast(from, to);
 }
 
 
@@ -492,6 +499,54 @@ short unsigned int getSize(class Type *t) { // implmentation like "sizeof"
         case FUNC_G : return 4; // do this like a function pointer
     }
     return 1;
+}
+
+void arrayInit(struct _loc_t eqPos, string arrName, class Arr *lhs, struct _node_t *rhs, vector<int> index) {
+    // check that array dimensions match. Each array element must be typecastable, and emit apt. code.
+    if (!lhs || !rhs) {
+        repErr(eqPos, "something went wrong while initializing array", _FORE_RED_);
+        return;
+    }
+
+    // a[3][4] = {{1, 2}, {3, 4, 5}, {6, 7, 8, 9}};
+    // index = {1, 2}
+    
+    int is = index.size(), *x = eval(lhs->dims[is - 1]);
+    if (x) {
+        if (*x != rhs->numChild) repErr(eqPos, "warning: array sizes do not match on LHS and RHS", _FORE_MAGENTA_);
+        
+        int min = rhs->numChild; if (min > *x) min = *x;
+
+        for (int i = 0; i < min; i++) { // go over all the children (sub-arrays)
+            node_t *ch = rhs->ch(i);
+            if (ch->tok == INIT_LIST) { // sub-array
+                index[is - 1] = i;
+                index.push_back(0);
+                arrayInit(eqPos, arrName, lhs, ch, index);
+                index.pop_back();
+            } else {
+                index[is - 1] = i;
+                if (!impCast(ch->type, lhs->item)) {
+                    repErr(ch->pos, "cannot implicitly typecast from \"" + str(ch->type) + "\" to \"" + str(lhs->item) + "\"", _FORE_RED_);
+                }
+                string s = arrName;
+                int l = index.size();
+                for (int j = 0; j < l; j++) s += "[" + to_string(index[j]) + "]";
+                emit(s, eps, ch->eval);
+            }
+        }
+    }
+    
+    // for (int i = 0; i < *x; i++) {
+    //     if (ch->tok == INIT_LIST) { // sub-array
+    //         arrayInit(eqPos, lhs, ch, stage + 1);
+    //     } else {
+    //         {{1,2, 3}, {4, 5, 6}}
+    //     }
+    // }
+    // if (!x) // int a[N][2] = {...}
+
+    
 }
 
 

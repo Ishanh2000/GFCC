@@ -15,11 +15,9 @@ using namespace std;
 std::unordered_map<base_t, int> priority =
     {{CHAR_B, 0}, {SHORT_B, 1}, {INT_B, 2}, {LONG_B, 3}, {LONG_LONG_B, 4}, {FLOAT_B, 5}, {DOUBLE_B, 6}, {LONG_DOUBLE_B, 7}};
 
-class Type *bin(int opr, node_t *left, node_t *right)
-{ // binary operations
+class Type *bin(int opr, node_t *left, node_t *right) { // binary operations
     Type *tl = left->type, *tr = right->type;
-    if (tl->isErr || tr->isErr)
-        return (tl->isErr) ? tl : tr;
+    if (tl->isErr || tr->isErr) return (tl->isErr) ? tl : tr;
 
     grp_t gl = tl->grp(), gr = tr->grp();
 

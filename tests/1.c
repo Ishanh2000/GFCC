@@ -1,4 +1,15 @@
-int main() {
+// float func(int a, char b);
+
+float func(int a, char b) {
+    float x[][3] = {{1, 2, 3}, {2, &a}};
+    // {
+    //     int a = 90;
+    //     a++;
+    // }
+    return 7;
+}
+
+// int main() {
     // int a = 2, b = 5;
     // switch(a+2)
     // {
@@ -20,13 +31,38 @@ int main() {
         // b = -9 + ++(a[3][3][2][1][1]);
 
         // b = (a-1)[2][3][+1][1][1] + +b;
-        int maina;
-        maina + 1;
-        sizeof(maina) + 1;
-        sizeof - maina + sizeof(main);
-    // }
+        // int maina;
+        // maina + 1;
+        // sizeof(maina) + 1;
+        // sizeof - maina + sizeof(main);
+        // main();
+        // {
+        //     char f = 'm';
+        //     func(6, f) + 56;
+        //     {
+        //         int f = 90;
+        //         f += 9.0;
+        //     }
 
-}
+        // }
+    // }
+    // typedef struct _nt { struct { int x; int y; } *x; int y; } nt;
+    // nt* a;
+
+    // a->x++;
+
+    // if (!a->x) main();
+
+    // *&*&*&*&*&*&*&*&a->x;
+//     int a, i;
+//     a = a + 9;
+
+//     for (i = 0; i < 90; i++) {
+//         int a = 90;
+//         a++;
+//     }
+//     return 0;
+// }
 
 // int f(int a,int b)
 // {
