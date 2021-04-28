@@ -294,12 +294,12 @@ postfix_expression
 	}
 	| postfix_expression INC_OP								{ $$ = op( $2, 0, 1, ej($1) ); // not allowed on function, array, void, struct, union
 		Type *t = $1->type; grp_t g = t->grp();
-		if (g == FUNC_G) { repErr($2->pos, "unary inrement operator used on a function", _FORE_RED_); t->isErr = true; }
-		if (g == ARR_G) { repErr($2->pos, "unary inrement operator used on an array", _FORE_RED_); t->isErr = true; }
+		if (g == FUNC_G) { repErr($2->pos, "unary increment operator used on a function", _FORE_RED_); t->isErr = true; }
+		if (g == ARR_G) { repErr($2->pos, "unary increment operator used on an array", _FORE_RED_); t->isErr = true; }
 		if (g == BASE_G) {
 			base_t bs = ((Base *) t)->base;
 			if ((bs == VOID_B) || (bs == STRUCT_B) || (bs == UNION_B)) {
-				repErr($2->pos, "unary inrement operator used on pure \"void\" type, a struct or a union", _FORE_RED_); t->isErr = true;
+				repErr($2->pos, "unary increment operator used on pure \"void\" type, a struct or a union", _FORE_RED_); t->isErr = true;
 			}
 			if (((Base *)t)->isConst) {
 				repErr($1->pos, "cannot use increment / decrement of a \"const\" value", _FORE_RED_); t->isErr = true;
@@ -324,12 +324,12 @@ postfix_expression
 	}
 	| postfix_expression DEC_OP								{ $$ = op( $2, 0, 1, ej($1) ); // not allowed on function, array, void, struct, union
 		Type *t = $1->type; grp_t g = t->grp();
-		if (g == FUNC_G) { repErr($2->pos, "unary inrement operator used on a function", _FORE_RED_); t->isErr = true; }
-		if (g == ARR_G) { repErr($2->pos, "unary inrement operator used on an array", _FORE_RED_); t->isErr = true; }
+		if (g == FUNC_G) { repErr($2->pos, "unary increment operator used on a function", _FORE_RED_); t->isErr = true; }
+		if (g == ARR_G) { repErr($2->pos, "unary increment operator used on an array", _FORE_RED_); t->isErr = true; }
 		if (g == BASE_G) {
 			base_t bs = ((Base *) t)->base;
 			if ((bs == VOID_B) || (bs == STRUCT_B) || (bs == UNION_B)) {
-				repErr($2->pos, "unary inrement operator used on pure \"void\" type, a struct or a union", _FORE_RED_); t->isErr = true;
+				repErr($2->pos, "unary increment operator used on pure \"void\" type, a struct or a union", _FORE_RED_); t->isErr = true;
 			}
 			if (((Base *)t)->isConst) {
 				repErr($1->pos, "cannot use increment / decrement of a \"const\" value", _FORE_RED_); t->isErr = true;
@@ -362,12 +362,12 @@ unary_expression
 	: postfix_expression				{ $$ = $1; }
 	| INC_OP unary_expression			{ $$ = op( $1, 0, 1, ej($2) ); // not allowed on function, array, void, struct, union
 		Type *t = $2->type; grp_t g = t->grp();
-		if (g == FUNC_G) { repErr($2->pos, "unary inrement operator used on a function", _FORE_RED_); t->isErr = true; }
-		if (g == ARR_G) { repErr($2->pos, "unary inrement operator used on an array", _FORE_RED_); t->isErr = true; }
+		if (g == FUNC_G) { repErr($2->pos, "unary increment operator used on a function", _FORE_RED_); t->isErr = true; }
+		if (g == ARR_G) { repErr($2->pos, "unary increment operator used on an array", _FORE_RED_); t->isErr = true; }
 		if (g == BASE_G) {
 			base_t bs = ((Base *) t)->base;
 			if ((bs == VOID_B) || (bs == STRUCT_B) || (bs == UNION_B)) {
-				repErr($2->pos, "unary inrement operator used on pure \"void\" type, a struct or a union", _FORE_RED_); t->isErr = true;
+				repErr($2->pos, "unary increment operator used on pure \"void\" type, a struct or a union", _FORE_RED_); t->isErr = true;
 			}
 			if (((Base *)t)->isConst) {
 				repErr($1->pos, "cannot use increment / decrement of a \"const\" value", _FORE_RED_); t->isErr = true;
@@ -391,12 +391,12 @@ unary_expression
 	}
 	| DEC_OP unary_expression			{ $$ = op( $1, 0, 1, ej($2) ); // not allowed on function, array, void, struct, union
 		Type *t = $2->type; grp_t g = t->grp();
-		if (g == FUNC_G) { repErr($2->pos, "unary inrement operator used on a function", _FORE_RED_); t->isErr = true; }
-		if (g == ARR_G) { repErr($2->pos, "unary inrement operator used on an array", _FORE_RED_); t->isErr = true; }
+		if (g == FUNC_G) { repErr($2->pos, "unary increment operator used on a function", _FORE_RED_); t->isErr = true; }
+		if (g == ARR_G) { repErr($2->pos, "unary increment operator used on an array", _FORE_RED_); t->isErr = true; }
 		if (g == BASE_G) {
 			base_t bs = ((Base *) t)->base;
 			if ((bs == VOID_B) || (bs == STRUCT_B) || (bs == UNION_B)) {
-				repErr($2->pos, "unary inrement operator used on pure \"void\" type, a struct or a union", _FORE_RED_); t->isErr = true;
+				repErr($2->pos, "unary increment operator used on pure \"void\" type, a struct or a union", _FORE_RED_); t->isErr = true;
 			}
 			if (((Base *)t)->isConst) {
 				repErr($1->pos, "cannot use increment / decrement of a \"const\" value", _FORE_RED_); t->isErr = true;
@@ -1022,6 +1022,9 @@ type_specifier
 
 struct_or_union_specifier
 	: struct_or_union IDENTIFIER '{' struct_declaration_list '}' { $$ = op( $1, 0, 2, ej($2), ej($4) );
+		for (int i = IRDump.size() - 1; i >= 0; i--)
+			if (IRDump[i].opr == "newScope") { IRDump.erase(IRDump.begin() + i); break; }
+		
 		SymRoot->currScope->name = $2->label;
 		SymRoot->closeScope();
 		// check if there exists a "defined" struct using lookup
@@ -1057,8 +1060,11 @@ struct_or_union_specifier
 		Base *b = new Base(($1->tok == STRUCT) ? STRUCT_B : UNION_B);
 		b->subDef = SymRoot->currScope;
 		$$->type = clone(b);
-		SymRoot->closeScope();
-		SymRoot->currScope->subScopes.pop_back();
+
+		for (int i = IRDump.size() - 1; i >= 0; i--)
+			if (IRDump[i].opr == "newScope") { IRDump.erase(IRDump.begin() + i); break; }
+		SymRoot->currScope->name.replace(0, 8, "__struct_");
+		SymRoot->closeScope(); SymRoot->currScope->subScopes.pop_back();
 	}
 	| struct_or_union IDENTIFIER                                 { $$ = op( $1, 0, 1, ej($2) );
 		// check if there exists a "defined" struct using gLookup
@@ -1213,8 +1219,18 @@ struct_declarator
 	;
 
 enum_specifier
-	: ENUM '{' enumerator_list '}'				{ $$ = op( $1, 0, 1, ej($3) ); SymRoot->closeScope(); SymRoot->currScope->subScopes.pop_back(); }
-	| ENUM IDENTIFIER '{' enumerator_list '}'	{ $$ = op( $1, 0, 2, ej($2), ej($4) ); SymRoot->closeScope(); SymRoot->currScope->subScopes.pop_back(); }
+	: ENUM '{' enumerator_list '}'				{ $$ = op( $1, 0, 1, ej($3) );
+		for (int i = IRDump.size() - 1; i >= 0; i--)
+			if (IRDump[i].opr == "newScope") { IRDump.erase(IRDump.begin() + i); break; }
+		SymRoot->currScope->name.replace(0, 8, "enumType_");
+		SymRoot->closeScope(); SymRoot->currScope->subScopes.pop_back();
+	}
+	| ENUM IDENTIFIER '{' enumerator_list '}'	{ $$ = op( $1, 0, 2, ej($2), ej($4) );
+		for (int i = IRDump.size() - 1; i >= 0; i--)
+			if (IRDump[i].opr == "newScope") { IRDump.erase(IRDump.begin() + i); break; }
+		SymRoot->currScope->name.replace(0, 8, "enumType_");
+		SymRoot->closeScope(); SymRoot->currScope->subScopes.pop_back();
+	}
 	| ENUM IDENTIFIER							{ $$ = op( $1, 0, 1, ej($2) ); SymRoot->closeScope(); }
 	;
 
@@ -1586,8 +1602,18 @@ direct_abstract_declarator
 
 initializer
 	: assignment_expression			{ $$ = $1; }
-	| '{' initializer_list '}'		{ $$ = $2; SymRoot->closeScope(); SymRoot->currScope->subScopes.pop_back(); }
-	| '{' initializer_list ',' '}'	{ $$ = $2; SymRoot->closeScope(); SymRoot->currScope->subScopes.pop_back(); }
+	| '{' initializer_list '}'		{ $$ = $2;
+		for (int i = IRDump.size() - 1; i >= 0; i--)
+			if (IRDump[i].opr == "newScope") { IRDump.erase(IRDump.begin() + i); break; }
+		SymRoot->currScope->name.replace(0, 8, "__array__");
+		SymRoot->closeScope(); SymRoot->currScope->subScopes.pop_back();
+	}
+	| '{' initializer_list ',' '}'	{ $$ = $2;
+		for (int i = IRDump.size() - 1; i >= 0; i--)
+			if (IRDump[i].opr == "newScope") { IRDump.erase(IRDump.begin() + i); break; }
+		SymRoot->currScope->name.replace(0, 8, "__array__");
+		SymRoot->closeScope(); SymRoot->currScope->subScopes.pop_back();
+	}
 	;
 
 initializer_list
@@ -1935,7 +1961,6 @@ function_definition
 				}				
 			}
 
-			cout << SymRoot->currScope->name << endl;
 			emit(eps, "func", funcName);
 
 			// now insert parameters.

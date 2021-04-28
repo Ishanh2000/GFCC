@@ -159,9 +159,10 @@ bool symRoot::newScope(string scope_name) {
 
 void symRoot::closeScope() {
   if (currScope && (currScope != root)) {
-    if (dbg) cout << "Closing existing scope \"" << currScope->name << "\"." << endl;
-    // cout << "HERE: " << currScope->name << endl;
-    if (!isFuncScope(currScope))
+    string name = currScope->name;
+    if (dbg) cout << "Closing existing scope \"" << name << "\"." << endl;
+    
+    if (name.substr(0, 9) == "_unnamed_")
       emit(eps, "closeScope", currScope->name + " " + to_string(gpos.line) + ":" + to_string(gpos.column));
     currScope = currScope->parent;
   } else {

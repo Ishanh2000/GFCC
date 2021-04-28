@@ -1,11 +1,17 @@
 // float func(int a, char b);
 
+struct _x { int x; int y; } o;
+
+
 float func(int a, char b) {
-    float x[][3] = {{1, 2, 3}, {2, &a}};
-    // {
-    //     int a = 90;
-    //     a++;
-    // }
+    float x[][3] = {{1, 2, 3}, {2, a, b}};
+    {
+        int a = 90;
+        a++;
+    }
+    {
+
+    }
     return 7;
 }
 
