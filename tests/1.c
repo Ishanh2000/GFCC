@@ -23,7 +23,7 @@ int main() {
         int maina;
         maina + 1;
         sizeof(maina) + 1;
-        sizeof(maina) + sizeof(main);
+        sizeof - maina + sizeof(main);
     // }
 
 }

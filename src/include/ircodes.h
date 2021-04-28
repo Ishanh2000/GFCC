@@ -9,6 +9,7 @@
 // #include <unordered_map>
 
 #include <gfcc_lexer.h>
+#include <types2.h>
 
 // enum irop_t { OP_PLUS, OP_FP_PLUS, OP_MINUS, OP_FP_MINUS, OP_GOTO,  };
 
@@ -45,7 +46,9 @@ std::string newLabel(); // generate a unique new label
 
 std::string newLabel(std::string); // generate a unique new label (with preffered name - not guaranteed)
 
-std::string newTmp(); // generate a unique new temproray
+std::string newTmp(); // generate a unique new temporary
+
+std::string newTmp(class Type *); // store class (after CLONING!) for the temp. var.
 
 void backpatch(std::vector<unsigned int> &, unsigned int);
 void backpatch(std::vector<unsigned int> &, std::string);
@@ -54,6 +57,7 @@ std::vector<unsigned int> merge(std::vector<unsigned int> &, std::vector<unsigne
 std::vector<unsigned int> merge(std::vector<std::vector<unsigned int>>);
 
 void handle(node_t*,node_t*,node_t*, int, std::string);
+
 Type* handle_as(int ,node_t*,node_t*, std::string &, std::string &, bool, bool);
 
 #endif

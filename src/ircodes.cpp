@@ -12,6 +12,7 @@
 #include <ops.h>
 // #include <unordered_map>
 
+#include <symtab.h>
 #include <ircodes.h>
 
 using namespace std;
@@ -48,7 +49,13 @@ string newLabel(string prefName) { // generate a unique new label (with preffere
 }
 
 string newTmp() {
-    return "t_" + to_string(totalTmp++);
+    return "0t_" + to_string(totalTmp++);
+}
+
+string newTmp(class Type *t) {
+    string tmpName = "0t_" + to_string(totalTmp++);
+    SymRoot->pushSym(tmpName, t, { 0, 0 });
+    return tmpName;
 }
 
 void backpatch(vector<unsigned int> & lst, unsigned int jmpinstr) {
