@@ -9,6 +9,12 @@ int main() {
     return a;
 }
 
+int maina() {
+    int a = 10;
+    a++;
+    return a;
+}
+
 // int main() {
     // int a = 2, b = 5;
     // switch(a+2)

@@ -15,6 +15,8 @@ unsigned int getNxtLeader(std::vector<irquad_t> &, unsigned int);
 
 void genASM(std::ofstream &, irquad_t &);
 
-void genfun(std::ofstream &, irquad_t &);
+void funcStart(std::ofstream &, irquad_t &); // preliminaries at beginning of function
+
+void funcEnd(std::ofstream &, irquad_t &); // preliminaries at end of function
 
 #endif

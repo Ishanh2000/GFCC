@@ -56,72 +56,63 @@ unsigned int getNxtLeader(vector<irquad_t> & IR, unsigned int leader) {
   return lenIR;
 }
 
-
-
-
 void genASM(std::ofstream & f, irquad_t & quad) {
-
-  if(quad.opr == "func") genfun(f, quad);
+  if(quad.opr == "func") funcStart(f, quad);
   else if (quad.opr == "return") 
     f << '\t' << "b " << currFunc + "_ret" << " # jump to return routine" << endl;
+  else if (quad.opr == "function end") funcEnd(f, quad);
 }
 
 
-void genfun(std::ofstream & f, irquad_t & quad)
-{
-    // func:
-    currFunc = quad.src1;
-    auto symtabs = SymRoot->currScope->subScopes;
-    symtab * funTab;
-    for(auto tab: symtabs) {
-      if(tab->name == "func "+currFunc) {
-        funTab = tab;
-        break;
-      }
-    }
-    
-    f << currFunc << ":" << endl;
-    f << '\t' << "move" << " $fp, $sp" << " # " << endl;
-    f << '\t' << "subu"<< " $sp, $sp, 64"<< " # frame size = 32, just because..." << endl;
-    f << '\t' << "sw"<< " $ra, 60($sp)"<< " # return address" << endl;
-    f << '\t' << "sw"<< " $fp, 56($sp)"<< " # frame pointer of caller" << endl;
-    f << '\t' << "sw"<< " $s0, 52($sp)"<< " # callee saved register" << endl;
-    f << '\t' << "sw"<< " $s1, 48($sp)"<< " # callee saved register" << endl;
-    f << '\t' << "sw"<< " $s2, 44($sp)"<< " # callee saved register" << endl;
-    f << '\t' << "sw"<< " $s3, 40($sp)"<< " # callee saved register" << endl;
-    f << '\t' << "sw"<< " $s4, 36($sp)"<< " # callee saved register" << endl;
-    f << '\t' << "sw"<< " $s5, 32($sp)"<< " # callee saved register" << endl;
-    f << '\t' << "sw"<< " $s6, 28($sp)"<< " # callee saved register" << endl;
-    f << '\t' << "sw"<< " $s7, 24($sp)"<< " # callee saved register" << endl;
-    
-    f << '\t' << "b "+ currFunc + "_def" << endl;
+void funcStart(std::ofstream & f, irquad_t & quad) {
+  currFunc = quad.src1;
+  auto symtabs = SymRoot->currScope->subScopes;
+  symtab * funTab;
+  for (auto tab: symtabs) {
+    if (tab->name == "func " + currFunc) { funTab = tab; break; }
+  }
+  
+  f << currFunc << ":" << endl;
+  f << '\t' << "move" << " $fp, $sp" << " # " << endl;
+  f << '\t' << "subu"<< " $sp, $sp, 64"<< " # frame size = 32, just because..." << endl;
+  f << '\t' << "sw"<< " $ra, 60($sp)"<< " # return address" << endl;
+  f << '\t' << "sw"<< " $fp, 56($sp)"<< " # frame pointer of caller" << endl;
+  f << '\t' << "sw"<< " $s0, 52($sp)"<< " # callee saved register" << endl;
+  f << '\t' << "sw"<< " $s1, 48($sp)"<< " # callee saved register" << endl;
+  f << '\t' << "sw"<< " $s2, 44($sp)"<< " # callee saved register" << endl;
+  f << '\t' << "sw"<< " $s3, 40($sp)"<< " # callee saved register" << endl;
+  f << '\t' << "sw"<< " $s4, 36($sp)"<< " # callee saved register" << endl;
+  f << '\t' << "sw"<< " $s5, 32($sp)"<< " # callee saved register" << endl;
+  f << '\t' << "sw"<< " $s6, 28($sp)"<< " # callee saved register" << endl;
+  f << '\t' << "sw"<< " $s7, 24($sp)"<< " # callee saved register" << endl;
 
-    f << currFunc+"_ret" << ":" << endl;
-    f << '\t' << "lw"<< " $ra, 60($sp)"<< " # restore return address" << endl;
-    f << '\t' << "lw"<< " $fp, 56($sp)"<< " # restore frame pointer of caller" << endl;
-    f << '\t' << "lw"<< " $s0, 52($sp)"<< " # restore frame pointer of caller" << endl;
-    f << '\t' << "lw"<< " $s1, 48($sp)"<< " # restore callee saved register" << endl;
-    f << '\t' << "lw"<< " $s2, 44($sp)"<< " # restore callee saved register" << endl;
-    f << '\t' << "lw"<< " $s3, 40($sp)"<< " # restore callee saved register" << endl;
-    f << '\t' << "lw"<< " $s4, 36($sp)"<< " # restore callee saved register" << endl;
-    f << '\t' << "lw"<< " $s5, 32($sp)"<< " # restore callee saved register" << endl;
-    f << '\t' << "lw"<< " $s6, 28($sp)"<< " # restore callee saved register" << endl;
-    f << '\t' << "lw"<< " $s7, 24($sp)"<< " # restore callee saved register" << endl;
-    f << '\t' << "addu"<< " $sp, $sp, 64"<< " # restore stack pointer of caller" << endl;
-    if (currFunc == "main") {
-      f << '\t' << "li"<< " $v0, 10"<< " # # syscall code 10 is for exit" << endl;
-      f << '\t' << "syscall" << " # make the syscall" << endl;
+  for(auto symbol: funTab->syms) {
+    if(symbol->name[0] != '0') {
+      // DO something
     }
-    else f << '\t' << "jr"<< " $ra"<< " # return to caller" << endl;
-    
-    f << currFunc+"_def" << ":" << endl;
-    
+  }
+}
 
-    for(auto symbol: funTab->syms) {
-      if(symbol->name[0] != '0') {
-        // DO something
-      }
-    }
+void funcEnd(std::ofstream & f, irquad_t & quad) {
+  f << currFunc + "_ret :" << endl;
+  f << '\t' << "lw"<< " $ra, 60($sp)" << " # restore return address" << endl;
+  f << '\t' << "lw"<< " $fp, 56($sp)" << " # restore frame pointer of caller" << endl;
+  f << '\t' << "lw"<< " $s0, 52($sp)" << " # restore frame pointer of caller" << endl;
+  f << '\t' << "lw"<< " $s1, 48($sp)" << " # restore callee saved register" << endl;
+  f << '\t' << "lw"<< " $s2, 44($sp)" << " # restore callee saved register" << endl;
+  f << '\t' << "lw"<< " $s3, 40($sp)" << " # restore callee saved register" << endl;
+  f << '\t' << "lw"<< " $s4, 36($sp)" << " # restore callee saved register" << endl;
+  f << '\t' << "lw"<< " $s5, 32($sp)" << " # restore callee saved register" << endl;
+  f << '\t' << "lw"<< " $s6, 28($sp)" << " # restore callee saved register" << endl;
+  f << '\t' << "lw"<< " $s7, 24($sp)" << " # restore callee saved register" << endl;
+  f << '\t' << "addu"<< " $sp, $sp, 64" << " # restore stack pointer of caller" << endl;
+  if (currFunc == "main") {
+    f << '\t' << "li"<< " $v0, 10"<< " # # syscall code 10 is for exit" << endl;
+    f << '\t' << "syscall" << " # make exit syscall" << endl;
+  }
+  else f << '\t' << "jr"<< " $ra"<< " # return to caller" << endl;
+  
+  f << endl;
 }
 
 #ifdef TEST_CODEGEN

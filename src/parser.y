@@ -2007,7 +2007,6 @@ function_definition
 				repErr(snode->pos, "return statement missing at end of non-void function", _FORE_MAGENTA_);
 				repErr(funcSym->pos, "previous declaration given here", _FORE_CYAN_);
 			}
-			emit(eps, "return", eps);
 		}
 	}
 	| declarator declaration_list compound_statement {
@@ -2080,7 +2079,6 @@ function_definition
 				repErr(snode->pos, "return statement missing at end of non-void function", _FORE_MAGENTA_);
 				repErr(funcSym->pos, "previous declaration given here", _FORE_CYAN_);
 			}
-			emit(eps, "return", eps);
 		}
 	}
 	;

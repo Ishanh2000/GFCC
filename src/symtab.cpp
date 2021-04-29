@@ -164,6 +164,9 @@ void symRoot::closeScope() {
     
     if (name.substr(0, 9) == "_unnamed_")
       emit(eps, "closeScope", currScope->name + " " + to_string(gpos.line) + ":" + to_string(gpos.column));
+    else if (name.substr(0, 5) == "func ")
+      emit(eps, "function end", eps);
+
     currScope = currScope->parent;
   } else {
     if (dbg) msg(WARN) << "Cannot close global scope!";

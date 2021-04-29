@@ -192,6 +192,8 @@ void dumpIR(ofstream &f, vector<irquad_t> &irArr) { // dump into a file
             // if (q.src1.substr(0, 5) != "func ") f << q.opr << " " << q.src1;
             f << q.opr << " " << q.src1;
         }
+
+        else if (q.opr == "function end") f << q.opr << endl;
         
         // dst = <src1> [load/store/move]
         else if (q.opr == eps) f << q.dst << " = " << q.src1;
