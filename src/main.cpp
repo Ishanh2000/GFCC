@@ -52,8 +52,8 @@ int main (int argc , char *argv[]) {
 	<< "Use \"--help\" or \"-h\" for more help.";
 
 
-	// CHECK FILE LIST AND ALSO SEARCH OPTION [--output|-o]
-	int start = 1, o_flag_index = -1;
+	// CHECK FILE LIST AND ALSO SEARCH OPTION [--output|-o] and [--tab-len|-t]
+	int start = 1, o_flag_index = -1, num_t_flag = 0;
 	for (int i = start; i < argc; i++) {
 		if (matches(argv[i], "--output", "-o")) {
 			if (o_flag_index < 0) o_flag_index = i;
@@ -64,12 +64,23 @@ int main (int argc , char *argv[]) {
 			continue;
 		}
 
-
 		if (argv[i][0] == '-') {
-			msg(ERR) << "Invalid option \"" << argv[i] << "\". Use \"--help\" or \"-h\" for help.\n";
-			return E_INV_OPTION;
+			if (matches(argv[i], "--tab-len", "-t")) {
+				num_t_flag++;
+				if ( ((i+2) > argc) || ((tab_len = atoi(argv[i+1])) < 1) ) {
+					msg(ERR) << "Please specify a positive integer after [--tab-len|-t] option.";
+					return E_TAB_LEN;
+				}
+			} else {
+				msg(ERR) << "Invalid option \"" << argv[i] << "\". Use \"--help\" or \"-h\" for help.";
+				return E_INV_OPTION;
+			}
 		}
 	}
+
+	start += 2 * num_t_flag;
+
+	if (num_t_flag) std::cout << _C_BOLD_ << _FORE_YELLOW_ << "Tab length set to " << tab_len << ".\n" << _C_NONE_;
 
 	int total_in_files;
 	if (o_flag_index < 0) total_in_files = argc - start; // -o was never specified. Output on STDOUT
@@ -90,7 +101,7 @@ int main (int argc , char *argv[]) {
 		int _in = start + i; // CLA index of input file
 
 		if (! (yyin = fopen(argv[_in], "r")) ) { // TRY TO OPEN FILE
-			if (i > 0) cout << endl;
+			if (i > 0) std::cout << endl;
 			msg(WARN) << "File \"" << argv[_in] << "\" does not exist or problem reading it. Skipping it.";
 			file_failures++;
 			continue;
@@ -150,7 +161,7 @@ int main (int argc , char *argv[]) {
 
 		offsets.push_back(0); // line 1 starts at offsets[0] = 0
 
-		int parse_return = yyparse(); cout << "yyparse() = " << parse_return << endl;
+		int parse_return = yyparse(); std::cout << "yyparse() = " << parse_return << endl;
 		
 		if (!parse_return) {
 			// AST to DOT conversion

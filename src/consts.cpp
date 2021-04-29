@@ -30,11 +30,11 @@ const char func_call_attr[] = "shape=box";
 const char label_attr[] = "style=filled,fillcolor=magenta"; // labeled statemets like "abc : func();", "case 34 : func();", "default : func()".
 
 char lexer_help[] = "\
-This compiler uses tab length = 4. So, the location of errors and warnings may differ from the location shown on your editor. \n\
-Use [-t <tab_len>] option for changing the tab length. Use \"--help\" or \"-h\" for more help.\n\
-This compiler is not exhaustive. Almost all operations are supported but highly complex inputs may result in segmentation\n\
-fault or unexpected errors. \n\
 Usage: <exec-name> [options] files... [--output|-o] output-files...\n\
+\n\
+Examples:\n\
+  ./bin/gfcc ./tests/*.c\n\
+  ./bin/gfcc ./tests/*.c -o out_1.dot out_1.csv out_1.3ac out_1.s ... out_N.dot out_N.csv out_N.3ac out_N.s\n\
 \n\
 Options:\n\
   --help	-h : Help. Must be first option. Other options are not checked.\n\
@@ -46,7 +46,11 @@ Options:\n\
 Notes:\n\
   1) Specify an option only once. Otherwise they may be treated invalid.\n\
   2) Specify output files AFTER input files.\n\
-  3) The number of output files must be EQUAL to the number of input files.\n\
+  3) The number of output files must correctly correspond to the number of input files.\n\
   4) If erreneous options (and their values) are given, desired output may not be achieved.\n\
   5) All files won't be jeopardized due failure in opening a few files.\n\
+  6) \e[1;33m[IMPORTANT]\e[0m This compiler uses tab length = 4. So, the location of errors and warnings may differ\n\
+     from the location shown on your editor. Use [-t <tab_len>] option for changing the tab length.\n\
+  7) \e[1;33m[IMPORTANT]\e[0m This compiler is not exhaustive. Almost all operations are supported but highly complex inputs\n\
+     (or even incorrect programs sometimes) may result in segmentation fault or unexpected errors.\n\
 ";

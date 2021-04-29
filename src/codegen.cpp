@@ -1,7 +1,4 @@
 // AUM SHREEGANESHAAYA NAMAH||
-#ifndef __GFCC_ASM__
-#define __GFCC_ASM__
-
 #include <fstream>
 #include <vector>
 
@@ -17,5 +14,3 @@ void dumpASM(ofstream &f, vector<irquad_t> IR) {
     
   }
 }
-
-#endif

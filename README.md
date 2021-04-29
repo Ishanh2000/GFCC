@@ -13,30 +13,25 @@ Target (T): MIPS (might change, if backend can be better implemented on another 
 ### Usage:
 Building Project:
 ```bash
-  # will generate parser binary in bin/
-  ./runme.sh build
+  ./runme.sh build     # will generate parser binary in bin/
+  ./runme.sh rebuild   # equivalent to "./runme.sh clean && ./runme.sh build"
 ```
 Cleaning Project;
 ```bash
-  # Will clean all the generated files
-  ./runme.sh clean
-```
-Clean and Build;
-```bash
-  # Will clean all the generated files and rebuild binary
-  ./runme.sh rebuild
+  ./runme.sh clean         # Will clean all the generated code-related files
+  ./runme.sh clean tests   # Will clean all the generated test files (.dot/.ps/.csv/.3ac/.s)
 ```
 Running parser:
 ```bash
-  ./bin/parser ./tests/*.c # Creates dot file for all test case files
-  ./bin/parser -h # help
-  ./bin/parser -v # version
-  ./bin/parser ./tests/*.c -o out1.dot out2.dot out3.dot out4.dot out5.dot
+  ./bin/gfcc ./tests/*.c # Creates {.dot/.csv/.3ac/.s} files for all test case files
+  ./bin/gfcc -h # help
+  ./bin/gfcc -v # version
+  ./bin/gfcc ./tests/*.c -o out_1.dot out_1.csv out_1.3ac out_1.s ... out_N.dot out_N.csv out_N.3ac out_N.s
 ```
 
 Use help flag for more details.
 
-#### Documentation: https://www.overleaf.com/read/qjpzyjmycknt
+#### Documentation: https://www.overleaf.com/read/qjpzyjmycknt (may not be updated)
 
 ### Participants:
  - Debarsho Sannyasi (180218) - debarsho@iitk.ac.in

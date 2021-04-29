@@ -1,16 +1,11 @@
 // AUM SHREEGANESHAAYA NAMAH||
-#ifndef __GFCC_IRCODES__
-#define __GFCC_IRCODES__
-
 // compile using g++ -Iinclude -DTEST_IRCODES ircodes.cpp
-
 #include <iostream>
 #include <iomanip>
 #include <fstream>
 #include <string>
 #include <vector>
 #include <ops.h>
-// #include <unordered_map>
 
 #include <symtab.h>
 #include <ircodes.h>
@@ -256,7 +251,5 @@ int main() {
 
     return 0;
 }
-
-#endif
 
 #endif
