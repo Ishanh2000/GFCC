@@ -1,6 +1,9 @@
 // float func(int a, char b);
 
-struct _x { int x; int y; short z; } o;
+struct _y { int x; int y; char z; } d; // 9 - 12
+
+struct _x { int x; struct _y l; int y; char z; } p; // 18 - 12+20 = 32
+union _x { int* x; int y; short z; } o;
 
 
 int main() {

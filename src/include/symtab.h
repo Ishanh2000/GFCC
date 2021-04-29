@@ -27,7 +27,7 @@ class sym { // SYMBOL
     class Type* type = NULL;
     loc_t pos; // there can be two positions - last defined / last declared - later, if time permits
     short unsigned int size = 1;
-    unsigned int offset; // offset from the $fp or $gp
+    unsigned int offset; // offset from the $fp or $gp (0 iff type like struct definition)
     /*
       * if the symbol is alive or not.
       * -- local variables are always alive

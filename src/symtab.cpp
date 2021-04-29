@@ -54,7 +54,8 @@ void sym::dump(ofstream &f) {
   f << setw(8) << "(" + to_string(pos.line) + ":" + to_string(pos.column) << "), ";
   f << setw(10) << name << ", ";
   f << setw(3) << size << ", ";
-  f << setw(3) << offset << ", ";
+  if (offset) f << setw(3) << offset << ", ";
+  else f << setw(3) << "-" << ", ";
   if (type) switch (type->grp()) {
     case BASE_G : f << "--------, "; break;
     case  PTR_G : f << " POINTER, "; break;
@@ -100,12 +101,20 @@ bool symtab::pushSym(sym* newSym) {
     if (dbg) msg(WARN) << "Could not push new symbol in current scope.";
     return false;
   }
-  /* offset from $fp or $gp */
-  unsigned short size = getSize(newSym->type);
-  this->offset += size/4 * 4;
-  if(size % 4) this->offset += 4;
-  // offset of symbol
-  newSym->offset = this->offset;
+
+  if (newSym->name.substr(0, 6) == "struct"
+   || newSym->name.substr(0, 5) == "union"
+   || newSym->name.substr(0, 4) == "enum") {
+    newSym->offset = 0;
+  }
+
+  else { /* offset from $fp or $gp */
+    unsigned short size = getSize(newSym->type);
+    this->offset += size/4 * 4;
+    if(size % 4) this->offset += 4;
+    // offset of symbol
+    newSym->offset = this->offset;
+  }
 
   if (dbg) cout << "Pushing " << newSym->name << endl;
   syms.push_back(newSym);

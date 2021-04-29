@@ -1048,6 +1048,8 @@ struct_or_union_specifier
 			b->subDef = SymRoot->currScope->subScopes.back();
 			$$->type = clone(b);
 			SymRoot->currScope->subScopes.pop_back();
+			// reset all offsets for symtab* b->subDef
+			resetOffset($1->tok, b->subDef);
 			SymRoot->pushSym(string(($1->tok == STRUCT) ? "struct " : "union ") + $2->label, b, $2->pos);
 		} else {
 			SymRoot->currScope->subScopes.pop_back();
@@ -1058,6 +1060,8 @@ struct_or_union_specifier
 	| struct_or_union '{' struct_declaration_list '}'            { $$ = op( $1, 0, 1, ej($3) );
 		Base *b = new Base(($1->tok == STRUCT) ? STRUCT_B : UNION_B);
 		b->subDef = SymRoot->currScope;
+		// reset all offsets for symtab* b->subDef
+		resetOffset($1->tok, b->subDef);
 		$$->type = clone(b);
 
 		for (int i = IRDump.size() - 1; i >= 0; i--)

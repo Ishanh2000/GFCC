@@ -485,13 +485,21 @@ bool isReal(class Type* t) {
 short unsigned int getSize(class Type *t) { // implmentation like "sizeof"
     if (!t) return 1;
     Base *b = (Base *) t;
+    int cmpSize = 0; // coumpound type size (struct/union)
+    vector<sym*> *li; int l;
     switch (t->grp()) {
         case BASE_G : switch (b->base) {
             case INT_B : case FLOAT_B : case ENUM_B : return 4;
             case LONG_B : case DOUBLE_B : return 8;
             case LONG_LONG_B : case LONG_DOUBLE_B : return 8;
-            case STRUCT_B : return 5; // do this
-            case UNION_B : return 3; // do this
+            case STRUCT_B :
+                li = &(b->subDef->syms); l = li->size();
+                for (int i = 0; i < l; i++) cmpSize += (*li)[i]->size;
+                return cmpSize;
+            case UNION_B :
+                li = &(b->subDef->syms); l = li->size();
+                for (int i = 0; i < l; i++) if (cmpSize < (*li)[i]->size) cmpSize = (*li)[i]->size;
+                return cmpSize;
             default : return 1; // NONE_B, VOID_B, CHAR_B, SHORT_B, ELLIPSIS_B
         }
         break;
@@ -501,6 +509,17 @@ short unsigned int getSize(class Type *t) { // implmentation like "sizeof"
     }
     return 1;
 }
+
+void resetOffset(int tok, symtab *def) {
+    if (!def) return;
+    def->offset = 0;
+    int subtract = def->syms[0]->offset;
+    for (auto child : def->syms) {
+        if (tok == STRUCT) child->offset -= subtract;
+        else child->offset = 0; // tok == UNION
+    }
+}
+
 
 void arrayInit(struct _loc_t eqPos, string arrName, class Arr *lhs, struct _node_t *rhs, vector<int> index) {
     // check that array dimensions match. Each array element must be typecastable, and emit apt. code.
