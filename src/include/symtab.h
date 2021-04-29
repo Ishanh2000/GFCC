@@ -28,6 +28,14 @@ class sym { // SYMBOL
     loc_t pos; // there can be two positions - last defined / last declared - later, if time permits
     short unsigned int size = 1;
     unsigned int offset; // offset from the $fp or $gp
+    /*
+      * if the symbol is alive or not.
+      * -- local variables are always alive
+      * -- temproraies are dead at start and end
+    */
+    bool alive;
+    /* next use in the current mainblock */
+    unsigned int nxtuse;
 
     sym(std::string, class Type*, loc_t);
     void dump(std::ofstream &); // dump all info into (opened writable) file

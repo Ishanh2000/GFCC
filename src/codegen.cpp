@@ -8,17 +8,6 @@
 
 using namespace std;
 
-enum reg {
-  zero,                                   // constant 0
-  at,                                     // reserved for the assembler
-  v0, v1,                                 // result registers
-  a0, a1, a2, a3,                         // argument registers 1···4
-  t0, t1, t2, t3, t4, t5, t6, t7,         // temporary registers 0···7
-  s0, s1, s2, s3, s4, s5, s6, s7,         // saved registers 0···7
-  t8, t9,                                 // temporary registers 8···9
-  k0, k1,                                 // kernel registers 0···1
-  gp, sp, fp, ra                          // global data ptr, stack ptr, frame ptr, return addr
-};
 
 string currFunc = "";
 
@@ -71,42 +60,42 @@ void funcStart(std::ofstream & f, irquad_t & quad) {
   for (auto tab: symtabs) {
     if (tab->name == "func " + currFunc) { funTab = tab; break; }
   }
-  
-  f << currFunc << ":" << endl;
-  f << '\t' << "move" << " $fp, $sp" << " # " << endl;
-  f << '\t' << "subu"<< " $sp, $sp, 64"<< " # frame size = 32, just because..." << endl;
-  f << '\t' << "sw"<< " $ra, 60($sp)"<< " # return address" << endl;
-  f << '\t' << "sw"<< " $fp, 56($sp)"<< " # frame pointer of caller" << endl;
-  f << '\t' << "sw"<< " $s0, 52($sp)"<< " # callee saved register" << endl;
-  f << '\t' << "sw"<< " $s1, 48($sp)"<< " # callee saved register" << endl;
-  f << '\t' << "sw"<< " $s2, 44($sp)"<< " # callee saved register" << endl;
-  f << '\t' << "sw"<< " $s3, 40($sp)"<< " # callee saved register" << endl;
-  f << '\t' << "sw"<< " $s4, 36($sp)"<< " # callee saved register" << endl;
-  f << '\t' << "sw"<< " $s5, 32($sp)"<< " # callee saved register" << endl;
-  f << '\t' << "sw"<< " $s6, 28($sp)"<< " # callee saved register" << endl;
-  f << '\t' << "sw"<< " $s7, 24($sp)"<< " # callee saved register" << endl;
 
-  for(auto symbol: funTab->syms) {
-    if(symbol->name[0] != '0') {
-      // DO something
-    }
-  }
+  // 40 for possible $t0---$t9
+  unsigned short s_offest = funTab->offset + 40;
+
+  f << currFunc << ":" << endl;
+  f << '\t' << "sw"<< " $ra, -4($sp)"<< " # return address" << endl;
+  f << '\t' << "sw"<< " $fp, -8($sp)"<< " # frame pointer of caller" << endl;
+  f << '\t' << "move" << " $fp, $sp" << " # begin new frame" << endl;
+  f << '\t' << "subu"<< " $sp, $sp, "<< s_offest << " # expad frame" << endl;
+  f << '\t' << "sw"<< " $s0, -12($fp)"<< " # callee saved register" << endl;
+  f << '\t' << "sw"<< " $s1, -16($fp)"<< " # callee saved register" << endl;
+  f << '\t' << "sw"<< " $s2, -20($fp)"<< " # callee saved register" << endl;
+  f << '\t' << "sw"<< " $s3, -24($fp)"<< " # callee saved register" << endl;
+  f << '\t' << "sw"<< " $s4, -28($fp)"<< " # callee saved register" << endl;
+  f << '\t' << "sw"<< " $s5, -32($fp)"<< " # callee saved register" << endl;
+  f << '\t' << "sw"<< " $s6, -36($fp)"<< " # callee saved register" << endl;
+  f << '\t' << "sw"<< " $s7, -40($fp)"<< " # callee saved register" << endl;
+
 }
 
 void funcEnd(std::ofstream & f, irquad_t & quad) {
   f << currFunc + "_ret :" << endl;
-  f << '\t' << "lw"<< " $ra, 60($sp)" << " # restore return address" << endl;
-  f << '\t' << "lw"<< " $fp, 56($sp)" << " # restore frame pointer of caller" << endl;
-  f << '\t' << "lw"<< " $s0, 52($sp)" << " # restore frame pointer of caller" << endl;
-  f << '\t' << "lw"<< " $s1, 48($sp)" << " # restore callee saved register" << endl;
-  f << '\t' << "lw"<< " $s2, 44($sp)" << " # restore callee saved register" << endl;
-  f << '\t' << "lw"<< " $s3, 40($sp)" << " # restore callee saved register" << endl;
-  f << '\t' << "lw"<< " $s4, 36($sp)" << " # restore callee saved register" << endl;
-  f << '\t' << "lw"<< " $s5, 32($sp)" << " # restore callee saved register" << endl;
-  f << '\t' << "lw"<< " $s6, 28($sp)" << " # restore callee saved register" << endl;
-  f << '\t' << "lw"<< " $s7, 24($sp)" << " # restore callee saved register" << endl;
-  f << '\t' << "addu"<< " $sp, $sp, 64" << " # restore stack pointer of caller" << endl;
+  f << '\t' << "lw"<< " $s7, -40($fp)" << " # restore callee saved register" << endl;
+  f << '\t' << "lw"<< " $s6, -36($fp)" << " # restore callee saved register" << endl;
+  f << '\t' << "lw"<< " $s5, -32($fp)" << " # restore callee saved register" << endl;
+  f << '\t' << "lw"<< " $s4, -28($fp)" << " # restore callee saved register" << endl;
+  f << '\t' << "lw"<< " $s3, -24($fp)" << " # restore callee saved register" << endl;
+  f << '\t' << "lw"<< " $s2, -20($fp)" << " # restore callee saved register" << endl;
+  f << '\t' << "lw"<< " $s1, -16($fp)" << " # restore callee saved register" << endl;
+  f << '\t' << "lw"<< " $s0, -12($fp)" << " # restore frame pointer of caller" << endl;
+  f << '\t' << "move" << " $sp, $fp" << " # close current frame" << endl;
+  f << '\t' << "lw"<< " $fp, -8($sp)" << " # restore frame pointer of caller" << endl;
+  f << '\t' << "lw"<< " $ra, -4($sp)" << " # restore return address" << endl;
+
   if (currFunc == "main") {
+    /* exit routine */
     f << '\t' << "li"<< " $v0, 10"<< " # # syscall code 10 is for exit" << endl;
     f << '\t' << "syscall" << " # make exit syscall" << endl;
   }

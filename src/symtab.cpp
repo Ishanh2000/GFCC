@@ -162,8 +162,8 @@ bool symRoot::newScope(string scope_name) {
   currScope->subScopes.push_back(new_scope);
   
   /* offset: initialise for a child */
-  if(currScope == root) new_scope->offset = 0; // function in global scope
-  new_scope->offset = currScope->offset; // new scope in a function
+  if(currScope == root) new_scope->offset = 40; // function in global scope
+  else new_scope->offset = currScope->offset; // new scope in a function
 
   currScope = new_scope;
   if (dbg) cout << "Opening new scope \"" << scope_name << "\"." << endl;
