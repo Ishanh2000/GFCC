@@ -2,14 +2,6 @@
 #ifndef __GFCC_ASM__
 #define __GFCC_ASM__
 
-#include <fstream>
-#include <vector>
-
-#include <gfcc_lexer.h>
-#include <ircodes.h>
-#include <symtab.h>
-#include <map>
-
 enum reg_t {
   zero,                                   // constant 0
   at,                                     // reserved for the assembler
@@ -22,7 +14,26 @@ enum reg_t {
   gp, sp, fp, ra                          // global data ptr, stack ptr, frame ptr, return addr
 };
 
+#include <fstream>
+#include <vector>
+#include <map>
+#include <unordered_map>
+
+#include <gfcc_lexer.h>
+#include <ircodes.h>
+#include <symtab.h>
+
+extern std::string reg2str[];
+
+extern class sym* regDscr[];
+
+void dummy ();
+
+void resetRegMaps(std::ofstream &);
+
 void dumpASM(std::ofstream &, std::vector<irquad_t> &); // convert IR code to ASM (mainly MIPS, for "spim" simulator)
+
+reg_t getSymReg(std::string &);
 
 unsigned int getNxtLeader(std::vector<irquad_t> &, unsigned int);
 
@@ -31,15 +42,5 @@ void genASM(std::ofstream &, irquad_t &);
 void funcStart(std::ofstream &, irquad_t &); // preliminaries at beginning of function
 
 void funcEnd(std::ofstream &, irquad_t &); // preliminaries at end of function
-
-struct addr {
-	reg_t reg;
-	
-};
-class processMb {
-	public:
-		std::map<reg_t, sym*> regDscr;
-		std::map<sym*, addr> addDscr;
-};
 
 #endif

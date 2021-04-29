@@ -8,6 +8,7 @@
 
 #ifndef __GFCC_SYMTAB__
 #define __GFCC_SYMTAB__
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -16,6 +17,7 @@
 
 #include <gfcc_lexer.h>
 #include <types2.h>
+#include <codegen.h>
 
 typedef unsigned long int ull;
 
@@ -28,6 +30,10 @@ class sym { // SYMBOL
     loc_t pos; // there can be two positions - last defined / last declared - later, if time permits
     short unsigned int size = 1;
     unsigned int offset; // offset from the $fp or $gp (0 iff type like struct definition)
+
+    /* register of the symbol */
+    reg_t reg = zero;
+
     /*
       * if the symbol is alive or not.
       * -- local variables are always alive

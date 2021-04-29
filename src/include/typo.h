@@ -5,6 +5,8 @@
  * This file is for stuff related to typography on the terminal. This
  * usually includes printing formatted errors, outputs, warnings, etc.
 ***********************************************************************/
+#ifndef __GFCC_TYPO__
+#define __GFCC_TYPO__
 
 #include <iostream>
 #include <fstream>
@@ -12,9 +14,6 @@
 
 #include <gfcc_colors.h>
 #include <gfcc_lexer.h>
-
-#ifndef __GFCC_TYPO__
-#define __GFCC_TYPO__
 
 #define SUCC 1
 #define WARN 2

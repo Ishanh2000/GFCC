@@ -5,23 +5,78 @@
 
 #include <ircodes.h>
 #include <codegen.h>
+#include <symtab.h>
+
+#ifdef DEBUG_CODEGEN
+static bool dbg = true;
+#else
+static bool dbg = false;
+#endif
+
 
 using namespace std;
-
-
+ 
 string currFunc = "";
 
 // convert IR code to ASM (mainly MIPS, for "spim" simulator)
 
+sym* regDscr[32];
 
+void dummy() {}
+string reg2str[] = {
+  "$zero",                                           // constant 0
+  "$at",                                             // reserved for the assembler
+  "$v0", "$v1",                                       // result registers
+  "$a0", "$a1", "$a2", "$a3",                           // argument registers 1···4
+  "$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7",   // temporary registers 0···7
+  "$s0", "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7",   // saved registers 0···7
+  "$t8", "$t9",                                       // temporary registers 8···9
+  "$k0", "$k1",                                       // kernel registers 0···1
+  "$gp", "$sp", "$fp", "$ra"                            // global data ptr, stack ptr, frame ptr, return addr
+};
+
+void resetRegMaps(ofstream &f) {
+  for(int i = t0; i < t9; i++){
+    if(regDscr[i]) {
+      // TODO: sw/sb/... for non 4 byte
+      f << '\t' << "sw " << reg2str[i]+", -"<<regDscr[i]->offset <<"($fp)";
+      f << " # flush register to stack" << endl;
+      regDscr[i]->reg = zero;
+      regDscr[i] = NULL;
+    }
+  }
+}
+
+int currReg = t0;
+reg_t getSymReg(std::string & symName) {
+  sym* symb = SymRoot->gLookup(symName);
+  if(!symb) {
+    if (dbg) cout<<"seg fault here :/" << endl;
+    return zero;
+  }
+
+  if(symb->reg != zero)
+    return symb->reg;
+  else {
+    symb->reg = (reg_t) currReg++; // ! adhoc
+    regDscr[symb->reg] = symb;
+    return symb->reg;
+  }
+}
 
 void dumpASM(ofstream &f, vector<irquad_t> & IR) {
+  // clear reg
+  for(int i = 0; i<32; i++){
+    regDscr[i] = NULL;
+  }
+
   int lenIR = IR.size();
   unsigned int currleader = 0;
 
   while(currleader < lenIR) {
     unsigned int nxtleader = getNxtLeader(IR, currleader);
     cout<< "Nxt Leader: " << nxtleader << endl;
+    resetRegMaps(f);
     // gen code for a main block
     while(currleader < nxtleader) {
       //  TODO: flush, reset etc
@@ -48,18 +103,36 @@ unsigned int getNxtLeader(vector<irquad_t> & IR, unsigned int leader) {
 void genASM(std::ofstream & f, irquad_t & quad) {
   if(quad.opr == "func") funcStart(f, quad);
   else if (quad.opr == "return") 
+    // TODO
     f << '\t' << "b " << currFunc + "_ret" << " # jump to return routine" << endl;
   else if (quad.opr == "function end") funcEnd(f, quad);
+  else if (quad.opr == eps) {
+    reg_t srcReg = getSymReg(quad.src1), dstReg = getSymReg(quad.dst);
+    if(srcReg == zero) {
+      // TODO other types
+      f << '\t' << "li " << reg2str[dstReg] + ", " + quad.src1 << endl;
+    }
+    else {
+      f << '\t' << "move " << reg2str[dstReg] + ", " + reg2str[srcReg] ;
+      f << " # move" << endl;
+    }
+  }
 }
 
 
 void funcStart(std::ofstream & f, irquad_t & quad) {
   currFunc = quad.src1;
-  auto symtabs = SymRoot->currScope->subScopes;
+  auto symtabs = SymRoot->currScope->subScopes; // currscope == root
   symtab * funTab;
   for (auto tab: symtabs) {
     if (tab->name == "func " + currFunc) { funTab = tab; break; }
   }
+
+  // initialise reg for all symbols to "zero"
+  for (sym* symb: funTab->syms) {
+    symb->reg = zero;
+  }
+
 
   // 40 for possible $t0---$t9
   unsigned short s_offest = funTab->offset + 40;
