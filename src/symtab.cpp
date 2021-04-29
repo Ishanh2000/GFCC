@@ -30,7 +30,7 @@ typedef unsigned long int ull;
 
 using namespace std;
 
-string csvHeaders = "LOCATION, NAME, SIZE, TYPE, DETAILED_TYPE";
+string csvHeaders = "LOCATION, NAME, SIZE, OFFSET, TYPE, DETAILED_TYPE";
 
 bool acceptType(class Type* type) {
   // analyze type properly. eg: return 0 if "auto static int"
@@ -54,6 +54,7 @@ void sym::dump(ofstream &f) {
   f << setw(8) << "(" + to_string(pos.line) + ":" + to_string(pos.column) << "), ";
   f << setw(10) << name << ", ";
   f << setw(3) << size << ", ";
+  f << setw(3) << offset << ", ";
   if (type) switch (type->grp()) {
     case BASE_G : f << "--------, "; break;
     case  PTR_G : f << " POINTER, "; break;
@@ -99,6 +100,13 @@ bool symtab::pushSym(sym* newSym) {
     if (dbg) msg(WARN) << "Could not push new symbol in current scope.";
     return false;
   }
+  /* offset from $fp or $gp */
+  unsigned short size = getSize(newSym->type);
+  this->offset += size/4 * 4;
+  if(size % 4) this->offset += 4;
+  // offset of symbol
+  newSym->offset = this->offset;
+
   if (dbg) cout << "Pushing " << newSym->name << endl;
   syms.push_back(newSym);
   map_syms[newSym->name] = newSym;
@@ -152,6 +160,11 @@ bool symRoot::newScope(string scope_name) {
   if (!new_scope) return false;
   emit(eps, "newScope", scope_name + " " + to_string(gpos.line) + ":" + to_string(gpos.column));
   currScope->subScopes.push_back(new_scope);
+  
+  /* offset: initialise for a child */
+  if(currScope == root) new_scope->offset = 0; // function in global scope
+  new_scope->offset = currScope->offset; // new scope in a function
+
   currScope = new_scope;
   if (dbg) cout << "Opening new scope \"" << scope_name << "\"." << endl;
   return true;
@@ -166,6 +179,13 @@ void symRoot::closeScope() {
       emit(eps, "closeScope", currScope->name + " " + to_string(gpos.line) + ":" + to_string(gpos.column));
     else if (name.substr(0, 5) == "func ")
       emit(eps, "function end", eps);
+
+    /* offset */
+    // global scope offset from $gp is independent from its child scopes
+    if(currScope->parent != root) {
+      // child scope will increase offset (w.r.t $sp) of parent
+      currScope->parent->offset = currScope->offset;
+    }
 
     currScope = currScope->parent;
   } else {

@@ -32,7 +32,7 @@ void dumpASM(ofstream &f, vector<irquad_t> & IR) {
 
   while(currleader < lenIR) {
     unsigned int nxtleader = getNxtLeader(IR, currleader);
-    
+    cout<< "Nxt Leader: " << nxtleader << endl;
     // gen code for a main block
     while(currleader < nxtleader) {
       //  TODO: flush, reset etc

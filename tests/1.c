@@ -1,19 +1,22 @@
 // float func(int a, char b);
 
-struct _x { int x; int y; } o;
+struct _x { int x; int y; short z; } o;
 
 
 int main() {
     int a = 10;
     a++;
+    {
+        int p,q,r;
+    }
+    {
+        int x,y,z;
+        struct _x a;
+    }
     return a;
 }
 
-int maina() {
-    int a = 10;
-    a++;
-    return a;
-}
+int a, b ,c;
 
 // int main() {
     // int a = 2, b = 5;

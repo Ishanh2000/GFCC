@@ -17,8 +17,8 @@ function build {
 
     cd build
     $CMAKE .. -DCMAKE_INSTALL_PREFIX=""
-    $CMAKE --build .
-    make DESTDIR=$ROOT_DIR install -j$(nproc)
+    $CMAKE --build . -j$(nproc)
+    make DESTDIR=$ROOT_DIR install
     # For cmake v3.15+
     # $CMAKE --install . --prefix $ROOT_DIR
 }

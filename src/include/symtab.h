@@ -27,7 +27,7 @@ class sym { // SYMBOL
     class Type* type = NULL;
     loc_t pos; // there can be two positions - last defined / last declared - later, if time permits
     short unsigned int size = 1;
-    // unsigned int offset = 
+    unsigned int offset; // offset from the $fp or $gp
 
     sym(std::string, class Type*, loc_t);
     void dump(std::ofstream &); // dump all info into (opened writable) file
@@ -41,7 +41,13 @@ class symtab { //  SYMBOL TABLE
     std::vector<symtab*> subScopes;
     std::vector<sym*> syms;
     std::unordered_map <std::string,sym*> map_syms;
-    
+    /*
+      * offset from the $fp or $gp of the last symbol present in
+      * this symtab or any of its children. This value will get
+      * updated as more symbols are added
+     */
+    unsigned int offset;
+
     symtab();
     symtab(std::string); // name given
     symtab(symtab *); // parent specified
