@@ -9,6 +9,12 @@
 #include <ircodes.h>
 #include <symtab.h>
 
-void dumpASM(std::ofstream &, std::vector<irquad_t>); // convert IR code to ASM (mainly MIPS, for "spim" simulator)
+void dumpASM(std::ofstream &, std::vector<irquad_t> &); // convert IR code to ASM (mainly MIPS, for "spim" simulator)
+
+unsigned int getNxtLeader(std::vector<irquad_t> &, unsigned int);
+
+void genASM(std::ofstream &, irquad_t &);
+
+void genfun(std::ofstream &, irquad_t &);
 
 #endif

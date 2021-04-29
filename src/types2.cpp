@@ -487,8 +487,8 @@ short unsigned int getSize(class Type *t) { // implmentation like "sizeof"
     Base *b = (Base *) t;
     switch (t->grp()) {
         case BASE_G : switch (b->base) {
-            case INT_B : case FLOAT_B : case ENUM_B : return 2;
-            case LONG_B : case DOUBLE_B : return 4;
+            case INT_B : case FLOAT_B : case ENUM_B : return 4;
+            case LONG_B : case DOUBLE_B : return 8;
             case LONG_LONG_B : case LONG_DOUBLE_B : return 8;
             case STRUCT_B : return 3; // do this
             case UNION_B : return 3; // do this

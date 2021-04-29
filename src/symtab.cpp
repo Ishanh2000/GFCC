@@ -213,6 +213,8 @@ bool isFuncScope(class symtab *scope) {
 /************************ TEST SUITES HERE ************************/
 /******************************************************************/
 
+#ifdef TEST_SYM
+
 void testSym() {
   sym("main", NULL, { 0, 0 });
   sym("", NULL, { 0, 0 });
@@ -252,7 +254,6 @@ void testSymRoot() {
   f.close();
 }
 
-#ifdef TEST_SYM
 
 int main() {
   testSym();

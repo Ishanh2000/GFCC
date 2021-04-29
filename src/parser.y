@@ -1670,7 +1670,12 @@ labeled_statement
 
 // useless iff EMPTY_BLOCK (can't substitute NULL, since EMPTY_BLOCK is still a valid function definition)
 compound_statement
-	: '{' '}'                                 { $$ = $1; SymRoot->closeScope(); }
+	: '{' '}'                                 { $$ = $1; 
+		for (int i = IRDump.size() - 1; i >= 0; i--)
+			if (IRDump[i].opr == "newScope") { IRDump.erase(IRDump.begin() + i); break; }
+		SymRoot->currScope->name.replace(0, 8, "__empty__");
+		SymRoot->closeScope(); 
+	}
 	| '{' statement_list '}'                  { $$ = ($2) ? ($2) : ($1); SymRoot->closeScope(); }
 	| '{' declaration_list '}'                { $$ = ($3) ? ($3) : ($1); SymRoot->closeScope(); }
 	| '{' declaration_list statement_list '}' {

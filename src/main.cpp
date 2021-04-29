@@ -130,10 +130,10 @@ int main (int argc , char *argv[]) {
 
 		} else {
 			string dotName(argv[_in]), csvName(argv[_in]), a3cName(argv[_in]), asmName(argv[_in]);
-			// manipulate these copies to create .dot/.csv/.3ac/.s extensions
+			// manipulate these copies to create .dot/.csv/.3ac/.asm extensions
 			int d = dotName.find_last_of('.');
 			if (d >= 0) { dotName.erase(d); csvName.erase(d); a3cName.erase(d); asmName.erase(d); }
-			dotName.append(".dot"); csvName.append(".csv"); a3cName.append(".3ac"); asmName.append(".s");
+			dotName.append(".dot"); csvName.append(".csv"); a3cName.append(".3ac"); asmName.append(".asm");
 
 			dot_out.open(dotName); // TODO: must gracefully handle errors
 			csv_out.open(csvName); // TODO: must gracefully handle errors
@@ -171,6 +171,11 @@ int main (int argc , char *argv[]) {
 			else AstToDot(dot_out, AstRoot);
 			dot_out << "}" << endl;
 
+			// while (SymRoot->currScope && SymRoot->currScope->parent)
+			// {
+			// 	SymRoot->currScope = SymRoot->currScope->parent;
+			// }
+			cout << "DEBUG: final scope: "<<SymRoot->currScope->name << endl;
 			// Symbol table to CSV conversion
 			csv_out << "# File Name: " << argv[_in] << endl << endl;
 			csv_out << csvHeaders << endl << endl; /// CSV HEADERS

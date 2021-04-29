@@ -181,7 +181,7 @@ void dumpIR(ofstream &f, vector<irquad_t> &irArr) { // dump into a file
         else if (q.opr == "param") f << "param " << q.src1;
         
         // func <src1>
-        else if (q.opr == "func") f << endl << "function <" + q.src1 << "> :";
+        else if (q.opr == "func") f << "function <" + q.src1 << "> :";
 
         // return <src1>
         else if (q.opr == "return") f << ((q.src1 == eps) ? "return" : "return ") << q.src1;
