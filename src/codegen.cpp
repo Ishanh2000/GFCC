@@ -2,9 +2,11 @@
 #ifndef __GFCC_ASM__
 #define __GFCC_ASM__
 
-#include <gfcc_lexer.h>
+#include <fstream>
+#include <vector>
+
 #include <ircodes.h>
-#include <symtab.h>
+#include <codegen.h>
 
 using namespace std;
 

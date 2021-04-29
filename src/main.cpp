@@ -9,7 +9,7 @@
 #include <symtab.h>
 #include <typo.h>
 #include <ircodes.h>
-#include <asm.h>
+#include <codegen.h>
 
 using namespace std;
 

@@ -16,8 +16,8 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # add executable
-add_executable(parser
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/asm.cpp
+add_executable(gfcc
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/codegen.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/consts.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/ircodes.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
@@ -30,7 +30,7 @@ add_executable(parser
   ${CMAKE_CURRENT_SOURCE_DIR}/src/generated/lex.yy.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/generated/parser.tab.cpp
 )
-target_link_libraries(parser PUBLIC fl)
+target_link_libraries(gfcc PUBLIC fl)
 
 # generate lexical analyser using flex
 add_custom_command(
@@ -50,12 +50,12 @@ add_custom_command(
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/parser.y
 )
 
-target_include_directories(parser PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/include)
-target_include_directories(parser PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/include/generated)
+target_include_directories(gfcc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/include)
+target_include_directories(gfcc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/include/generated)
 
 # get headers
 file(GLOB DEFAULT_HEARDERS "${CMAKE_CURRENT_SOURCE_DIR}/src/include/*.h")
 
 #install
-install(TARGETS parser DESTINATION bin)
+install(TARGETS gfcc DESTINATION bin)
 # install(FILES ${DEFAULT_HEARDERS} DESTINATION include)
