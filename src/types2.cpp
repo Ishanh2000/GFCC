@@ -459,6 +459,7 @@ bool expCast(class Type *from, class Type *to) { // explicit type-casting (may d
 
 
 int *eval(struct _node_t *n) { // evaluate bounds for arrays
+    if (!n) return NULL;
     bool minus = false;
     if (n->tok == '-') { minus = true; n = n->ch(0); }
     if (n->tok == '+') { n = n->ch(0); }

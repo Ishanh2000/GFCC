@@ -7,10 +7,10 @@ int main(int argc, char *argv[]) {
   int c = a*b;
   long long * p,*q,*r;
   double pp;
-  p = p*a;
-  p = p + 1.0;
-  r = p+q;
+  p = *p*a;
+  p = p + 10;
+  r = p+*q;
 
-  c = a & pp;
+  c = a & (int)pp;
   return 0;
 }

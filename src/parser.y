@@ -837,7 +837,6 @@ declaration
 					}
 				}
 				if (initNode) {
-					cout << "will initialize " << cnode->label << endl;
 					bool lhsIsArr = (ut->grp() == ARR_G), rhsIsArr = (initNode->tok == INIT_LIST);					
 					if (lhsIsArr && rhsIsArr) arrayInit(eqPos, cnode->label, (Arr*)clone(ut), initNode, { 0 }); // a[][23] = {...}
 					else if (lhsIsArr) repErr(eqPos, "cannot initialize array using a scalar", _FORE_RED_); // a[2] = 45;

@@ -26,7 +26,7 @@ function build {
 function clean {
     if [[ $1 = "tests" ]] && [[ -d "tests" ]]; then
         echo "Cleaning tests..."
-        rm -f tests/*.csv tests/*.dot tests/*.ps
+        rm -f tests/*.{csv,dot,ps,s,3ac}
         return
     fi
 

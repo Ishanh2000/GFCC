@@ -9,6 +9,7 @@
 #include <symtab.h>
 #include <typo.h>
 #include <ircodes.h>
+#include <asm.h>
 
 using namespace std;
 
@@ -30,7 +31,7 @@ vector<unsigned int> offsets; // line i starts at offsets[i-1]
 ifstream in_file;
 
 // CLA: <exec-name> [some options] in_1 in_2 ... in_N
-// CLA: <exec-name> [some options] in_1 in_2 ... in_N -o dot_1 csv_1 dot_2 csv_2 ... dot_n csv_n
+// CLA: <exec-name> [some options] in_1 in_2 ... in_N -o { dot_i csv_i 3ac_i asm_i } x N
 
 int main (int argc , char *argv[]) {
 	// ARGC TOO FEW
@@ -72,7 +73,7 @@ int main (int argc , char *argv[]) {
 
 	int total_in_files;
 	if (o_flag_index < 0) total_in_files = argc - start; // -o was never specified. Output on STDOUT
-	else if (2 * (total_in_files = o_flag_index - start) != (argc - o_flag_index - 1)) {
+	else if (4 * (total_in_files = o_flag_index - start) != (argc - o_flag_index - 1)) {
 		// check no. of input and output files are equal
 		msg(ERR) << "Specify output files for each given input file. Use \"--help\" or \"-h\" for help.";
 		return E_NUM_IO_UNEQUAL;
@@ -98,13 +99,16 @@ int main (int argc , char *argv[]) {
 		// doing this to seek independently of 'yyin' when printing errors.
 		in_file.open(argv[_in]); // TODO: must gracefully handle errors
 
-		ofstream dot_out, csv_out, a3c_out("tmp.a3c");
+		ofstream dot_out, csv_out, a3c_out, asm_out;
 
 		if ( o_flag_index >= 0 ) {
-			int _dot = o_flag_index + 1 + (2 * i), _csv = _dot + 1; // CLA index of dot and csv output files, if provided "-o"
+			// CLA index of dot and csv output files, if provided "-o"
+			int _dot = o_flag_index + 1 + (4 * i), _csv = _dot + 1, _3ac = _dot + 2, _asm = _dot + 3;
 			
 			dot_out.open(argv[_dot]); // TODO: must gracefully handle errors
 			csv_out.open(argv[_csv]); // TODO: must gracefully handle errors
+			a3c_out.open(argv[_3ac]); // TODO: must gracefully handle errors
+			asm_out.open(argv[_asm]); // TODO: must gracefully handle errors
 
 			// if (! (dot_out = fopen(argv[_dot], "w")) ) {
 			// 	if (i > 0) cout << endl;
@@ -114,13 +118,16 @@ int main (int argc , char *argv[]) {
 			// }
 
 		} else {
-			string dotName(argv[_in]), csvName(argv[_in]); // manipulate these copies to create .dot/.csv extensions
+			string dotName(argv[_in]), csvName(argv[_in]), a3cName(argv[_in]), asmName(argv[_in]);
+			// manipulate these copies to create .dot/.csv/.3ac/.s extensions
 			int d = dotName.find_last_of('.');
-			if (d >= 0) { dotName.erase(d); csvName.erase(d); }
-			dotName.append(".dot"); csvName.append(".csv");
+			if (d >= 0) { dotName.erase(d); csvName.erase(d); a3cName.erase(d); asmName.erase(d); }
+			dotName.append(".dot"); csvName.append(".csv"); a3cName.append(".3ac"); asmName.append(".s");
 
 			dot_out.open(dotName); // TODO: must gracefully handle errors
 			csv_out.open(csvName); // TODO: must gracefully handle errors
+			a3c_out.open(a3cName); // TODO: must gracefully handle errors
+			asm_out.open(asmName); // TODO: must gracefully handle errors
 
 			// if ( !(temp_out = fopen(out_file_name, "w")) ) {
 			// 	if (i > 0) cout << endl;
@@ -147,16 +154,24 @@ int main (int argc , char *argv[]) {
 		
 		if (!parse_return) {
 			// AST to DOT conversion
+			dot_out << "// File Name: " << argv[_in] << endl << endl;
 			dot_out << "digraph {" << endl;
 			if (!AstRoot) dot_out << "\t0 [label=\"" << fileName << " (nothing useful)\",shape=none];" << endl;
 			else AstToDot(dot_out, AstRoot);
 			dot_out << "}" << endl;
 
 			// Symbol table to CSV conversion
-			csv_out << "# File Name:, " << argv[_in] << endl << endl;
+			csv_out << "# File Name: " << argv[_in] << endl << endl;
 			csv_out << csvHeaders << endl << endl; /// CSV HEADERS
 			SymRoot->dump(csv_out);
+
+			// 3AC code dump
+			a3c_out << "# File Name: " << argv[_in] << endl << endl;
 			dumpIR(a3c_out, IRDump);
+			
+			// ASM code dump
+			asm_out << "# File Name: " << argv[_in] << endl << endl;
+			dumpASM(asm_out, IRDump);
 		}
 		
 		// PREPARE FOR NEXT FILE (ITERATION)

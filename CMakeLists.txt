@@ -17,6 +17,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # add executable
 add_executable(parser
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/asm.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/consts.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/ircodes.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
