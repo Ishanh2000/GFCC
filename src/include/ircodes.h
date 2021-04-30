@@ -10,15 +10,24 @@
 
 typedef struct _irquad_t {
     std::string dst = "";
-    std::string opr = ""; // irop_t opr;
+    std::string opr = "";
     std::string src1 = "";
     std::string src2 = "";
     std::string label = "";
     // some constructors
     _irquad_t(std::string, std::string, std::string, std::string);
 } irquad_t;
+typedef struct _str_t { // for strings to be used in ".data" section
+    // std::string label = ""; // will uncomment if required
+    std::string encoding = ".asciiz";
+    std::string contents = ""; // store without any double quotes.
+    _str_t(std::string, std::string); // contents, encoding
+    _str_t(std::string); // contents
+} str_t;
 
 extern std::vector<irquad_t> IRDump;
+
+extern std::vector<str_t> StrDump;
 
 extern std::string eps; // empty string (epsilon)
 
@@ -34,7 +43,9 @@ void emit(std::string, std::string, std::string, std::string); // emit into glob
 
 void emit(std::string, std::string, std::string); // emit into global (incremental) code stream
 
-void dumpIR(std::ofstream &f, std::vector<irquad_t> &irArr); // dump into a file
+void dumpIR(std::ofstream &f, std::vector<irquad_t> &irArr); // dump 3AC code into a file
+
+void dumpStr(std::ofstream &, std::vector<str_t> &); // dump string literals into a file
 
 std::string newLabel(); // generate a unique new label
 
@@ -55,5 +66,7 @@ std::vector<unsigned int> merge(std::vector<std::vector<unsigned int>>);
 void handle(node_t*,node_t*,node_t*, int, std::string);
 
 Type* handle_as(int ,node_t*,node_t*, std::string &, std::string &, bool, bool);
+
+void resetIRCodes(); // reset all global variables for next file
 
 #endif

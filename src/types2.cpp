@@ -29,12 +29,18 @@ const static bool dbg = false;
 
 using namespace std;
 
-std::unordered_map<base_t, int> priority1 =
+unordered_map<base_t, int> priority1 =
     {{CHAR_B, 0}, {SHORT_B, 1}, {INT_B, 2}, {LONG_B, 3}, {LONG_LONG_B, 4}, {FLOAT_B, 5}, {DOUBLE_B, 6}, {LONG_DOUBLE_B, 7}};
 
 
 bool brackPut = false;
+
 bool tpdef = false;
+
+void resetTypes() { // reset appropriate global variables
+    brackPut = tpdef = false;
+}
+
 
 /******************************************************/
 /****************** struct "_qual_t" ******************/
@@ -520,6 +526,53 @@ void resetOffset(int tok, symtab *def) {
     }
 }
 
+struct _node_t * str2arr(struct _node_t *n) {
+    if (!n) return NULL;
+    string s(n->label); int l = s.size(); vector<int> arr; vector<string> strChar;
+
+    for (int i = 0; i < l; i++) {
+        if (s[i] == '\\' && ((i + 1) < l)) switch (s[i+1]) { // \t, \n, \b, \r, \", \\, \'
+            case 't' : arr.push_back((int)('\t')); strChar.push_back("\t"); i += 1; break;
+            case 'n' : arr.push_back((int)('\n')); strChar.push_back("\n"); i += 1; break;
+            case 'b' : arr.push_back((int)('\b')); strChar.push_back("\b"); i += 1; break;
+            case 'r' : arr.push_back((int)('\r')); strChar.push_back("\r"); i += 1; break;
+            case '\"' : arr.push_back((int)('\"')); strChar.push_back("\""); i += 1; break;
+            case '\'' : arr.push_back((int)('\'')); strChar.push_back("\'"); i += 1; break;
+            case '\\' : arr.push_back((int)('\\')); strChar.push_back("\\"); i += 1; break;
+        } else {
+            arr.push_back((int)(s[i])); strChar.push_back(string(1, s[i]));
+        }
+    }
+    arr.push_back(0); strChar.push_back("\0"); // NULL termination
+
+    int arrLen = arr.size();
+    struct _node_t *nArr = nd(INIT_LIST, "array", n->pos);
+    for (int i = 0; i < arrLen; i++) {
+        node_t* ch = nd(CONSTANT, (string("\'") + strChar[i] + string("\'")).c_str(), n->pos);
+        Base *b = new Base(CHAR_B); b->isConst = true; ch->type = b;
+        ch->eval = to_string(arr[i]);
+	    op( nArr, 0, 1, ej(ch) );
+    }
+
+    return nArr;
+}
+
+string char2num(string s) { // convert char to num
+    int l = s.size();
+    if (l < 2) return to_string((int)('\0'));
+    if (s[1] == '\\' && (2 < l)) switch (s[2]) {
+        case 't' : return to_string((int)('\t'));
+        case 'n' : return to_string((int)('\n'));
+        case 'b' : return to_string((int)('\b'));
+        case 'r' : return to_string((int)('\r'));
+        case '\"' : return to_string((int)('\"'));
+        case '\'' : return to_string((int)('\''));
+        case '\\' : return to_string((int)('\\'));
+    } else return to_string((int)(s[1]));
+    return to_string(0);
+}
+
+
 
 void arrayInit(struct _loc_t eqPos, string arrName, class Arr *lhs, struct _node_t *rhs, vector<int> index) {
     // check that array dimensions match. Each array element must be typecastable, and emit apt. code.
@@ -556,17 +609,6 @@ void arrayInit(struct _loc_t eqPos, string arrName, class Arr *lhs, struct _node
             }
         }
     }
-    
-    // for (int i = 0; i < *x; i++) {
-    //     if (ch->tok == INIT_LIST) { // sub-array
-    //         arrayInit(eqPos, lhs, ch, stage + 1);
-    //     } else {
-    //         {{1,2, 3}, {4, 5, 6}}
-    //     }
-    // }
-    // if (!x) // int a[N][2] = {...}
-
-    
 }
 
 

@@ -17,8 +17,6 @@ enum base_t {
 	ELLIPSIS_B,
 };
 
-extern std::unordered_map<base_t, int> priority1;
-
 // sign types
 enum sign_t { NONE_X, SIGNED_X, UNSIGNED_X };
 
@@ -109,6 +107,8 @@ class Func : public Type { public :
     std::string _str();
 };
 
+extern std::unordered_map<base_t, int> priority1;
+
 extern bool brackPut; // signifies whether brackets were put around a declarator earlier
 // brackets have meaning only if pointers are being used - so that binding with pointers can be enforced.
 
@@ -145,5 +145,11 @@ short unsigned int getSize(class Type *); // implmentation like "sizeof"
 void arrayInit(struct _loc_t, std::string, class Arr *, struct _node_t *, std::vector<int>); // check array compatibility
 
 void resetOffset(int, symtab *); // reset offsets in context of struct/union
+
+struct _node_t * str2arr(struct _node_t *); // converts string to array of chars
+
+std::string char2num(std::string); // convert char to num
+
+void resetTypes(); // reset appropriate global variables
 
 #endif

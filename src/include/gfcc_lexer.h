@@ -183,4 +183,6 @@ void purgeAST(node_t *); // free unrequired data structures
 
 bool accept(node_t *node);
 
+void resetLexer(); // reset global variables
+
 #endif

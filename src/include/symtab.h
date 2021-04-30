@@ -21,8 +21,6 @@
 
 typedef unsigned long int ull;
 
-extern std::string csvHeaders;
-
 class sym { // SYMBOL
   public:
     std::string name;
@@ -99,12 +97,12 @@ class symRoot {
     void dump(std::ofstream &); // dump all info into (opened writable) file
 };
 
-bool acceptType(class Type*); // check validity
+extern std::string csvHeaders;
 
 extern symRoot *SymRoot;
 
-extern std::vector<sym *> PLB; // parameter lookup buffer
-
 bool isFuncScope(class symtab *);
+
+void resetSymtab(); // reset appropriate global variables
 
 #endif

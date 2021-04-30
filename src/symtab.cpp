@@ -30,21 +30,20 @@ typedef unsigned long int ull;
 
 using namespace std;
 
+symRoot *SymRoot = NULL;
+
 string csvHeaders = "LOCATION, NAME, SIZE, OFFSET, TYPE, DETAILED_TYPE";
 
-bool acceptType(class Type* type) {
-  // analyze type properly. eg: return 0 if "auto static int"
-  // TODO
-  return true;
+void resetSymtab() { // reset appropriate global variables
+  delete SymRoot;
 }
-
 
 /*************************************/
 /************ CLASS "sym" ************/
 /*************************************/
 
 sym::sym(string _name, class Type* _type, loc_t _pos) : name(_name), type(_type), pos(_pos), size(getSize(_type)) {
-  if (_name == "" || !acceptType(_type)) {
+  if (_name == "") {
     if (dbg) msg(ERR) << "Invalid name \"" << _name << "\" or type \"" << str(_type) << "\" passed!";
     return;
   }
@@ -125,7 +124,7 @@ bool symtab::pushSym(sym* newSym) {
 }
 
 bool symtab::pushSym(string _name, class Type* _type, loc_t _pos) {
-  if (_name == "" || !acceptType(_type) || srchSym(_name)) {
+  if (_name == "" || srchSym(_name)) {
     if (dbg) msg(WARN) << "Could not push \"" << _name << "\" in current scope.";
     return false;
   }

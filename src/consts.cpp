@@ -34,7 +34,7 @@ Usage: <exec-name> [options] files... [--output|-o] output-files...\n\
 \n\
 Examples:\n\
   ./bin/gfcc ./tests/*.c\n\
-  ./bin/gfcc ./tests/*.c -o out_1.dot out_1.csv out_1.3ac out_1.s ... out_N.dot out_N.csv out_N.3ac out_N.s\n\
+  ./bin/gfcc ./tests/*.c -o out_1.dot out_1.csv out_1.3ac out_1.asm ... out_N.dot out_N.csv out_N.3ac out_N.asm\n\
 \n\
 Options:\n\
   --help	-h : Help. Must be first option. Other options are not checked.\n\
