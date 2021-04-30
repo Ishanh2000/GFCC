@@ -14,6 +14,8 @@ using namespace std;
 
 vector<irquad_t> IRDump;
 
+vector<str_t> StrDump;
+
 string eps = ""; // empty string (epsilon)
 
 string nextQuadLabel = ""; // label for next (upcoming) instruction
@@ -21,7 +23,19 @@ string nextQuadLabel = ""; // label for next (upcoming) instruction
 unsigned int totLabels = 0;
 unsigned int totalTmp = 0;
 
-_irquad_t::_irquad_t(string opr, string dst, string src1, string src2) : opr(opr), dst(dst), src1(src1), src2(src2) { }
+void resetIRCodes() { // reset all global variables for next file
+    IRDump.clear();
+    StrDump.clear();
+    nextQuadLabel = "";
+    totLabels = 0;
+    totalTmp = 0;
+}
+
+_irquad_t::_irquad_t (string opr, string dst, string src1, string src2) : opr(opr), dst(dst), src1(src1), src2(src2) { }
+
+_str_t::_str_t (string _contents) : contents(_contents) { }
+
+_str_t::_str_t (string _contents, string _encoding) : contents(_contents), encoding(_encoding) { }
 
 unsigned int nextIdx() {
     return IRDump.size();
@@ -160,7 +174,21 @@ Type* handle_as(int op,node_t* one,node_t* three, std::string & e1, std::string 
     return tr;
 }
 
-void dumpIR(ofstream &f, vector<irquad_t> &irArr) { // dump into a file
+void dumpStr(ofstream &f, vector<str_t> &strArr) { // dump string literals into a file
+    f << ".data" << endl << endl;
+    int l = strArr.size(), _w = to_string(l).size() + 3;
+
+    for (int i = 0; i < l; i++) {
+        str_t &s = strArr[i];
+        f << setw(_w) << "0s_" + to_string(i) << " : ";
+        f << setw(10) << s.encoding << " \"" << s.contents << "\"" << endl;
+    }
+    
+    f << endl;
+}
+
+void dumpIR(ofstream &f, vector<irquad_t> &irArr) { // dump 3AC codes into a file
+    f << ".text" << endl << endl;
     int l = irArr.size(), _w = to_string(l).size();
 
     for (int i = 0; i < l; i++) {
@@ -208,6 +236,7 @@ void dumpIR(ofstream &f, vector<irquad_t> &irArr) { // dump into a file
 
         f << endl;
     }
+    f << endl;
 }
 
 #ifdef TEST_IRCODES

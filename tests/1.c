@@ -3,20 +3,30 @@
 struct _y { int x; int y; char z; } d; // 9 - 12
 
 struct _x { int x; struct _y l; int y; char z; } p; // 18 - 12+20 = 32
-union _x { int* x; int y; short z; } o;
 
+union _f { char f0; int f1; float *f2; };
 
 int main() {
-    int a = 10;
-    a++;
-    {
-        int p,q,r;
-    }
-    {
-        int x,y,z;
-        struct _x a;
-    }
-    return a;
+    char str[][4] = {{'H', 'e', '\0', 'l'}, {'B','y', 'e' ,'\0'}};
+    str[9][4] = 90;
+    // char str[] = "H\"\\ello";
+    // int gl[][4] = { {1, 2,}, {3}};
+    // char c = '∞';
+    // int a = 10;
+    // a++;
+    // {
+    //     int p,q,r;
+    // }
+    // {
+    //     int x,y,z;
+    //     struct _x g;
+    // }
+    // switch (a+1) {
+    //     case 2: a =1;
+    //     case 3: a =1;
+    // }
+    // return a;
+    return 0;
 }
 
 int a, b ,c;

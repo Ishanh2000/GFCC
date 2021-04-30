@@ -25,8 +25,6 @@ int bad_char_seen = 0; // to notify parser
 ull_t currNumNodes = 0; // invariant: currNumNodes > 0 for all existing nodes.
 node_t* AstRoot = NULL;
 char * fileName = NULL;
-symRoot *SymRoot = NULL;
-vector<sym *>PLB; // parameter lookup buffer
 vector<unsigned int> offsets; // line i starts at offsets[i-1]
 ifstream in_file;
 
@@ -183,6 +181,7 @@ int main (int argc , char *argv[]) {
 
 			// 3AC code dump
 			a3c_out << "# File Name: " << argv[_in] << endl << endl;
+			dumpStr(a3c_out, StrDump);
 			dumpIR(a3c_out, IRDump);
 			
 			// ASM code dump
@@ -191,14 +190,11 @@ int main (int argc , char *argv[]) {
 		}
 		
 		// PREPARE FOR NEXT FILE (ITERATION)
-		in_file.close(); dot_out.close(); csv_out.close(); a3c_out.close();
-		purgeAST(AstRoot); // frees the current AST
-		delete SymRoot; // frees the current symbol tables
-		PLB.clear(); // clear the parameter lookup buffer
-		column = 1; gpos = { 1, 1 }; offsets.clear();
-		temp_out = NULL; // reset for next file
-		// reset any flags
-		brackPut = tpdef = false;
+		dot_out.close(); csv_out.close(); a3c_out.close();
+		resetTypes();
+	  resetSymtab();
+	  resetLexer();
+	  resetIRCodes();
 	}
 
 	return file_failures;
@@ -267,3 +263,14 @@ void fprintTokens(FILE *f, token_t* tok_str, unsigned long int size, int brief) 
 }
 
 /* yywrap() { return 1; } */
+
+void resetLexer() {
+	bad_char_seen = 0;
+	column = 1; gpos = { 1, 1 }; offsets.clear();
+	fclose(yyin);
+	temp_out = NULL;
+	fileName = NULL;
+	currNumNodes = 0;
+	in_file.close();
+	purgeAST(AstRoot); // frees the current AST
+}

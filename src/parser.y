@@ -94,9 +94,18 @@ primary_expression
 		}
 		$$->type->lvalue = true;
 	}
-	| CONSTANT { $$ = $1; $$->eval = $$->label; }
+	| CONSTANT { $$ = $1;
+		// if this is a char, convert to a number, pass that number in $$->eval
+		Type *t = $$->type;
+		if (t && t->grp() == BASE_G && (((Base*)t)->base == CHAR_B)) { // char
+			$$->eval = char2num($$->label);
+		} else $$->eval = $$->label; // number(int/real)
+	}
 	// get sematic number (means 0x56 = 86, 0227 = 151, etc) during semantic analysis - but ENCODE HERE ITSELF
-	| STRING_LITERAL		{ $$ = $1; } // encode as (const char *) - or some other appropriate enc.
+	| STRING_LITERAL		{ $$ = $1;
+		$$->eval = "0s_" + to_string(StrDump.size());
+		StrDump.push_back(str_t($$->label));
+	} // encode as (const char *) - or some other appropriate enc.
 	| '(' expression ')'	{ $$ = $2; }
 	;
 
@@ -158,8 +167,6 @@ postfix_expression
 		}
 		$$->type->lvalue = false;
 		if (!$$->type->isErr) { // param h | call main, 1 | r = retval
-			cout << "Here2" << endl;
-			cout << "\"" << $1->eval << "\"" << endl;
 			emit(eps, "call", $1->eval, "0"); // call <func / func_ptr>, 0
 			Type* _t = $$->type;
 			if ((!_t) || (_t->grp() != BASE_G) || (((Base*)_t)->base != VOID_B)) {
@@ -816,10 +823,17 @@ declaration
 					else if (tt->grp() == ARR_G) { repErr(cnode->pos, "array of \"voids\" given", _FORE_RED_); t2->isErr = true; } // void x[];
 				}
 				if (t2 && t2->grp() == ARR_G && (((Arr *)t2)->dims[0] == NULL)) { // get the dimension using initNode
-					if (initNode && (initNode->tok == INIT_LIST)) {
-						node_t* n = nd(CONSTANT, to_string(initNode->numChild).c_str(), initNode->pos);
-						Base *b = new Base(INT_B); b->isConst = true; n->type = b;
-						((Arr *) t2)->dims[0] = n;
+					if (initNode) {
+						if (initNode->tok == INIT_LIST) {
+							node_t* n = nd(CONSTANT, to_string(initNode->numChild).c_str(), initNode->pos);
+							Base *b = new Base(INT_B); b->isConst = true; n->type = b;
+							((Arr *) t2)->dims[0] = n;
+						} else if (initNode->tok == STRING_LITERAL) {
+							initNode = str2arr(initNode); // initNode is now an array (INIT_LIST)
+							node_t* n = nd(CONSTANT, to_string(initNode->numChild).c_str(), initNode->pos);
+							Base *b = new Base(INT_B); b->isConst = true; n->type = b;
+							((Arr *) t2)->dims[0] = n;
+						}
 					}
 				}
 				Type *ut = unify(t1, t2); grp_t g = ut->grp();
@@ -837,7 +851,7 @@ declaration
 					}
 				}
 				if (initNode) {
-					bool lhsIsArr = (ut->grp() == ARR_G), rhsIsArr = (initNode->tok == INIT_LIST);					
+					bool lhsIsArr = (ut->grp() == ARR_G), rhsIsArr = (initNode->tok == INIT_LIST);
 					if (lhsIsArr && rhsIsArr) arrayInit(eqPos, cnode->label, (Arr*)clone(ut), initNode, { 0 }); // a[][23] = {...}
 					else if (lhsIsArr) repErr(eqPos, "cannot initialize array using a scalar", _FORE_RED_); // a[2] = 45;
 					else if (rhsIsArr) repErr(eqPos, "cannot initialize scalar using an array", _FORE_RED_); // *a = {1, 2, 7}

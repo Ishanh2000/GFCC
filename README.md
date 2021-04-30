@@ -19,14 +19,15 @@ Building Project:
 Cleaning Project;
 ```bash
   ./runme.sh clean         # Will clean all the generated code-related files
-  ./runme.sh clean tests   # Will clean all the generated test files (.dot/.ps/.csv/.3ac/.s)
+  ./runme.sh clean tests   # Will clean all the generated test files (.dot/.ps/.csv/.3ac/.asm)
 ```
 Running parser:
 ```bash
-  ./bin/gfcc ./tests/*.c # Creates {.dot/.csv/.3ac/.s} files for all test case files
+  ./bin/gfcc ./tests/*.c # Creates {.dot/.csv/.3ac/.asm} files for all test case files
   ./bin/gfcc -h # help
   ./bin/gfcc -v # version
-  ./bin/gfcc ./tests/*.c -o out_1.dot out_1.csv out_1.3ac out_1.s ... out_N.dot out_N.csv out_N.3ac out_N.s
+  ./bin/gfcc ./tests/*.c -o out_1.dot out_1.csv out_1.3ac out_1.asm ... out_N.dot out_N.csv out_N.3ac out_N.asm
+  ./bin/gfcc ./tests/*.c -t 78 -o out_1.dot out_1.csv out_1.3ac out_1.asm ... out_N.dot out_N.csv out_N.3ac out_N.asm
 ```
 
 Use help flag for more details.
