@@ -1,25 +1,16 @@
-// float func(int a, char b);
-
-struct _y { int x; int y; char z; } d; // 9 - 12
-
-struct _x { int x; struct _y l; int y; char z; } p; // 18 - 12+20 = 32
-union _x { int* x; int y; short z; } o;
-
+// int main() {
+    
+//     return 0;
+// }
 
 int main() {
     int a = 10;
-    a++;
-    {
-        int p,q,r;
-    }
-    {
-        int x,y,z;
-        struct _x a;
-    }
+    int b = (2*4) + ((2+3) + ((1 + 2)+ (2-(a + a)) * 10));
     return a;
 }
 
-int a, b ,c;
+
+// int a, b ,c;
 
 // int main() {
     // int a = 2, b = 5;

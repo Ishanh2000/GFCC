@@ -15,43 +15,103 @@ static bool dbg = false;
 
 
 using namespace std;
- 
-string currFunc = "";
 
 // convert IR code to ASM (mainly MIPS, for "spim" simulator)
 
-sym* regDscr[32];
-
-void dummy() {}
 string reg2str[] = {
-  "$zero",                                           // constant 0
-  "$at",                                             // reserved for the assembler
-  "$v0", "$v1",                                       // result registers
-  "$a0", "$a1", "$a2", "$a3",                           // argument registers 1···4
-  "$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7",   // temporary registers 0···7
-  "$s0", "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7",   // saved registers 0···7
-  "$t8", "$t9",                                       // temporary registers 8···9
-  "$k0", "$k1",                                       // kernel registers 0···1
-  "$gp", "$sp", "$fp", "$ra"                            // global data ptr, stack ptr, frame ptr, return addr
+  "$zero",                                                   // constant 0
+  "$at",                                                     // reserved for the assembler
+  "$v0", "$v1",                                              // result registers
+  "$a0", "$a1", "$a2", "$a3",                                // argument registers 1···4
+  "$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7",    // temporary registers 0···7
+  "$s0", "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7",    // saved registers 0···7
+  "$t8", "$t9",                                              // temporary registers 8···9
+  "$k0", "$k1",                                              // kernel registers 0···1
+  "$gp", "$sp", "$fp", "$ra"                                 // global data ptr, stack ptr, frame ptr, return addr
 };
 
-void resetRegMaps(ofstream &f) {
-  for(int i = t0; i < t9; i++){
-    if(regDscr[i]) {
-      // TODO: sw/sb/... for non 4 byte
-      f << '\t' << "sw " << reg2str[i]+", -"<<regDscr[i]->offset <<"($fp)";
-      f << " # flush register to stack" << endl;
-      regDscr[i]->reg = zero;
-      regDscr[i] = NULL;
-    }
+string freg2str[] =  {
+  "$f0", "$f1", "$f2", "$f3",                                 // Function-returned values
+  "$f4", "$f5", "$f6", "$f7", "$f8", "$f9", "$f10", "$f11",   // Temporary values
+  "$f12", "$f13", "$f14", "$f15",                             // Arguments passed into a function
+  "$f16", "$f17", "$f18", "$f19",                             // More Temporary values
+  "$f20", "$f21", "$f31",                                     // Saved values
+};
+
+sym* regDscr[32];
+
+void _nxtUse::clear() {
+  if (this->deltas.size() != 0) {
+    cout << "void _nxtUse::clear() " << "delta array not empty on clear"<<endl;
+    this->deltas.clear();
   }
 }
 
-int currReg = t0;
-reg_t getSymReg(std::string & symName) {
+deltaNxtUse _nxtUse::step() {
+  if(this->deltas.empty()) cout << "deltaNxtUse _nxtUse::step() deltas array empty" << endl;
+  deltaNxtUse delta = this->deltas.back();
+  // store last deltas
+  this->lastdelta = delta;
+  this->deltas.pop_back();
+  if(delta.dstSym) {
+    delta.dstSym->nxtuse = delta.dstNxtUse;
+    delta.dstSym->alive = delta.dstAlive;
+  }
+  if(delta.src1Sym) {
+    delta.src1Sym->nxtuse = delta.src1NxtUse;
+    delta.src1Sym->alive = delta.src1Alive;
+  }
+  if(delta.src2Sym) {
+    delta.src2Sym->nxtuse = delta.src2NxtUse;
+    delta.src2Sym->alive = delta.src2Alive;
+  }
+  return delta;
+}
+
+_nxtUse nxtUse;
+string currFunc = "";
+
+void regFlush(std::ofstream & f, reg_t reg) {
+  if(regDscr[reg]) {
+    // TODO: sw/sb/... for non 4 byte
+    // TODO: offset from $gp
+    f << '\t' << "sw " << reg2str[reg]+", -"<< regDscr[reg]->offset <<"($fp)";
+    f << " # flush register to stack (" + regDscr[reg]->name + ")"<< endl;
+    // clear addrDscr
+    regDscr[reg]->reg = zero;
+    // clear regDscr
+    regDscr[reg] = NULL;
+  }
+}
+
+void regMap(std::ofstream & f, reg_t reg, sym* symb, bool load = true) {
+  // TODO: sw/sb/... for non 4 byte
+  // TODO: offset from $gp
+  if (load) {
+    f << '\t' << "lw " << reg2str[reg]+", -"<< symb->offset <<"($fp)";
+    f << " # load into register (" + symb->name + ")"<< endl;
+  }
+  // add addrDscr entry
+  symb->reg = reg;
+  // add regDscr entry
+  regDscr[reg] = symb;
+}
+
+
+void resetRegMaps(ofstream &f) {
+  for(int reg = t0; reg <= t9; reg++){
+    regFlush(f, (reg_t) reg);
+  }
+}
+
+
+int currReg = s0;
+reg_t getSymReg(const std::string & symName) {
   sym* symb = SymRoot->gLookup(symName);
   if(!symb) {
-    if (dbg) cout<<"seg fault here :/" << endl;
+    // constants
+    // array, struct too!!
+    cout << "Not found "<< symName <<endl;
     return zero;
   }
 
@@ -64,22 +124,107 @@ reg_t getSymReg(std::string & symName) {
   }
 }
 
-void dumpASM(ofstream &f, vector<irquad_t> & IR) {
+
+oprRegs getReg(std::ofstream & f, const irquad_t &q) {
+  // has sym* of symbols of current operation
+  deltaNxtUse lastdelta = nxtUse.lastdelta;
+  sym *src1 = lastdelta.src1Sym, *src2 = lastdelta.src2Sym;
+  sym *dst = lastdelta.dstSym;
+
+  oprRegs ret;
+  if(!src1) ret.src1Reg = zero;
+  else {
+    if (src1->reg != zero) ret.src1Reg = src1->reg;
+    else {
+      int cand = t0;
+      while (cand <= t9) {
+        if(!regDscr[cand]) {
+          regMap(f, (reg_t) cand, src1);
+          ret.src1Reg = (reg_t)cand;
+          break;
+        }
+        cand++;
+      }
+      if(cand > t9) {
+        regFlush(f, t9);
+        regMap(f, t9, src1);
+        ret.src1Reg = t9;
+      }
+    }
+  }
+
+  if(!src2) ret.src2Reg = zero;
+  else {
+    if (src2->reg != zero) ret.src2Reg = src2->reg;
+    else {
+      int cand = t0;
+      reg_t cand1 = zero;
+      while (cand <= t9) {
+        if(!regDscr[cand]) {
+          regMap(f, (reg_t)cand, src2);
+          ret.src2Reg = (reg_t)cand;
+          break;
+        }
+        if(cand1 == zero && cand != ret.src1Reg)
+          cand1 = (reg_t)cand;
+        cand++;
+      }
+      if(cand > t9) {
+        regFlush(f, cand1);
+        regMap(f, cand1, src2);
+        ret.src2Reg = cand1;
+      }
+    }
+  }
+
+  if(!dst) ret.dstReg = zero; // shoud never happen?
+  else {
+    if (dst->reg != zero) ret.dstReg = dst->reg;
+    // TODO: check if one of src1/src2 register can be directly used
+    else {
+      int cand = t0;
+      reg_t cand1 = zero;
+      while (cand <= t9) {
+        if(!regDscr[cand]) {
+          regMap(f, (reg_t)cand, dst, false);
+          ret.dstReg = (reg_t)cand;
+          break;
+        }
+        if(cand1 == zero && cand != ret.src1Reg && cand != ret.src2Reg)
+          cand1 = (reg_t)cand;
+        cand++;
+      }
+      if(cand > t9) {
+        regFlush(f, cand1);
+        regMap(f, cand1, dst, false);
+        ret.dstReg = cand1;
+      }
+    }
+    return ret;
+  }
+  
+}
+
+
+void dumpASM(ofstream &f, const vector<irquad_t> & IR) {
   // clear reg
   for(int i = 0; i<32; i++){
     regDscr[i] = NULL;
   }
 
   int lenIR = IR.size();
-  unsigned int currleader = 0;
-
+  int currleader = 0;
+  cout<< "Leader at: " << 0 << endl;
   while(currleader < lenIR) {
-    unsigned int nxtleader = getNxtLeader(IR, currleader);
-    cout<< "Nxt Leader: " << nxtleader << endl;
-    resetRegMaps(f);
+    int nxtleader = getNxtLeader(IR, currleader);
+    cout<< "Leader at: " << nxtleader << endl;
     // gen code for a main block
     while(currleader < nxtleader) {
       //  TODO: flush, reset etc
+      // Flush before any jump
+      if(currleader == nxtleader-1) {
+        resetRegMaps(f);
+      }
       genASM(f, IR[currleader]);
       currleader++;
     }
@@ -87,52 +232,55 @@ void dumpASM(ofstream &f, vector<irquad_t> & IR) {
 }
 
 
-unsigned int getNxtLeader(vector<irquad_t> & IR, unsigned int leader) {
-  int lenIR = IR.size();
-  for(auto idx = leader; idx < lenIR; idx++) {
-    if(IR[idx].opr == "goto" || IR[idx].opr == "ifgoto" ||
-       IR[idx].opr == "call" || IR[idx].opr == "func" ||
-       IR[idx].opr == "return" || IR[idx].opr == "newScope" ||
-       IR[idx].opr == "closeScope") {
-         return idx+1;
-       }
-  }
-  return lenIR;
-}
+void genASM(std::ofstream & f, const irquad_t & quad) {
+  
+  deltaNxtUse lastdelta = nxtUse.step();
 
-void genASM(std::ofstream & f, irquad_t & quad) {
   if(quad.opr == "func") funcStart(f, quad);
   else if (quad.opr == "return") 
     // TODO
     f << '\t' << "b " << currFunc + "_ret" << " # jump to return routine" << endl;
   else if (quad.opr == "function end") funcEnd(f, quad);
   else if (quad.opr == eps) {
-    reg_t srcReg = getSymReg(quad.src1), dstReg = getSymReg(quad.dst);
-    if(srcReg == zero) {
+    oprRegs regs = getReg(f, quad);
+    // reg_t srcReg = getSymReg(quad.src1), dstReg = getSymReg(quad.dst);
+    if(regs.src1Reg == zero) {
       // TODO other types
-      f << '\t' << "li " << reg2str[dstReg] + ", " + quad.src1 << endl;
+      f << '\t' << "li " << reg2str[regs.dstReg] + ", " + quad.src1;
+      f << " # " + quad.dst <<endl;
     }
     else {
-      f << '\t' << "move " << reg2str[dstReg] + ", " + reg2str[srcReg] ;
-      f << " # move" << endl;
+      f << '\t' << "move " << reg2str[regs.dstReg] + ", " + reg2str[regs.src1Reg] ;
+      f << " # move " + quad.dst + " = " + quad.src1 << endl;
     }
   }
+  else if (quad.opr == "+" || quad.opr == "-"  || 
+          quad.opr == "*"|| quad.opr == "/") {  
+    binOpr(f, quad);
+  }
+
 }
 
 
-void funcStart(std::ofstream & f, irquad_t & quad) {
+void funcStart(std::ofstream & f, const irquad_t & quad) {
   currFunc = quad.src1;
   auto symtabs = SymRoot->currScope->subScopes; // currscope == root
+  // search for function scope
   symtab * funTab;
   for (auto tab: symtabs) {
     if (tab->name == "func " + currFunc) { funTab = tab; break; }
   }
-
+  // change scope
+  SymRoot->currScope = funTab;
   // initialise reg for all symbols to "zero"
   for (sym* symb: funTab->syms) {
+    if (symb->reg != zero) 
+      cout << "void funcStart(std::ofstream & f, const irquad_t & quad) error"<<endl;
     symb->reg = zero;
+    // temproraies dead and 
+    symb->alive = (symb->name[0] == '0') ? false : true;
+    symb->nxtuse = -1;
   }
-
 
   // 40 for possible $t0---$t9
   unsigned short s_offest = funTab->offset + 40;
@@ -153,8 +301,11 @@ void funcStart(std::ofstream & f, irquad_t & quad) {
 
 }
 
-void funcEnd(std::ofstream & f, irquad_t & quad) {
-  f << currFunc + "_ret :" << endl;
+
+void funcEnd(std::ofstream & f, const irquad_t & quad) {
+  // close scope
+  SymRoot->currScope = SymRoot->currScope->parent;
+  f << currFunc + "_ret:" << endl;
   f << '\t' << "lw"<< " $s7, -40($fp)" << " # restore callee saved register" << endl;
   f << '\t' << "lw"<< " $s6, -36($fp)" << " # restore callee saved register" << endl;
   f << '\t' << "lw"<< " $s5, -32($fp)" << " # restore callee saved register" << endl;
@@ -176,6 +327,99 @@ void funcEnd(std::ofstream & f, irquad_t & quad) {
   
   f << endl;
 }
+
+
+void binOpr(std::ofstream & f, const irquad_t & q) {
+  string opr = q.opr;
+  deltaNxtUse lastdelta = nxtUse.lastdelta;
+  sym *src1 = lastdelta.src1Sym, *src2 = lastdelta.src2Sym;
+  sym *dst = lastdelta.dstSym;
+  
+  // TODO: unsigned, float, ...
+  if(opr == "+" || opr == "-" || opr == "*" || opr == "/" ) {
+    string instr;
+    if (opr == "+") instr = "add";
+    else if (opr == "-") instr = "sub";
+    else if (opr == "*") instr = "mul";
+    else if (opr == "/") instr = "div";
+
+    // dst = src1 + src2  
+    oprRegs regs = getReg(f, q);
+    string src2 = (regs.src2Reg == zero) ? q.src2 : reg2str[regs.src2Reg];
+    if (regs.src1Reg == zero) {
+      f << '\t' << "li " << reg2str[regs.dstReg] + ", " + q.src1 << " # load constant"<< endl;
+      f << '\t' << instr + " " << reg2str[regs.dstReg] + ", " + reg2str[regs.dstReg] + ", " + src2 << endl;
+      return;
+    }
+    f << '\t' << instr + " " << reg2str[regs.dstReg] + ", " + reg2str[regs.src1Reg] + ", " + src2 << endl;
+  }
+}
+
+
+int getNxtLeader(const vector<irquad_t> & IR, int leader) {
+  int lenIR = IR.size();
+  int nxtLeader = lenIR;
+  // find next leader
+  for(auto idx = leader; idx < lenIR; idx++) {
+    if(IR[idx].opr == "goto" || IR[idx].opr == "ifgoto" ||
+       IR[idx].opr == "call" || IR[idx].opr == "func" ||
+       IR[idx].opr == "return" || IR[idx].opr == "newScope" ||
+       IR[idx].opr == "closeScope" || IR[idx].opr == "function end" ) 
+    {
+      nxtLeader = idx + 1;
+      break;
+    }
+  }
+
+  bool dbg_print = false;
+  if(leader == 1) dbg_print = true;
+
+  nxtUse.clear();
+  ofstream csv_out2;
+  if (dbg_print) csv_out2.open("1_tmp.csv");
+  // backward pass in the current main block
+
+  for (int idx = nxtLeader - 1; idx >= leader; idx--) {
+    deltaNxtUse delta;
+    sym* dstSym = SymRoot->gLookup(IR[idx].dst);
+    sym* src1Sym = SymRoot->gLookup(IR[idx].src1);
+    sym* src2Sym = SymRoot->gLookup(IR[idx].src2);
+    
+    if (dbg_print) SymRoot->dump(csv_out2);
+    if (dbg_print) csv_out2 << "\n\n\n##################\n\n\n"<<endl;
+    // break;
+    if (dstSym) {
+      delta.dstSym = dstSym;
+      delta.dstNxtUse = dstSym->nxtuse;
+      delta.dstAlive = dstSym->alive;
+      if (dstSym->name[0] == '0')
+        dstSym->alive = false;
+      dstSym->nxtuse = -1;
+    }
+
+    if (src1Sym) {
+      delta.src1Sym = src1Sym;
+      delta.src1NxtUse = src1Sym->nxtuse;
+      delta.src1Alive = src1Sym->alive;
+      if (src1Sym->name[0] == '0')
+        src1Sym->alive = true;
+      src1Sym->nxtuse =  idx - leader;
+    }
+
+    if (src2Sym) {
+      delta.src2Sym = src2Sym;
+      delta.src2NxtUse = src2Sym->nxtuse;
+      delta.src2Alive = src2Sym->alive;
+      if (src2Sym->name[0] == '0')
+        src2Sym->alive = true;
+      src2Sym->nxtuse =  idx - leader;
+    }
+    nxtUse.deltas.push_back(delta);
+  } // backward pass in the current main block
+  if (dbg_print) SymRoot->dump(csv_out2);
+  return nxtLeader;
+}
+
 
 #ifdef TEST_CODEGEN
 
