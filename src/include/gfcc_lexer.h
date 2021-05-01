@@ -21,13 +21,16 @@
 #define E_NO_FILES			(-5)
 #define E_TAB_LEN			(-6)
 #define E_MULT_DECL			(-7)
-#define E_OUT_SPEC			(-8)
+#define E_NO_OUT_REQS    (-8)
+#define E_NO_LIB_REQS    (-9)
 
 #define OUT_TOK        (0x01)
 #define OUT_AST        (0x02)
 #define OUT_SYM        (0x04)
 #define OUT_3AC        (0x08)
 #define OUT_ASM        (0x10)
+#define LIB_MATH        (0x1)
+#define LIB_TYPO        (0x2)
 
 #define UNINIT				(-10)
 #define INIT				(-11)
