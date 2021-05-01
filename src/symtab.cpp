@@ -30,12 +30,13 @@ typedef unsigned long int ull;
 
 using namespace std;
 
-symRoot *SymRoot = NULL;
+symRoot *SymRoot = new symRoot();
 
 string csvHeaders = "LOCATION, NAME, SIZE, OFFSET, TYPE, DETAILED_TYPE";
 
 void resetSymtab() { // reset appropriate global variables
   delete SymRoot;
+  SymRoot = new symRoot();
 }
 
 /*************************************/
@@ -238,7 +239,7 @@ void symRoot::dump(ofstream &f) {
 }
 
 bool isFuncScope(class symtab *scope) {
-  if (!scope) return false;
+  if (!scope) return false; // should return true as per current use
   return (scope->name.substr(0, 5) == "func ");
 }
 

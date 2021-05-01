@@ -1887,7 +1887,7 @@ jump_statement
 										$$->breaklist.push_back(nextIdx()); emit(eps, "goto", "---");}
 	| RETURN ';'			{ $$ = $1;
 		symtab* curr = SymRoot->currScope;
-		while (!isFuncScope(curr)) curr = curr->parent;
+		while (!isFuncScope(curr)) { if (!curr) break; curr = curr->parent; }
 		if (curr) {
 			sym* funcSym = curr->parent->srchSym(curr->name.substr(5));
 			Type *retType = NULL;
@@ -1902,7 +1902,7 @@ jump_statement
 	} // TODO: check if current function is actually "VOID_B"
 	| RETURN expression ';'	{ $$ = op( $1, 0, 1, ej($2) );
 		symtab* curr = SymRoot->currScope;
-		while (!isFuncScope(curr)) curr = curr->parent;
+		while (!isFuncScope(curr)) { if (!curr) break; curr = curr->parent; }
 		if (curr) {
 			sym* funcSym = curr->parent->srchSym(curr->name.substr(5));
 			Type *retType = NULL;

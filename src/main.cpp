@@ -1,6 +1,7 @@
 // AUM SHREEGANESHAAYA NAMAH|| (DIETY INVOCATION)
 #include <cstring>
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <vector>
 
@@ -25,11 +26,12 @@ int bad_char_seen = 0; // to notify parser
 ull_t currNumNodes = 0; // invariant: currNumNodes > 0 for all existing nodes.
 node_t* AstRoot = NULL;
 char * fileName = NULL;
-vector<unsigned int> offsets; // line i starts at offsets[i-1]
+vector<unsigned int> offsets = { 0 }; // line i starts at offsets[i-1], line 1 starts at offsets[0] = 0
+vector<struct _token_t> tokDump;
 ifstream in_file;
 
 // CLA: <exec-name> [some options] in_1 in_2 ... in_N
-// CLA: <exec-name> [some options] in_1 in_2 ... in_N -o { dot_i csv_i 3ac_i asm_i } x N
+// CLA: <exec-name> [some options] in_1 in_2 ... in_N -o[=tok,ast,sym,3ac,asm] { dot_i csv_i 3ac_i asm_i } x N
 
 int main (int argc , char *argv[]) {
 	// ARGC TOO FEW
@@ -51,13 +53,39 @@ int main (int argc , char *argv[]) {
 
 
 	// CHECK FILE LIST AND ALSO SEARCH OPTION [--output|-o] and [--tab-len|-t]
-	int start = 1, o_flag_index = -1, num_t_flag = 0;
+	int start = 1, o_flag_index = -1, num_t_flag = 0, o_spec = 0x1f;
 	for (int i = start; i < argc; i++) {
-		if (matches(argv[i], "--output", "-o")) {
-			if (o_flag_index < 0) o_flag_index = i;
-			else {
-				msg(ERR) << "Option [--output|-o] specified twice. Use \"--help\" or \"-h\" for help.";
-				return E_O_FLAG_TWICE;
+		string s(argv[i]);
+		if (s.substr(0, 8) == "--output" || s.substr(0, 2) == "-o") { // output flag found
+			if (o_flag_index >= 0) {
+				msg(ERR) << "Option [--output|-o] specified twice. Use \"--help\" or \"-h\" for help."; return E_O_FLAG_TWICE;
+			}
+			o_flag_index = i;
+			// now get specifications for output
+			int _eq = s.find("=");
+			if (_eq > -1) {
+				// "=" must appear just after the flag
+				if (!(s.substr(0, 8) == "--output" && s[8] == '=') && !(s.substr(0, 2) == "-o" && s[2] == '=')) {
+					msg(ERR) << "Error in decoding \"" << argv[i] <<  "\" option."; return E_INV_OPTION;
+				}
+				int tot_specs = 0, _comma; o_spec = 0; s = s.substr(_eq + 1);
+				while (1) {
+					string s_ele = ""; bool brk = false; _comma = s.find_first_of(",");
+					if (_comma < 0) { s_ele = s; brk = true; }
+					else { s_ele = s.substr(0, _comma);	s = s.substr(_comma + 1);	}
+					if (s_ele != "") {
+						tot_specs++; // hope for a good token
+						if (s_ele == "tok") o_spec |= OUT_TOK; else if (s_ele == "ast") o_spec |= OUT_AST;
+						else if (s_ele == "sym") o_spec |= OUT_SYM;	else if (s_ele == "3ac") o_spec |= OUT_3AC;
+						else if (s_ele == "asm") o_spec |= OUT_ASM; else {tot_specs--; // hopes shattered
+							msg(WARN) << "Ignoring \"" << s_ele << "\" specified in \"" << argv[i] << "\" flag. Use [--help|-h] flag for help.";
+						}
+					}
+					if (brk) break;
+				}
+				if (!tot_specs) {
+					msg(ERR) << "Please specify one/more of {tok,ast,sym,3ac,asm} after \"=\" in [--output|-o] flag. Use [--help|-h] flag for help."; return E_OUT_SPEC;
+				}
 			}
 			continue;
 		}
@@ -76,13 +104,18 @@ int main (int argc , char *argv[]) {
 		}
 	}
 
+	// (ratio of) number of output files per input file
+	int out_to_in = ((o_spec & OUT_TOK) ? 1 : 0) + ((o_spec & OUT_AST) ? 1 : 0);
+	out_to_in += ((o_spec & OUT_SYM) ? 1 : 0) + ((o_spec & OUT_3AC) ? 1 : 0) + ((o_spec & OUT_ASM) ? 1 : 0);
+	
+
 	start += 2 * num_t_flag;
 
 	if (num_t_flag) std::cout << _C_BOLD_ << _FORE_YELLOW_ << "Tab length set to " << tab_len << ".\n" << _C_NONE_;
 
 	int total_in_files;
 	if (o_flag_index < 0) total_in_files = argc - start; // -o was never specified. Output on STDOUT
-	else if (4 * (total_in_files = o_flag_index - start) != (argc - o_flag_index - 1)) {
+	else if (out_to_in * (total_in_files = o_flag_index - start) != (argc - o_flag_index - 1)) {
 		// check no. of input and output files are equal
 		msg(ERR) << "Specify output files for each given input file. Use \"--help\" or \"-h\" for help.";
 		return E_NUM_IO_UNEQUAL;
@@ -108,35 +141,38 @@ int main (int argc , char *argv[]) {
 		// doing this to seek independently of 'yyin' when printing errors.
 		in_file.open(argv[_in]); // TODO: must gracefully handle errors
 
-		ofstream dot_out, csv_out, a3c_out, asm_out;
+		ofstream tok_out, ast_out, sym_out, a3c_out, asm_out;
 
 		if ( o_flag_index >= 0 ) {
 			// CLA index of dot and csv output files, if provided "-o"
-			int _dot = o_flag_index + 1 + (4 * i), _csv = _dot + 1, _3ac = _dot + 2, _asm = _dot + 3;
+			int _out = o_flag_index + 1 + (out_to_in * i);
+			int _tok, _ast, _sym, _3ac, _asm;
+			// TODO: must gracefully handle errors
+			if (o_spec & OUT_TOK) tok_out.open(argv[_out++]);
+			if (o_spec & OUT_AST) ast_out.open(argv[_out++]);
+			if (o_spec & OUT_SYM) sym_out.open(argv[_out++]);
+			if (o_spec & OUT_3AC) a3c_out.open(argv[_out++]);
+			if (o_spec & OUT_ASM) asm_out.open(argv[_out++]);
 			
-			dot_out.open(argv[_dot]); // TODO: must gracefully handle errors
-			csv_out.open(argv[_csv]); // TODO: must gracefully handle errors
-			a3c_out.open(argv[_3ac]); // TODO: must gracefully handle errors
-			asm_out.open(argv[_asm]); // TODO: must gracefully handle errors
-
-			// if (! (dot_out = fopen(argv[_dot], "w")) ) {
+			// if (! (ast_out = fopen(argv[_ast], "w")) ) {
 			// 	if (i > 0) cout << endl;
-			// 	msg(WARN) << "Problem writing to file \"" << argv[_dot] << "\". Skipping writing to it.";
+			// 	msg(WARN) << "Problem writing to file \"" << argv[_ast] << "\". Skipping writing to it.";
 			// 	file_failures++;
 			// 	continue;
 			// }
 
 		} else {
-			string dotName(argv[_in]), csvName(argv[_in]), a3cName(argv[_in]), asmName(argv[_in]);
-			// manipulate these copies to create .dot/.csv/.3ac/.asm extensions
-			int d = dotName.find_last_of('.');
-			if (d >= 0) { dotName.erase(d); csvName.erase(d); a3cName.erase(d); asmName.erase(d); }
-			dotName.append(".dot"); csvName.append(".csv"); a3cName.append(".3ac"); asmName.append(".asm");
+			string copyName(argv[_in]);
+			int d = copyName.find_first_of('.');
+			if (d > -1) copyName.erase(d);
 
-			dot_out.open(dotName); // TODO: must gracefully handle errors
-			csv_out.open(csvName); // TODO: must gracefully handle errors
-			a3c_out.open(a3cName); // TODO: must gracefully handle errors
-			asm_out.open(asmName); // TODO: must gracefully handle errors
+			// Change extension if you want.
+			// TODO: must gracefully handle errors
+			if (o_spec & OUT_TOK) tok_out.open(copyName + ".tok.csv");
+			if (o_spec & OUT_AST) ast_out.open(copyName + ".dot");
+			if (o_spec & OUT_SYM) sym_out.open(copyName + ".sym.csv");
+			if (o_spec & OUT_3AC) a3c_out.open(copyName + ".3ac");
+			if (o_spec & OUT_ASM) asm_out.open(copyName + ".asm");
 
 			// if ( !(temp_out = fopen(out_file_name, "w")) ) {
 			// 	if (i > 0) cout << endl;
@@ -148,49 +184,42 @@ int main (int argc , char *argv[]) {
 
 		fileName = argv[_in];
 
-		// PostScript OK. Try to adjust for actual PDF (although not required).
-
-		SymRoot = new symRoot(); 
-		// int *const *
-		// Base *b = new Base(INT_B);
-		// Ptr *p = new Ptr(b, true, false); p->newPtr();
-		// p->strg = TYPEDEF_S;
-		// SymRoot->pushSym("newint", p, {0, 0});
-
-		offsets.push_back(0); // line 1 starts at offsets[0] = 0
-
 		int parse_return = yyparse(); std::cout << "yyparse() = " << parse_return << endl;
 		
 		if (!parse_return) {
-			// AST to DOT conversion
-			dot_out << "// File Name: " << argv[_in] << endl << endl;
-			dot_out << "digraph {" << endl;
-			if (!AstRoot) dot_out << "\t0 [label=\"" << fileName << " (nothing useful)\",shape=none];" << endl;
-			else AstToDot(dot_out, AstRoot);
-			dot_out << "}" << endl;
-
-			// while (SymRoot->currScope && SymRoot->currScope->parent)
-			// {
-			// 	SymRoot->currScope = SymRoot->currScope->parent;
-			// }
-			cout << "DEBUG: final scope: "<<SymRoot->currScope->name << endl;
-			// Symbol table to CSV conversion
-			csv_out << "# File Name: " << argv[_in] << endl << endl;
-			csv_out << csvHeaders << endl << endl; /// CSV HEADERS
-			SymRoot->dump(csv_out);
-
-			// 3AC code dump
-			a3c_out << "# File Name: " << argv[_in] << endl << endl;
-			dumpStr(a3c_out, StrDump);
-			dumpIR(a3c_out, IRDump);
+			if (o_spec & OUT_TOK) {
+				tok_out << "# File Name: " << argv[_in] << endl << endl;
+				dumpTok(tok_out, tokDump);
+			}
 			
-			// ASM code dump
-			asm_out << "# File Name: " << argv[_in] << endl << endl;
-			dumpASM(asm_out, IRDump);
+			if (o_spec & OUT_AST) { // AST to DOT conversion
+				ast_out << "// File Name: " << argv[_in] << endl << endl;
+				ast_out << "digraph {" << endl;
+				if (!AstRoot) ast_out << "\t0 [label=\"" << fileName << " (nothing useful)\",shape=none];" << endl;
+				else AstToDot(ast_out, AstRoot);
+				ast_out << "}" << endl;
+			}
+			
+			if (o_spec & OUT_SYM) { // Symbol table to CSV conversion
+				sym_out << "# File Name: " << argv[_in] << endl << endl;
+				sym_out << csvHeaders << endl << endl; /// CSV HEADERS
+				SymRoot->dump(sym_out);
+			}
+
+			if (o_spec & OUT_3AC) { // 3AC code dump
+				a3c_out << "# File Name: " << argv[_in] << endl << endl;
+				dumpStr(a3c_out, StrDump);
+				dumpIR(a3c_out, IRDump);
+			}
+
+			if (o_spec & OUT_ASM) { // ASM code dump
+				asm_out << "# File Name: " << argv[_in] << endl << endl;
+				dumpASM(asm_out, IRDump);
+			}
 		}
 		
 		// PREPARE FOR NEXT FILE (ITERATION)
-		dot_out.close(); csv_out.close(); a3c_out.close();
+		tok_out.close(); ast_out.close(); sym_out.close(); a3c_out.close(); asm_out.close();
 		resetTypes();
 	  resetSymtab();
 	  resetLexer();
@@ -198,10 +227,6 @@ int main (int argc , char *argv[]) {
 	}
 
 	return file_failures;
-}
-
-const char* getTokenName(int tok_num, const char* lexeme) {
-	return (tok_num < IDENTIFIER || tok_num > RETURN) ? lexeme : TOKEN_NAME_ARRAY[tok_num - IDENTIFIER];
 }
 
 void comment() { // multi line comment (MLC)
@@ -234,7 +259,8 @@ void count() {
 
 void handle_bad_char() {
 	bad_char_seen = 1;
-	msg(ERR) << "Bad character (" << yytext << ") seen at line " << gpos.line << ", column " << gpos.column << "." << endl;
+	repErr(gpos, "bad character seen (not in C alphabet)", _FORE_RED_);
+	// msg(ERR) << "Bad character (" << yytext << ") seen at " << string(fileName) << ":" << gpos.line << ":" << gpos.column << endl;
 }
 
 bool matches(const char* option, string a) { // return 1 iff option matched a OR b
@@ -251,26 +277,31 @@ void update_location (char c) {
 	else column++;
 }
 
-void fprintTokens(FILE *f, token_t* tok_str, unsigned long int size, int brief) {
-	if (!(f && tok_str)) return;
-	for (unsigned long int i = 0; i < size; i++) {
-		int _id = tok_str[i].id, _line = tok_str[i].line, _column = tok_str[i].column;
-		const char *_lexeme = tok_str[i].lexeme, *_name = getTokenName(_id, _lexeme);
-
-		if (brief)	fprintf(f, "%-18s %-30s %d:%d\n", _name, _lexeme, _line, _column);
-		else		fprintf(f, "%-8d %-18s %-30s %-8d %-8d\n", _id, _name, _lexeme, _line, _column);
+void dumpTok(std::ofstream &f, std::vector<struct _token_t> &arr) { // to dump tokens (like Milestone 1)
+	f << "*** TOTAL TOKENS = " << arr.size() << " ***" << endl << endl;
+	f << "TOKEN TYPE ID, TOKEN TYPE NAME, LEXEME, LINE, COLUMN" << endl << endl;
+	for (auto _token : arr) {
+		int tok = _token.tok;
+		f << setw( 8) << tok << ", ";
+		f << setw(18) << ((tok < IDENTIFIER || tok > RETURN) ? _token.lexeme : TOKEN_NAME_ARRAY[tok - IDENTIFIER]) << ", ";
+		f << setw(30) << _token.lexeme << ", ";
+		f << setw( 8) << _token.pos.line << ", ";
+		f << setw( 8) << _token.pos.column << endl;
 	}
+	f << endl;
 }
 
 /* yywrap() { return 1; } */
 
 void resetLexer() {
 	bad_char_seen = 0;
-	column = 1; gpos = { 1, 1 }; offsets.clear();
+	column = 1; gpos = { 1, 1 };
+	offsets.clear(); offsets.push_back(0); // line 1 starts at offsets[0] = 0
 	fclose(yyin);
 	temp_out = NULL;
 	fileName = NULL;
 	currNumNodes = 0;
 	in_file.close();
+	tokDump.clear();
 	purgeAST(AstRoot); // frees the current AST
 }

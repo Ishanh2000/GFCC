@@ -20,8 +20,14 @@
 #define E_NUM_IO_UNEQUAL	(-4)
 #define E_NO_FILES			(-5)
 #define E_TAB_LEN			(-6)
-
 #define E_MULT_DECL			(-7)
+#define E_OUT_SPEC			(-8)
+
+#define OUT_TOK        (0x01)
+#define OUT_AST        (0x02)
+#define OUT_SYM        (0x04)
+#define OUT_3AC        (0x08)
+#define OUT_ASM        (0x10)
 
 #define UNINIT				(-10)
 #define INIT				(-11)
@@ -64,17 +70,16 @@
 
 typedef unsigned long long ull_t;
 
-typedef struct _token_t {
-	int id; // type
-	const char* lexeme;
-	int line;
-	int column;
-} token_t;
-
 typedef struct _loc_t { // location type
 	unsigned int line;
 	unsigned int column;
 } loc_t;
+
+typedef struct _token_t {
+	struct _loc_t pos;
+	int tok;
+	std::string lexeme;
+} token_t;
 
 typedef struct _node_t {
 	ull_t id;
@@ -114,6 +119,10 @@ extern std::ifstream in_file;
 
 extern node_t* AstRoot;
 
+extern std::vector<unsigned int> offsets; // line i starts at offsets[i-1]
+
+extern std::vector<struct _token_t> tokDump;
+
 #ifdef COMPLETE
 extern const char type_spec_attr[];
 extern const char strg_class_attr[];
@@ -134,8 +143,6 @@ extern const char
 	func_call_attr[],
 	label_attr[];
 
-extern std::vector<unsigned int> offsets; // line i starts at offsets[i-1]
-
 void lexUnput(char);
 
 char lexInput(void);
@@ -149,10 +156,6 @@ bool matches(const char*, std::string); // check if first is equal to second
 bool matches(const char*, std::string, std::string); // check if first is equal to second or third
 
 void handle_bad_char(); // to handle errors
-
-const char* getTokenName(int, const char*); // get token name (type) using TOKEN_NAME_ARRAY
-
-void fprintTokens(FILE*, token_t*, unsigned long int, int); // TRY USING THIS FOR SCANNING (LEXICAL ANALYSIS)
 
 void update_location(char);
 
@@ -184,5 +187,7 @@ void purgeAST(node_t *); // free unrequired data structures
 bool accept(node_t *node);
 
 void resetLexer(); // reset global variables
+
+void dumpTok(std::ofstream &, std::vector<struct _token_t> &); // to dump tokens (like Milestone 1)
 
 #endif
