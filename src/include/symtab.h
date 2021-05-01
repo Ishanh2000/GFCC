@@ -37,9 +37,9 @@ class sym { // SYMBOL
       * -- local variables are always alive
       * -- temproraies are dead at start and end
     */
-    bool alive;
+    bool alive = false;
     /* next use in the current mainblock */
-    unsigned int nxtuse;
+    int nxtuse = -1;
 
     sym(std::string, class Type*, loc_t);
     void dump(std::ofstream &); // dump all info into (opened writable) file

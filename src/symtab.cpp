@@ -55,6 +55,8 @@ void sym::dump(ofstream &f) {
   f << setw(3) << size << ", ";
   if (offset) f << setw(3) << offset << ", ";
   else f << setw(3) << "-" << ", ";
+  f << setw(3) << nxtuse << ", ";
+  f << setw(3) << alive << ", ";
   if (type) switch (type->grp()) {
     case BASE_G : f << "--------, "; break;
     case  PTR_G : f << " POINTER, "; break;

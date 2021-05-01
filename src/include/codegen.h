@@ -14,8 +14,17 @@ enum reg_t {
   gp, sp, fp, ra                          // global data ptr, stack ptr, frame ptr, return addr
 };
 
+enum freg {
+  f0, f1, f2, f3,                         // Function-returned values
+  f4, f5, f6, f7, f8, f9, f10, f11,       // Temporary values
+  f12, f13, f14, f15,                     // Arguments passed into a function
+  f16, f17, f18, f19,                     // More Temporary values
+  f20, f21, f31,                          // Saved values
+};
+
 #include <fstream>
 #include <vector>
+#include <stack>
 #include <map>
 #include <unordered_map>
 
@@ -25,22 +34,58 @@ enum reg_t {
 
 extern std::string reg2str[];
 
+extern std::string freg2str[];
+
 extern class sym* regDscr[];
 
-void dummy ();
+struct deltaNxtUse {
+  sym* dstSym = NULL;
+  int dstNxtUse = -1;
+  bool dstAlive = true;
+  sym* src1Sym = NULL;
+  int src1NxtUse = -1;
+  bool src1Alive = true;
+  sym* src2Sym = NULL;
+  int src2NxtUse = -1;
+  bool src2Alive = true;
+};
+
+class _nxtUse {
+  public:
+    // last changes popped - has sym*s of current line
+    deltaNxtUse lastdelta;
+    // changes in nxtuse information
+    std::vector<deltaNxtUse> deltas;
+    void clear();
+    deltaNxtUse step();
+};
+
+struct oprRegs {
+  reg_t dstReg;
+  reg_t src1Reg;
+  reg_t src2Reg;
+};
+
+void regFlush(std::ofstream &, reg_t);
+
+void regMap(std::ofstream &, reg_t, sym*, bool);
 
 void resetRegMaps(std::ofstream &);
 
-void dumpASM(std::ofstream &, std::vector<irquad_t> &); // convert IR code to ASM (mainly MIPS, for "spim" simulator)
+void dumpASM(std::ofstream &, const std::vector<irquad_t> &); // convert IR code to ASM (mainly MIPS, for "spim" simulator)
 
-reg_t getSymReg(std::string &);
+reg_t getSymReg(const std::string &);
 
-unsigned int getNxtLeader(std::vector<irquad_t> &, unsigned int);
+oprRegs getReg(std::ofstream &, const irquad_t &q);
 
-void genASM(std::ofstream &, irquad_t &);
+int getNxtLeader(const std::vector<irquad_t> &, int);
 
-void funcStart(std::ofstream &, irquad_t &); // preliminaries at beginning of function
+void genASM(std::ofstream &, const irquad_t &);
 
-void funcEnd(std::ofstream &, irquad_t &); // preliminaries at end of function
+void funcStart(std::ofstream &, const irquad_t &); // preliminaries at beginning of function
+
+void funcEnd(std::ofstream &, const irquad_t &); // preliminaries at end of function
+
+void binOpr(std::ofstream &, const irquad_t &); // handle binary operators
 
 #endif
