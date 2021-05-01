@@ -28,10 +28,8 @@ string reg2str[] = {
   "$s0", "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7",    // saved registers 0···7
   "$t8", "$t9",                                              // temporary registers 8···9
   "$k0", "$k1",                                              // kernel registers 0···1
-  "$gp", "$sp", "$fp", "$ra"                                 // global data ptr, stack ptr, frame ptr, return addr
-};
+  "$gp", "$sp", "$fp", "$ra",                                 // global data ptr, stack ptr, frame ptr, return addr
 
-string freg2str[] =  {
   "$f0", "$f1", "$f2", "$f3",                                 // Function-returned values
   "$f4", "$f5", "$f6", "$f7", "$f8", "$f9", "$f10", "$f11",   // Temporary values
   "$f12", "$f13", "$f14", "$f15",                             // Arguments passed into a function
@@ -39,7 +37,11 @@ string freg2str[] =  {
   "$f20", "$f21", "$f31",                                     // Saved values
 };
 
+
 sym* regDscr[32];
+_nxtUse nxtUse;
+string currFunc = "";
+unsigned int paramOffset = 40;
 
 void _nxtUse::clear() {
   if (this->deltas.size() != 0) {
@@ -69,8 +71,6 @@ deltaNxtUse _nxtUse::step() {
   return delta;
 }
 
-_nxtUse nxtUse;
-string currFunc = "";
 
 void regFlush(std::ofstream & f, reg_t reg, bool store = true) {
   if(regDscr[reg]) {
@@ -101,31 +101,31 @@ void regMap(std::ofstream & f, reg_t reg, sym* symb, bool load = true) {
 }
 
 
-void resetRegMaps(ofstream &f) {
+void resetRegMaps(ofstream &f, bool store = true) {
   for(int reg = t0; reg <= t9; reg++){
-    regFlush(f, (reg_t) reg);
+    regFlush(f, (reg_t) reg, store);
   }
 }
 
 
-int currReg = s0;
-reg_t getSymReg(const std::string & symName) {
-  sym* symb = SymRoot->gLookup(symName);
-  if(!symb) {
-    // constants
-    // array, struct too!!
-    cout << "Not found "<< symName <<endl;
-    return zero;
-  }
+// int currReg = s0;
+// reg_t getSymReg(const std::string & symName) {
+//   sym* symb = SymRoot->gLookup(symName);
+//   if(!symb) {
+//     // constants
+//     // array, struct too!!
+//     cout << "Not found "<< symName <<endl;
+//     return zero;
+//   }
 
-  if(symb->reg != zero)
-    return symb->reg;
-  else {
-    symb->reg = (reg_t) currReg++; // ! adhoc
-    regDscr[symb->reg] = symb;
-    return symb->reg;
-  }
-}
+//   if(symb->reg != zero)
+//     return symb->reg;
+//   else {
+//     symb->reg = (reg_t) currReg++; // ! adhoc
+//     regDscr[symb->reg] = symb;
+//     return symb->reg;
+//   }
+// }
 
 
 oprRegs getReg(std::ofstream & f, const irquad_t &q) {
@@ -136,7 +136,8 @@ oprRegs getReg(std::ofstream & f, const irquad_t &q) {
   oprRegs ret;
 
   /* constant */
-  if(!src1) ret.src1Reg = zero;
+  if (q.src1 == "$retval") {ret.src1Reg = v0;}
+  else if(!src1) ret.src1Reg = zero;
   else {
     /* already in a reg */
     if (src1->reg != zero) ret.src1Reg = src1->reg;
@@ -193,7 +194,7 @@ oprRegs getReg(std::ofstream & f, const irquad_t &q) {
   if(!dst) ret.dstReg = zero; // shoud never happen?
   else {
     /* check if one of src1/src2 register can be directly used */
-    if (ret.src1Reg!=zero && src1->nxtuse == -1 && !src1->alive) {
+    if (ret.src1Reg!=zero && src1 && src1->nxtuse == -1 && !src1->alive) {
       // soft flush (no need to store for dst) any existing register mapped to dst
       regFlush(f, dst->reg, false);
       // soft flush (we don't need src1 value further) src1Reg 
@@ -279,9 +280,10 @@ void genASM(std::ofstream & f, const irquad_t & quad) {
   deltaNxtUse lastdelta = nxtUse.step();
 
   if (quad.opr == "+" || quad.opr == "-" ||
-      quad.opr == "*"|| quad.opr == "/" ||
+      quad.opr == "*" || quad.opr == "/" ||
       quad.opr == ">" || quad.opr == "<" ||
-      quad.opr == "&&" || quad.opr == "||") binOpr(f, quad);
+      quad.opr == ">=" || quad.opr == "<=" ||
+      quad.opr == "==" || quad.opr == "&&" || quad.opr == "||") binOpr(f, quad);
  
   else if (quad.opr == eps) assn(f, quad);
   
@@ -324,14 +326,49 @@ void genASM(std::ofstream & f, const irquad_t & quad) {
   else if(quad.opr == "closeScope") {
     // resetRegMaps(f);
     // close scope
+    cout << "closing " + quad.src1<<endl;
     SymRoot->currScope = SymRoot->currScope->parent;
   }
 
   else if(quad.opr == "func") funcStart(f, quad);
   
-  else if (quad.opr == "return") {
+  else if(quad.opr == "param") {
+    
+    oprRegs regs = getReg(f, quad);
+    if (regs.src1Reg == zero) {
+      // TODO: infer from const or add a compulsory "temp = const" intr in 3ac
+      paramOffset += 4; 
+      f << '\t' << "li " << reg2str[a0] + ", " + quad.src1 << endl;
+      f << '\t' << "sw " << reg2str[a0] + ", -" + to_string(paramOffset)+"("+ reg2str[sp] + ")";
+      f << " # load parameter to func" << endl;
+    }
+    else {
+      paramOffset += lastdelta.src1Sym->size; 
+      f << '\t' << "sw " << reg2str[regs.src1Reg] + ", -" + to_string(paramOffset)+"("+ reg2str[sp] + ")";
+      f << " # load parameter to func" << endl;
+    }
+  }
+
+  else if(quad.opr == "call") {
+    // reset param offset
+    paramOffset = 40;
     resetRegMaps(f);
+    f << '\t' << "jal " << quad.src1 << " # call " + quad.src1 << endl;
+  }
+
+  else if (quad.opr == "return") {
+    // resetRegMaps(f);
     // TODO
+    oprRegs regs = getReg(f, quad);
+    if (regs.src1Reg == zero) {
+      f << '\t' << "li " << reg2str[v0] + ", " + quad.src1;
+      f << " # load return value" << endl;
+    }
+    else {
+      f << '\t' << "move " << reg2str[v0] + ", " + reg2str[regs.src1Reg];
+      f << " # load return value" << endl;
+    }
+      
     f << '\t' << "b " << currFunc + "_ret" << " # jump to return routine" << endl;
   }
 
@@ -387,7 +424,7 @@ void funcStart(std::ofstream & f, const irquad_t & quad) {
 
 
 void funcEnd(std::ofstream & f, const irquad_t & quad) {
-  // resetRegMaps(f);
+  resetRegMaps(f, false);
   // close scope
   SymRoot->currScope = SymRoot->currScope->parent;
   f << currFunc + "_ret:" << endl;
@@ -477,11 +514,11 @@ int getNxtLeader(const vector<irquad_t> & IR, int leader) {
   // find next leader
   for(auto idx = leader; idx < lenIR; idx++) {
     if(IR[idx].opr == "goto" || IR[idx].opr == "ifgoto" ||
-       IR[idx].opr == "call" || IR[idx].opr == "func" ||
-       IR[idx].opr == "return" || IR[idx].opr == "newScope" ||
-       IR[idx].opr == "closeScope" || IR[idx].opr == "function end" ||
+       IR[idx].opr == "call" || IR[idx].opr == "return" ||
+      //  IR[idx].opr == "newScope" || IR[idx].opr == "closeScope" || 
+       IR[idx].opr == "function end" || IR[idx].opr == "func" ||
        Labels.find(idx+1) != Labels.end()
-       ) 
+      ) 
     {
       nxtLeader = idx + 1;
       break;

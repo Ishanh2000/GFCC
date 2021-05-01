@@ -11,10 +11,8 @@ enum reg_t {
   s0, s1, s2, s3, s4, s5, s6, s7,         // saved registers 0···7
   t8, t9,                                 // temporary registers 8···9
   k0, k1,                                 // kernel registers 0···1
-  gp, sp, fp, ra                          // global data ptr, stack ptr, frame ptr, return addr
-};
+  gp, sp, fp, ra,                          // global data ptr, stack ptr, frame ptr, return addr
 
-enum freg_t {
   f0, f1, f2, f3,                         // Function-returned values
   f4, f5, f6, f7, f8, f9, f10, f11,       // Temporary values
   f12, f13, f14, f15,                     // Arguments passed into a function
@@ -70,7 +68,7 @@ void regFlush(std::ofstream &, reg_t, bool);
 
 void regMap(std::ofstream &, reg_t, sym*, bool);
 
-void resetRegMaps(std::ofstream &);
+void resetRegMaps(std::ofstream &, bool);
 
 void dumpASM(std::ofstream &, const std::vector<irquad_t> &); // convert IR code to ASM (mainly MIPS, for "spim" simulator)
 

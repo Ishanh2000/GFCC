@@ -170,7 +170,7 @@ postfix_expression
 			emit(eps, "call", $1->eval, "0"); // call <func / func_ptr>, 0
 			Type* _t = $$->type;
 			if ((!_t) || (_t->grp() != BASE_G) || (((Base*)_t)->base != VOID_B)) {
-				emit($$->eval = newTmp(clone(_t)), eps, "retval"); // call <func / func_ptr>, 0
+				emit($$->eval = newTmp(clone(_t)), eps, "$retval"); // call <func / func_ptr>, 0
 			}
 		}
 	}
@@ -244,7 +244,7 @@ postfix_expression
 			emit(eps, "call", $1->eval, to_string(l)); // call <func / func_ptr>, l
 			Type *_t = $$->type;
 			if ((!_t) || (_t->grp() != BASE_G) || (((Base*)_t)->base != VOID_B)) {
-				emit($$->eval = newTmp(clone(_t)), eps, "retval"); // call <func / func_ptr>, 0
+				emit($$->eval = newTmp(clone(_t)), eps, "$retval"); // call <func / func_ptr>, 0
 			}
 		}
 	}

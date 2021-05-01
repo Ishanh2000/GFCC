@@ -7,12 +7,12 @@ int main() {
     int a = 10;
     int b = (2*4) + ((2+3) + ((1 + 2)+ (2-(a + a)) * 10));
 
-    {
-        int b = 10;
-        int a = 1;
-        a = a+b;
-        return 0;
-    }
+    // {
+    //     int b = 10;
+    //     int a = 1;
+    //     a = a+b;
+    //     return 0;
+    // }
     return 0;
 }
 // @ x{
