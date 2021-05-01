@@ -1,6 +1,7 @@
 // AUM SHREEGANESHAAYA NAMAH||
 // compile using: g++ -Iinclude -DTEST_CODEGEN codegen.cpp
 #include <fstream>
+#include <iomanip>
 #include <vector>
 
 #include <ircodes.h>
@@ -71,12 +72,14 @@ deltaNxtUse _nxtUse::step() {
 _nxtUse nxtUse;
 string currFunc = "";
 
-void regFlush(std::ofstream & f, reg_t reg) {
+void regFlush(std::ofstream & f, reg_t reg, bool store = true) {
   if(regDscr[reg]) {
     // TODO: sw/sb/... for non 4 byte
     // TODO: offset from $gp
-    f << '\t' << "sw " << reg2str[reg]+", -"<< regDscr[reg]->offset <<"($fp)";
-    f << " # flush register to stack (" + regDscr[reg]->name + ")"<< endl;
+    if (store) { 
+      f << '\t' << "sw " << reg2str[reg]+", -"<< regDscr[reg]->offset <<"($fp)";
+      f << " # flush register to stack (" + regDscr[reg]->name + ")"<< endl;
+    }
     // clear addrDscr
     regDscr[reg]->reg = zero;
     // clear regDscr
@@ -130,12 +133,16 @@ oprRegs getReg(std::ofstream & f, const irquad_t &q) {
   deltaNxtUse lastdelta = nxtUse.lastdelta;
   sym *src1 = lastdelta.src1Sym, *src2 = lastdelta.src2Sym;
   sym *dst = lastdelta.dstSym;
-
   oprRegs ret;
+
+  /* constant */
   if(!src1) ret.src1Reg = zero;
   else {
+    /* already in a reg */
     if (src1->reg != zero) ret.src1Reg = src1->reg;
+    /* else get a new reg */
     else {
+      /* find a free reg */
       int cand = t0;
       while (cand <= t9) {
         if(!regDscr[cand]) {
@@ -145,6 +152,7 @@ oprRegs getReg(std::ofstream & f, const irquad_t &q) {
         }
         cand++;
       }
+      /* no reg is free */
       if(cand > t9) {
         regFlush(f, t9);
         regMap(f, t9, src1);
@@ -153,10 +161,14 @@ oprRegs getReg(std::ofstream & f, const irquad_t &q) {
     }
   }
 
+  /* constant */
   if(!src2) ret.src2Reg = zero;
   else {
+    /* already in a reg */
     if (src2->reg != zero) ret.src2Reg = src2->reg;
+    /* else get a new reg */
     else {
+      /* find a free reg */
       int cand = t0;
       reg_t cand1 = zero;
       while (cand <= t9) {
@@ -169,6 +181,7 @@ oprRegs getReg(std::ofstream & f, const irquad_t &q) {
           cand1 = (reg_t)cand;
         cand++;
       }
+      /* no reg is free */
       if(cand > t9) {
         regFlush(f, cand1);
         regMap(f, cand1, src2);
@@ -179,9 +192,35 @@ oprRegs getReg(std::ofstream & f, const irquad_t &q) {
 
   if(!dst) ret.dstReg = zero; // shoud never happen?
   else {
-    if (dst->reg != zero) ret.dstReg = dst->reg;
-    // TODO: check if one of src1/src2 register can be directly used
+    /* check if one of src1/src2 register can be directly used */
+    if (ret.src1Reg!=zero && src1->nxtuse == -1 && !src1->alive) {
+      // soft flush (no need to store for dst) any existing register mapped to dst
+      regFlush(f, dst->reg, false);
+      // soft flush (we don't need src1 value further) src1Reg 
+      regFlush(f, ret.src1Reg, false);
+      // soft map (we still needs src1 value) dst to src1Reg
+      regMap(f, ret.src1Reg, dst, false);
+      ret.dstReg = ret.src1Reg;
+    }
+    /*
+     ! Can't do this as if dstReg = sr2Reg and src1 is constant then it will 
+     ! first load src1 into dstReg which will erase src2 content.
+     ! Need to change logic if want to make this work.
+    */
+    // else if (ret.src2Reg!=zero && src2->nxtuse == -1 && !src2->alive) {
+    //   // soft flush any existing register mapped to dst
+    //   regFlush(f, dst->reg, false);
+    //   // soft flush src2Reg  
+    //   regFlush(f, ret.src2Reg, false);
+    //   // soft map dst to src2Reg (we )
+    //   regMap(f, ret.src2Reg, dst, false);
+    //   ret.dstReg = ret.src2Reg;
+    // }
+    /* if already in a register */
+    else if (dst->reg != zero) ret.dstReg = dst->reg;
+    /* else get a new reg */
     else {
+      /* find a free reg */
       int cand = t0;
       reg_t cand1 = zero;
       while (cand <= t9) {
@@ -194,15 +233,15 @@ oprRegs getReg(std::ofstream & f, const irquad_t &q) {
           cand1 = (reg_t)cand;
         cand++;
       }
+      /* no reg is free */
       if(cand > t9) {
         regFlush(f, cand1);
         regMap(f, cand1, dst, false);
         ret.dstReg = cand1;
       }
     }
-    return ret;
   }
-  
+   return ret;
 }
 
 
@@ -219,12 +258,15 @@ void dumpASM(ofstream &f, const vector<irquad_t> & IR) {
     int nxtleader = getNxtLeader(IR, currleader);
     cout<< "Leader at: " << nxtleader << endl;
     // gen code for a main block
+    // if label exist to this statement
+    if(Labels.find(currleader) != Labels.end()) {
+      resetRegMaps(f);
+      f << "LABEL_" + to_string(currleader)+ ":"<< endl;
+    }
     while(currleader < nxtleader) {
       //  TODO: flush, reset etc
-      // Flush before any jump
-      if(currleader == nxtleader-1) {
-        resetRegMaps(f);
-      }
+      // // Flush before any jump
+      // if(currleader == nxtleader-1) resetRegMaps(f);
       genASM(f, IR[currleader]);
       currleader++;
     }
@@ -236,33 +278,71 @@ void genASM(std::ofstream & f, const irquad_t & quad) {
   
   deltaNxtUse lastdelta = nxtUse.step();
 
-  if(quad.opr == "func") funcStart(f, quad);
-  else if (quad.opr == "return") 
+  if (quad.opr == "+" || quad.opr == "-" ||
+      quad.opr == "*"|| quad.opr == "/" ||
+      quad.opr == ">" || quad.opr == "<" ||
+      quad.opr == "&&" || quad.opr == "||") binOpr(f, quad);
+ 
+  else if (quad.opr == eps) assn(f, quad);
+  
+  else if (quad.opr == "goto") {
+    resetRegMaps(f);
+    f << "\t" <<"b LABEL_" + quad.src1 << endl;
+  }
+
+  else if (quad.opr == "ifgoto") {
+    oprRegs regs = getReg(f, quad);
+    resetRegMaps(f);
+    f << "\t" <<"bnez " + reg2str[regs.src2Reg] + ", LABEL_" + quad.src1 << endl;
+  }
+  
+  else if (quad.opr == "newScope") {
+    // resetRegMaps(f);
+    /* find scope */
+    string scopeName = quad.src1;
+    auto symtabs = SymRoot->currScope->subScopes; // currscope == root
+    symtab * scopeTab;
+    for (auto tab: symtabs) {
+      if (tab->name == scopeName ) { scopeTab = tab; break; }
+    }
+    cout << "opening scope" + quad.src1<<endl;
+    // change scope
+    SymRoot->currScope = scopeTab;
+    for (sym* symb: scopeTab->syms) {
+      /* sanity checks */
+      if (symb->reg != zero) 
+        cout << "void genASM(std::ofstream & f, const irquad_t & quad) \"newscope\" error1"<<endl;
+      if (symb->nxtuse != -1)
+        cout << "void genASM(std::ofstream & f, const irquad_t & quad) \"newscope\" error3"<<endl;
+      symb->reg = zero;
+      // temproraies dead and variables are alive
+      symb->alive = (symb->name[0] == '0') ? false : true;
+      symb->nxtuse = -1;
+    }
+  }
+  
+  else if(quad.opr == "closeScope") {
+    // resetRegMaps(f);
+    // close scope
+    SymRoot->currScope = SymRoot->currScope->parent;
+  }
+
+  else if(quad.opr == "func") funcStart(f, quad);
+  
+  else if (quad.opr == "return") {
+    resetRegMaps(f);
     // TODO
     f << '\t' << "b " << currFunc + "_ret" << " # jump to return routine" << endl;
+  }
+
   else if (quad.opr == "function end") funcEnd(f, quad);
-  else if (quad.opr == eps) {
-    oprRegs regs = getReg(f, quad);
-    // reg_t srcReg = getSymReg(quad.src1), dstReg = getSymReg(quad.dst);
-    if(regs.src1Reg == zero) {
-      // TODO other types
-      f << '\t' << "li " << reg2str[regs.dstReg] + ", " + quad.src1;
-      f << " # " + quad.dst <<endl;
-    }
-    else {
-      f << '\t' << "move " << reg2str[regs.dstReg] + ", " + reg2str[regs.src1Reg] ;
-      f << " # move " + quad.dst + " = " + quad.src1 << endl;
-    }
-  }
-  else if (quad.opr == "+" || quad.opr == "-"  || 
-          quad.opr == "*"|| quad.opr == "/") {  
-    binOpr(f, quad);
-  }
+
 
 }
 
 
 void funcStart(std::ofstream & f, const irquad_t & quad) {
+  // resetRegMaps(f);
   currFunc = quad.src1;
   auto symtabs = SymRoot->currScope->subScopes; // currscope == root
   // search for function scope
@@ -274,10 +354,14 @@ void funcStart(std::ofstream & f, const irquad_t & quad) {
   SymRoot->currScope = funTab;
   // initialise reg for all symbols to "zero"
   for (sym* symb: funTab->syms) {
+    /* sanity checks */
     if (symb->reg != zero) 
-      cout << "void funcStart(std::ofstream & f, const irquad_t & quad) error"<<endl;
+      cout << "void funcStart(std::ofstream & f, const irquad_t & quad) error1"<<endl;
+    if (symb->nxtuse != -1)
+      cout << "void funcStart(std::ofstream & f, const irquad_t & quad) error3"<<endl;
+    /* redundant steps */
     symb->reg = zero;
-    // temproraies dead and 
+    // temproraies dead and variables are alive
     symb->alive = (symb->name[0] == '0') ? false : true;
     symb->nxtuse = -1;
   }
@@ -303,6 +387,7 @@ void funcStart(std::ofstream & f, const irquad_t & quad) {
 
 
 void funcEnd(std::ofstream & f, const irquad_t & quad) {
+  // resetRegMaps(f);
   // close scope
   SymRoot->currScope = SymRoot->currScope->parent;
   f << currFunc + "_ret:" << endl;
@@ -336,23 +421,53 @@ void binOpr(std::ofstream & f, const irquad_t & q) {
   sym *dst = lastdelta.dstSym;
   
   // TODO: unsigned, float, ...
-  if(opr == "+" || opr == "-" || opr == "*" || opr == "/" ) {
+  // if(opr == "+" || opr == "-" || opr == "*" || opr == "/" ) {
     string instr;
-    if (opr == "+") instr = "add";
+    if      (opr == "+") instr = "add";
     else if (opr == "-") instr = "sub";
     else if (opr == "*") instr = "mul";
     else if (opr == "/") instr = "div";
+    else if (opr == "==") instr = "seq";
+    else if (opr == ">") instr = "sgt";
+    else if (opr == "<") instr = "slt";
+    else if (opr == ">=") instr = "sge";
+    else if (opr == "<=") instr = "sle";
+    else if (opr == "&&") instr = "and";
+    else if (opr == "||") instr = "or";
 
     // dst = src1 + src2  
     oprRegs regs = getReg(f, q);
-    string src2 = (regs.src2Reg == zero) ? q.src2 : reg2str[regs.src2Reg];
+    string src2_str = (regs.src2Reg == zero) ? q.src2 : reg2str[regs.src2Reg];
+    // src1 is constant
     if (regs.src1Reg == zero) {
       f << '\t' << "li " << reg2str[regs.dstReg] + ", " + q.src1 << " # load constant"<< endl;
-      f << '\t' << instr + " " << reg2str[regs.dstReg] + ", " + reg2str[regs.dstReg] + ", " + src2 << endl;
+      f << '\t' << instr + " " << reg2str[regs.dstReg] + ", " + reg2str[regs.dstReg] + ", " + src2_str;
+      f << " # " + q.dst + " = " + q.src1 + " " + opr + " " + q.src2 << endl;
       return;
     }
-    f << '\t' << instr + " " << reg2str[regs.dstReg] + ", " + reg2str[regs.src1Reg] + ", " + src2 << endl;
-  }
+    f << '\t' << instr + " " << reg2str[regs.dstReg] + ", " + reg2str[regs.src1Reg] + ", " + src2_str;
+    f << " # " + q.dst + " = " + q.src1 + " " + opr + " " + q.src2 << endl;
+  // }
+}
+
+
+void assn(ofstream & f, const irquad_t &q) {
+    oprRegs regs = getReg(f, q);
+    /* just remapping resgisters */
+    if (regs.dstReg == regs.src1Reg) {
+      f << "\t # " + q.dst + " = " + reg2str[regs.src1Reg] <<endl;
+    }
+    /* load a constant */
+    else if(regs.src1Reg == zero) {
+      // TODO other types
+      f << '\t' << "li " << reg2str[regs.dstReg] + ", " + q.src1;
+      f << " # " + q.dst <<endl;
+    }
+    /* need to move */
+    else {
+      f << '\t' << "move " << reg2str[regs.dstReg] + ", " + reg2str[regs.src1Reg] ;
+      f << " # move " + q.dst + " = " + q.src1 << endl;
+    }
 }
 
 
@@ -364,7 +479,9 @@ int getNxtLeader(const vector<irquad_t> & IR, int leader) {
     if(IR[idx].opr == "goto" || IR[idx].opr == "ifgoto" ||
        IR[idx].opr == "call" || IR[idx].opr == "func" ||
        IR[idx].opr == "return" || IR[idx].opr == "newScope" ||
-       IR[idx].opr == "closeScope" || IR[idx].opr == "function end" ) 
+       IR[idx].opr == "closeScope" || IR[idx].opr == "function end" ||
+       Labels.find(idx+1) != Labels.end()
+       ) 
     {
       nxtLeader = idx + 1;
       break;

@@ -4,6 +4,7 @@
 
 #include <fstream>
 #include <string>
+#include <unordered_set>
 
 #include <gfcc_lexer.h>
 #include <types2.h>
@@ -26,6 +27,8 @@ typedef struct _str_t { // for strings to be used in ".data" section
 } str_t;
 
 extern std::vector<irquad_t> IRDump;
+
+extern std::unordered_set<unsigned int> Labels;
 
 extern std::vector<str_t> StrDump;
 

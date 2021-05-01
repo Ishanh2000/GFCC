@@ -169,7 +169,7 @@ bool symRoot::newScope(string scope_name) {
   if (!currScope) return false;
   symtab* new_scope = new symtab(scope_name, currScope);
   if (!new_scope) return false;
-  emit(eps, "newScope", scope_name + " " + to_string(gpos.line) + ":" + to_string(gpos.column));
+  emit(eps, "newScope", scope_name);
   currScope->subScopes.push_back(new_scope);
   
   /* offset: initialise for a child */
@@ -187,7 +187,7 @@ void symRoot::closeScope() {
     if (dbg) cout << "Closing existing scope \"" << name << "\"." << endl;
     
     if (name.substr(0, 9) == "_unnamed_")
-      emit(eps, "closeScope", currScope->name + " " + to_string(gpos.line) + ":" + to_string(gpos.column));
+      emit(eps, "closeScope", currScope->name);
     else if (name.substr(0, 5) == "func ")
       emit(eps, "function end", eps);
 

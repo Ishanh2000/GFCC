@@ -5,6 +5,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <unordered_set>
 #include <ops.h>
 
 #include <symtab.h>
@@ -13,6 +14,8 @@
 using namespace std;
 
 vector<irquad_t> IRDump;
+
+unordered_set<unsigned int> Labels;
 
 vector<str_t> StrDump;
 
@@ -25,6 +28,7 @@ unsigned int totalTmp = 0;
 
 void resetIRCodes() { // reset all global variables for next file
     IRDump.clear();
+    Labels.clear();
     StrDump.clear();
     nextQuadLabel = "";
     totLabels = 0;
@@ -45,6 +49,9 @@ void emit(string dst, string opr, string src1, string src2) { // emit into globa
     irquad_t q = _irquad_t(opr, dst, src1, src2);
     q.label = nextQuadLabel;
     IRDump.push_back(q);
+    if((opr == "goto" || opr == "ifgoto") && src1 != "---") {
+        Labels.insert(stoi(src1));
+    }
     nextQuadLabel = eps;
 }
 
@@ -72,6 +79,7 @@ void backpatch(vector<unsigned int> & lst, unsigned int jmpinstr) {
 }
 
 void backpatch(vector<unsigned int> & lst, string jmpinstr) {
+    if (!lst.empty()) Labels.insert(stoi(jmpinstr));
     for(auto i: lst){
         IRDump[i].src1 = jmpinstr;
     }

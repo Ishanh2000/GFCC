@@ -14,7 +14,7 @@ enum reg_t {
   gp, sp, fp, ra                          // global data ptr, stack ptr, frame ptr, return addr
 };
 
-enum freg {
+enum freg_t {
   f0, f1, f2, f3,                         // Function-returned values
   f4, f5, f6, f7, f8, f9, f10, f11,       // Temporary values
   f12, f13, f14, f15,                     // Arguments passed into a function
@@ -66,7 +66,7 @@ struct oprRegs {
   reg_t src2Reg;
 };
 
-void regFlush(std::ofstream &, reg_t);
+void regFlush(std::ofstream &, reg_t, bool);
 
 void regMap(std::ofstream &, reg_t, sym*, bool);
 
@@ -78,8 +78,6 @@ reg_t getSymReg(const std::string &);
 
 oprRegs getReg(std::ofstream &, const irquad_t &q);
 
-int getNxtLeader(const std::vector<irquad_t> &, int);
-
 void genASM(std::ofstream &, const irquad_t &);
 
 void funcStart(std::ofstream &, const irquad_t &); // preliminaries at beginning of function
@@ -87,5 +85,9 @@ void funcStart(std::ofstream &, const irquad_t &); // preliminaries at beginning
 void funcEnd(std::ofstream &, const irquad_t &); // preliminaries at end of function
 
 void binOpr(std::ofstream &, const irquad_t &); // handle binary operators
+
+void assn(std::ofstream &, const irquad_t &);
+
+int getNxtLeader(const std::vector<irquad_t> &, int);
 
 #endif
