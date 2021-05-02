@@ -1779,9 +1779,9 @@ selection_statement
 			if (!(bs == CHAR_B || bs == INT_B || bs == LONG_B || bs == LONG_LONG_B || bs == ENUM_B))
 				repErr($3->pos, "invalid expression type for switch statement", _FORE_RED_);
 		}
-		backpatch($5->caselist,$3->eval);
-		backpatch($5->nextlist,nextIdx());
-		backpatch($5->breaklist,nextIdx());
+		backpatch($5->caselist, $3->eval);
+		backpatch($5->nextlist, nextIdx());
+		backpatch($5->breaklist, nextIdx());
 		$$->contlist = $5->contlist;		
 	}
 	;

@@ -192,7 +192,7 @@ oprRegs getReg(std::ofstream & f, const irquad_t &q) {
     }
   }
 
-  if(!dst) ret.dstReg = zero; // shoud never happen?
+  if(!dst) ret.dstReg = zero;
   else {
     /* check if one of src1/src2 register can be directly used */
     if (ret.src1Reg!=zero && src1 && src1->nxtuse == -1 && !src1->alive) {
@@ -307,7 +307,7 @@ void genASM(std::ofstream & f, const irquad_t & quad) {
     for (auto tab: symtabs) {
       if (tab->name == scopeName ) { scopeTab = tab; break; }
     }
-    cout << "opening scope" + quad.src1<<endl;
+    cout << "opening scope" + quad.src1 << endl;
     // change scope
     SymRoot->currScope = scopeTab;
     for (sym* symb: scopeTab->syms) {
@@ -516,7 +516,7 @@ int getNxtLeader(const vector<irquad_t> & IR, int leader) {
   for(auto idx = leader; idx < lenIR; idx++) {
     if(IR[idx].opr == "goto" || IR[idx].opr == "ifgoto" ||
        IR[idx].opr == "call" || IR[idx].opr == "return" ||
-      //  IR[idx].opr == "newScope" || IR[idx].opr == "closeScope" || 
+       IR[idx].opr == "newScope" || IR[idx].opr == "closeScope" || 
        IR[idx].opr == "function end" || IR[idx].opr == "func" ||
        Labels.find(idx+1) != Labels.end()
       ) 

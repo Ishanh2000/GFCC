@@ -79,7 +79,21 @@ void backpatch(vector<unsigned int> & lst, unsigned int jmpinstr) {
 }
 
 void backpatch(vector<unsigned int> & lst, string jmpinstr) {
-    if (!lst.empty()) Labels.insert(stoi(jmpinstr));
+    // * assume if jumpinstr is number then it must be a goto label
+    if (!lst.empty()) {
+        try
+        {
+            Labels.insert(stoi(jmpinstr));
+        }
+        // not a number
+        catch(const std::invalid_argument& e)
+        {
+            std::cerr << "bakpatch: "<< e.what() << ": not making label for " + jmpinstr << '\n';
+        }
+        catch(...){
+            cerr<<"bakpatch: something went wrong while stoi()" << endl;
+        }
+    }
     for(auto i: lst){
         IRDump[i].src1 = jmpinstr;
     }
