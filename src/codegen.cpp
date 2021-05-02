@@ -135,8 +135,9 @@ oprRegs getReg(std::ofstream & f, const irquad_t &q) {
   sym *dst = lastdelta.dstSym;
   oprRegs ret;
 
-  /* constant */
+  /* return value */
   if (q.src1 == "$retval") {ret.src1Reg = v0;}
+  /* constant */
   else if(!src1) ret.src1Reg = zero;
   else {
     /* already in a reg */
@@ -197,8 +198,9 @@ oprRegs getReg(std::ofstream & f, const irquad_t &q) {
     if (ret.src1Reg!=zero && src1 && src1->nxtuse == -1 && !src1->alive) {
       // soft flush (no need to store for dst) any existing register mapped to dst
       regFlush(f, dst->reg, false);
-      // soft flush (we don't need src1 value further) src1Reg 
-      regFlush(f, ret.src1Reg, false);
+      // // soft flush (we don't need src1 value further) src1Reg 
+      // hard flush (may need src1 value again)
+      regFlush(f, ret.src1Reg);
       // soft map (we still needs src1 value) dst to src1Reg
       regMap(f, ret.src1Reg, dst, false);
       ret.dstReg = ret.src1Reg;
@@ -266,8 +268,6 @@ void dumpASM(ofstream &f, const vector<irquad_t> & IR) {
     }
     while(currleader < nxtleader) {
       //  TODO: flush, reset etc
-      // // Flush before any jump
-      // if(currleader == nxtleader-1) resetRegMaps(f);
       genASM(f, IR[currleader]);
       currleader++;
     }
@@ -424,6 +424,7 @@ void funcStart(std::ofstream & f, const irquad_t & quad) {
 
 
 void funcEnd(std::ofstream & f, const irquad_t & quad) {
+  // soft flush every register
   resetRegMaps(f, false);
   // close scope
   SymRoot->currScope = SymRoot->currScope->parent;
