@@ -55,7 +55,8 @@ double gfcc_sqrt(double x) { // Newton's Method // ok
   if (x < 0.0) return 0.0; // or some other return value?
   if (x == 0.0) return 0.0;
   double r = x;
-  while (gfcc_fabs(x - r * r) > __GFCC_M_PREC__) r = (r + (x / r)) / 2.0;
+  int count = 0;
+  while (gfcc_fabs(x - r * r) > __GFCC_M_PREC__ && count++ <= 1024) r = (r + (x / r)) / 2.0;
   return r;
 }
 

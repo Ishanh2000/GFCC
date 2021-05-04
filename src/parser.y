@@ -1661,7 +1661,7 @@ M3 : CASE constant_expression ':' {
 	}
 
 labeled_statement
-	: IDENTIFIER ':' statement                { ($1)->attr = label_attr; $$ = op( $1, 0, 1, ej($3) ); }
+	: IDENTIFIER ':' { emit(eps, "label", "USER_LABEL_" + string($1->label)); } statement{ ($1)->attr = label_attr; $$ = op( $1, 0, 1, ej($4) ); }
 	| M3 M statement  { 
 		// $$ = op( $1, 0, 2, ej($2), ej($6) );
 		Type *t = $1->type; grp_t g = t->grp();
@@ -1880,7 +1880,7 @@ M2 : expression_statement
 
 jump_statement
 	: GOTO IDENTIFIER ';'	{ $$ = op( $1, 0, 1, ej($2) );
-												 emit(eps, "goto", "---"); /*TODO*/} // ignore for now
+												 emit(eps, "goto", "USER_LABEL_" + string($2->label)); } // ignore for now
 	| CONTINUE ';'			{ $$ = $1; 
 											$$->contlist.push_back(nextIdx()); emit(eps, "goto", "---");}
 	| BREAK ';'				{ $$ = $1; 

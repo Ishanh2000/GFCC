@@ -50,7 +50,13 @@ void emit(string dst, string opr, string src1, string src2) { // emit into globa
     q.label = nextQuadLabel;
     IRDump.push_back(q);
     if((opr == "goto" || opr == "ifgoto") && src1 != "---") {
-        Labels.insert(stoi(src1));
+        try
+        {
+            Labels.insert(stoi(src1));
+        }
+        catch(...){
+
+        }
     }
     nextQuadLabel = eps;
 }
@@ -220,6 +226,9 @@ void dumpIR(ofstream &f, vector<irquad_t> &irArr) { // dump 3AC codes into a fil
 
         // goto <src1>
         if (q.opr == "goto") f << "goto " << q.src1;
+
+        // label <src1>
+        else if (q.opr == "label") f << "label " << q.src1;
         
         // if <src2> then goto <src1>
         else if (q.opr == "ifgoto") f << "if " << q.src2 << " then goto " << q.src1;

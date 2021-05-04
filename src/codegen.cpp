@@ -76,6 +76,7 @@ void regFlush(std::ofstream & f, reg_t reg, bool store = true) {
   if(regDscr[reg]) {
     // TODO: sw/sb/... for non 4 byte
     // TODO: offset from $gp
+    // always do in case of global
     if (store) { 
       f << '\t' << "sw " << reg2str[reg]+", -"<< regDscr[reg]->offset <<"($fp)";
       f << " # flush register to stack (" + regDscr[reg]->name + ")"<< endl;
@@ -266,6 +267,10 @@ void dumpASM(ofstream &f, const vector<irquad_t> & IR) {
       resetRegMaps(f);
       f << "LABEL_" + to_string(currleader)+ ":"<< endl;
     }
+    else if(IR[currleader].opr == "label") {
+      resetRegMaps(f);
+      f << IR[currleader].src1+ ":"<< endl;
+    }
     while(currleader < nxtleader) {
       //  TODO: flush, reset etc
       genASM(f, IR[currleader]);
@@ -288,13 +293,18 @@ void genASM(std::ofstream & f, const irquad_t & quad) {
   else if (quad.opr == eps) assn(f, quad);
   
   else if (quad.opr == "goto") {
-    resetRegMaps(f);
-    f << "\t" <<"b LABEL_" + quad.src1 << endl;
+    // resetRegMaps(f);
+    string src1 = quad.src1;
+    cout << src1 <<endl;
+    if(!src1.empty() &&  src1[0] == 'U'); // TODO: use better check
+    else src1 = ("LABEL_" + src1);
+
+    f << "\t" <<"b " + src1 << endl;
   }
 
   else if (quad.opr == "ifgoto") {
     oprRegs regs = getReg(f, quad);
-    resetRegMaps(f);
+    // resetRegMaps(f);
     f << "\t" <<"bnez " + reg2str[regs.src2Reg] + ", LABEL_" + quad.src1 << endl;
   }
   
@@ -373,8 +383,6 @@ void genASM(std::ofstream & f, const irquad_t & quad) {
   }
 
   else if (quad.opr == "function end") funcEnd(f, quad);
-
-
 }
 
 
@@ -516,9 +524,9 @@ int getNxtLeader(const vector<irquad_t> & IR, int leader) {
   for(auto idx = leader; idx < lenIR; idx++) {
     if(IR[idx].opr == "goto" || IR[idx].opr == "ifgoto" ||
        IR[idx].opr == "call" || IR[idx].opr == "return" ||
-       IR[idx].opr == "newScope" || IR[idx].opr == "closeScope" || 
+       IR[idx].opr == "newScope" || IR[idx].opr == "closeScope" ||
        IR[idx].opr == "function end" || IR[idx].opr == "func" ||
-       Labels.find(idx+1) != Labels.end()
+       IR[idx+1].opr == "label" || Labels.find(idx+1) != Labels.end()
       ) 
     {
       nxtLeader = idx + 1;

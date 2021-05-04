@@ -4,6 +4,6 @@ int fibo(int n) {
 }
 
 int main() {
-	int a = fibo(18); //2584
+	int a = fibo(25); //2584
 	return 0;
 }
