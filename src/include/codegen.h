@@ -36,6 +36,8 @@ extern std::string freg2str[];
 
 extern class sym* regDscr[];
 
+extern bool semanticErr;
+
 struct deltaNxtUse {
   sym* dstSym = NULL;
   int dstNxtUse = -1;
@@ -87,5 +89,7 @@ void binOpr(std::ofstream &, const irquad_t &); // handle binary operators
 void assn(std::ofstream &, const irquad_t &);
 
 int getNxtLeader(const std::vector<irquad_t> &, int);
+
+void resetCodegen();
 
 #endif

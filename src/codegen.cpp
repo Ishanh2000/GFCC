@@ -42,6 +42,14 @@ sym* regDscr[32];
 _nxtUse nxtUse;
 string currFunc = "";
 unsigned int paramOffset = 40;
+bool semanticErr = false;
+
+void resetCodegen() { // TODO: register flushing, etc.
+  currFunc = "";
+  paramOffset = 40;
+  semanticErr = false;
+}
+
 
 void _nxtUse::clear() {
   if (this->deltas.size() != 0) {
@@ -398,6 +406,9 @@ void funcStart(std::ofstream & f, const irquad_t & quad) {
   // change scope
   SymRoot->currScope = funTab;
   // initialise reg for all symbols to "zero"
+  cout << "C:" << quad.src1 << endl;
+  cout << "A:" << funTab << endl;
+  cout << "B:" << funTab->name << endl;
   for (sym* symb: funTab->syms) {
     /* sanity checks */
     if (symb->reg != zero) 

@@ -142,7 +142,7 @@ int main (int argc , char *argv[]) {
 	if (lib_reqs & LIB_MATH) std::cout << _C_BOLD_ << _FORE_YELLOW_ << "Using GFCC maths library." << endl << _C_NONE_;
 	if (lib_reqs & LIB_TYPO) std::cout << _C_BOLD_ << _FORE_YELLOW_ << "Using GFCC typography library." << endl << _C_NONE_;
 
-	start += (2*num_t_flag) + num_r_flag;
+	start += (2*num_t_flag) + num_r_flag + num_l_flag;
 
 	int total_in_files;
 	if (o_flag_index < 0) total_in_files = argc - start; // -o was never specified. Output on STDOUT
@@ -215,15 +215,17 @@ int main (int argc , char *argv[]) {
 
 		fileName = argv[_in];
 
+		libDumpSym(lib_reqs);
+
 		int parse_return = yyparse(); std::cout << "yyparse() = " << parse_return << endl;
 		
 		if (!parse_return) {
-			if (out_reqs & OUT_TOK) {
+			if (out_reqs & OUT_TOK) { //  do not dump library tokens
 				tok_out << "# File Name: " << argv[_in] << endl << endl;
 				dumpTok(tok_out, tokDump);
 			}
 			
-			if (out_reqs & OUT_AST) { // AST to DOT conversion
+			if (out_reqs & OUT_AST) { // AST to DOT conversion - do not output library ASTs
 				ast_out << "// File Name: " << argv[_in] << endl << endl;
 				ast_out << "digraph {" << endl;
 				if (!AstRoot) ast_out << "\t0 [label=\"" << fileName << " (nothing useful)\",shape=none];" << endl;
@@ -231,21 +233,25 @@ int main (int argc , char *argv[]) {
 				ast_out << "}" << endl;
 			}
 			
-			if (out_reqs & OUT_SYM) { // Symbol table to CSV conversion
+			if (out_reqs & OUT_SYM) { // Symbol table to CSV conversion - dump library symbols too
 				sym_out << "# File Name: " << argv[_in] << endl << endl;
 				sym_out << csvHeaders << endl << endl; /// CSV HEADERS
+
 				SymRoot->dump(sym_out);
 			}
 
-			if (out_reqs & OUT_3AC) { // 3AC code dump
+			if (out_reqs & OUT_3AC) { // 3AC code dump - do not dump library 3AC
 				a3c_out << "# File Name: " << argv[_in] << endl << endl;
 				dumpStr(a3c_out, StrDump);
 				dumpIR(a3c_out, IRDump);
 			}
 
-			if (out_reqs & OUT_ASM) { // ASM code dump
-				asm_out << "# File Name: " << argv[_in] << endl << endl;
-				dumpASM(asm_out, IRDump);
+			if (out_reqs & OUT_ASM) { // ASM code dump - dump library ASM code
+				if (semanticErr) msg(WARN) << "Semantic error: NOT proceeding with code generation.";
+				else {
+					asm_out << "# File Name: " << argv[_in] << endl << endl;
+					dumpASM(asm_out, IRDump);
+				}
 			}
 		}
 		

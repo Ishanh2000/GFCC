@@ -12,5 +12,16 @@ int main(int argc, char *argv[]) {
   r = p+*q;
 
   c = a & (int)pp;
+  pp += GFCC_M_PI;
+  pp += gfcc_sin(GFCC_M_PI/2);
+  g5_printf("%s, %c", "kk", 'b');
   return 0;
 }
+
+// int main() {
+//   return 0;
+// }
+
+// int gfcc_abs () {
+//   return 6;
+// }

@@ -12,6 +12,7 @@
 #include <parser.tab.h>
 #include <gfcc_lexer.h>
 #include <typo.h>
+#include <codegen.h>
 
 using namespace std;
 
@@ -46,6 +47,8 @@ int yyerror(const char *s) {
 }
 
 void repErr(loc_t &_pos, string str, const char* _color) { // very similar to yyerror
+	if (string(_color) == _FORE_RED_) semanticErr = true;
+
 	// cout << fflush << endl;
 	cout << _C_BOLD_ << "GFCC : " << fileName << ':' << _pos.line << ':' << _pos.column << ": [approx. positions indicated] ";
 	cout << _color << setw(_pos.column) << str << _C_NONE_ << endl;

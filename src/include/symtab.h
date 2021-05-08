@@ -26,6 +26,7 @@ class sym { // SYMBOL
     std::string name;
     class Type* type = NULL;
     loc_t pos; // there can be two positions - last defined / last declared - later, if time permits
+    int lib = 0x0; // what library does this symbol belongs to
     short unsigned int size = 1;
     unsigned int offset; // offset from the $fp or $gp (0 iff type like struct definition)
 
@@ -42,6 +43,7 @@ class sym { // SYMBOL
     int nxtuse = -1;
 
     sym(std::string, class Type*, loc_t);
+    sym(std::string, class Type*, loc_t, int);
     void dump(std::ofstream &); // dump all info into (opened writable) file
 };
 
@@ -102,6 +104,8 @@ extern std::string csvHeaders;
 extern symRoot *SymRoot;
 
 bool isFuncScope(class symtab *);
+
+void libDumpSym(int);
 
 void resetSymtab(); // reset appropriate global variables
 

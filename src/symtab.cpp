@@ -32,11 +32,62 @@ using namespace std;
 
 symRoot *SymRoot = new symRoot();
 
-string csvHeaders = "LOCATION, NAME, SIZE, OFFSET, TYPE, DETAILED_TYPE";
+string csvHeaders = "LIBRARY, LOCATION, NAME, SIZE, OFFSET, NXTUSE, ALIVE, TYPE, DETAILED_TYPE";
 
 void resetSymtab() { // reset appropriate global variables
   delete SymRoot;
   SymRoot = new symRoot();
+}
+
+void libDumpSym(int lib_reqs) {
+  if (lib_reqs & LIB_MATH) { // insert symbols into SymRoot
+    Base* b = new Base(DOUBLE_B); b->isConst = true;    
+    SymRoot->pushSym(new sym("GFCC_M_PI", clone(b), { 3, 1 }, LIB_MATH));
+    SymRoot->pushSym(new sym("GFCC_M_E", clone(b), { 4, 1 }, LIB_MATH));
+    SymRoot->pushSym(new sym("__GFCC_M_PREC__", clone(b), { 5, 1 }, LIB_MATH));
+    SymRoot->pushSym(new sym("__GFCC_M_LOG2__", clone(b), { 6, 1 }, LIB_MATH));
+    SymRoot->pushSym(new sym("__GFCC_M_LOG10__", clone(b), { 7, 1 }, LIB_MATH));
+
+    { // unsigned long long gfcc_abs(long long);
+      Base *ret = new Base(LONG_LONG_B); ret->sign = UNSIGNED_X;
+      Func* fn = new Func(ret); fn->newParam(new Base(LONG_LONG_B));
+      SymRoot->pushSym(new sym("gfcc_abs", fn, { 8, 1 }, LIB_MATH));
+    }
+    { // unsigned long long gfcc_fact(int);
+      Base *ret = new Base(LONG_LONG_B); ret->sign = UNSIGNED_X;
+      Func* fn = new Func(ret); fn->newParam(new Base(INT_B));
+      SymRoot->pushSym(new sym("gfcc_fact", fn, { 9, 1 }, LIB_MATH));
+    }
+    { // long long gfcc_fib(int);
+      Func* fn = new Func(new Base(LONG_LONG_B)); fn->newParam(new Base(INT_B));
+      SymRoot->pushSym(new sym("gfcc_fib", fn, { 10, 1 }, LIB_MATH));
+    }
+    { // double gfcc_intpow(double, int);
+      Func* fn = new Func(new Base(DOUBLE_B)); fn->newParam(new Base(DOUBLE_B)); fn->newParam(new Base(INT_B));
+      SymRoot->pushSym(new sym("gfcc_intpow", fn, { 11, 1 }, LIB_MATH));
+    }
+
+    Func* d2df = new Func(new Base(DOUBLE_B)); d2df->newParam(new Base(DOUBLE_B));
+    vector<string> d2dfNames = {
+      "gfcc_fabs", "gfcc_sqrt", "gfcc_exp", "gfcc_sin", "gfcc_cos", "gfcc_tan",
+      "gfcc_arcsin", "gfcc_arccos", "gfcc_arctan", "gfcc_sinh", "gfcc_cosh", "gfcc_tanh",
+      "gfcc_log", "gfcc_log2", "gfcc_log10", "gfcc_arcsinh", "gfcc_arccosh", "gfcc_arctanh"
+    };
+    int l = d2dfNames.size();
+    for (int i = 0; i < l; i++) {
+      loc_t tmp; tmp.line = 12 + i; tmp.column = 1;
+      SymRoot->pushSym(new sym(d2dfNames[i], clone(d2df), tmp, LIB_MATH));
+    }
+  }
+  
+  if (lib_reqs & LIB_TYPO) {
+    { // int printf(const char *, ...);
+      Base *b = new Base(CHAR_B); b->isConst = true; 
+      Func* fn = new Func(new Base(INT_B)); fn->newParam(new Ptr(b)); fn->newParam(new Base(ELLIPSIS_B));
+      SymRoot->pushSym(new sym("g5_printf", fn, { 3, 1 }, LIB_TYPO));
+    }
+
+  }
 }
 
 /*************************************/
@@ -44,28 +95,37 @@ void resetSymtab() { // reset appropriate global variables
 /*************************************/
 
 sym::sym(string _name, class Type* _type, loc_t _pos) : name(_name), type(_type), pos(_pos), size(getSize(_type)) {
-  if (_name == "") {
-    if (dbg) msg(ERR) << "Invalid name \"" << _name << "\" or type \"" << str(_type) << "\" passed!";
-    return;
-  }
+  if (_name == "" && dbg) msg(ERR) << "Invalid name \"" << _name << "\" or type \"" << str(_type) << "\" passed!";
+}
+
+sym::sym(string _name, class Type* _type, loc_t _pos, int _lib) : name(_name), type(_type), pos(_pos), size(getSize(_type)), lib(_lib) {
+  if (_name == "" && dbg) msg(ERR) << "Invalid name \"" << _name << "\" or type \"" << str(_type) << "\" passed!";
 }
 
 void sym::dump(ofstream &f) {
-  f << setw(8) << "(" + to_string(pos.line) + ":" + to_string(pos.column) << "), ";
-  f << setw(10) << name << ", ";
-  f << setw(3) << size << ", ";
-  if (offset) f << setw(3) << offset << ", ";
-  else f << setw(3) << "-" << ", ";
-  f << setw(3) << nxtuse << ", ";
-  f << setw(3) << alive << ", ";
-  if (type) switch (type->grp()) {
+  f << setw(4);
+  switch (lib) { // LIBRARY
+    case      0x0 : f << "----,"; break;
+    case LIB_MATH : f << "MATH,"; break;
+    case LIB_TYPO : f << "TYPE,"; break;
+    // case LIB_FILE : f << "FILE,"; break;
+    // case LIB_TIME : f << "TIME,"; break;
+  }
+  f << setw(8) << "(" + to_string(pos.line) + ":" + to_string(pos.column) << "), "; // LOCATION
+  f << setw(20) << name << ", "; // NAME
+  f << setw(3) << size << ", "; // SIZE
+  if (offset) f << setw(3) << offset << ", "; else f << setw(3) << "-" << ", "; // OFFSET
+  f << setw(3) << nxtuse << ", "; // NXTUSE - not required in final project
+  f << setw(3) << alive << ", "; // ALIVE - not required in final project
+  if (type) switch (type->grp()) { // TYPE
     case BASE_G : f << "--------, "; break;
     case  PTR_G : f << " POINTER, "; break;
     case  ARR_G : f << "   ARRAY, "; break;
     case FUNC_G : f << "FUNCTION, "; break;
   } else f << "-----------, ";
-  f << "\"" << str(type) << "\"" << endl; // decode type later on
+  f << "\"" << str(type) << "\"" << endl; // DETAILED TYPE
 }
+
 
 /****************************************/
 /************ CLASS "symtab" ************/
