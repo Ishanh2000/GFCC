@@ -32,7 +32,7 @@ using namespace std;
 
 symRoot *SymRoot = new symRoot();
 
-string csvHeaders = "LIBRARY, LOCATION, NAME, SIZE, OFFSET, NXTUSE, ALIVE, TYPE, DETAILED_TYPE";
+string csvHeaders = "LIBRARY, LOCATION, NAME, SIZE, OFFSET, IS_FUNC_ARG, NXTUSE, ALIVE, TYPE, DETAILED_TYPE";
 
 void resetSymtab() { // reset appropriate global variables
   delete SymRoot;
@@ -91,6 +91,10 @@ void libDumpSym(int lib_reqs) {
       Func* fn = new Func(new Base(VOID_B)); fn->newParam(b);
       SymRoot->pushSym(new sym("g5_putc", fn, { 4, 1 }, LIB_TYPO));
     }
+    { // char g5_getc()
+      Func* fn = new Func(new Base(CHAR_B));
+      SymRoot->pushSym(new sym("g5_getc", fn, { 5, 1 }, LIB_TYPO));
+    }
   }
 
   if (lib_reqs & LIB_STD) {
@@ -119,6 +123,7 @@ void sym::dump(ofstream &f) {
     case      0x0 : f << "----,"; break;
     case LIB_MATH : f << "MATH,"; break;
     case LIB_TYPO : f << "TYPE,"; break;
+    case LIB_STD  : f << " STD,"; break;
     // case LIB_FILE : f << "FILE,"; break;
     // case LIB_TIME : f << "TIME,"; break;
   }
@@ -126,6 +131,7 @@ void sym::dump(ofstream &f) {
   f << setw(20) << name << ", "; // NAME
   f << setw(3) << size << ", "; // SIZE
   if (offset) f << setw(3) << offset << ", "; else f << setw(3) << "-" << ", "; // OFFSET
+  f << setw(5) << (isArg ? "TRUE" : "FALSE") << ", "; // IS_FUNC_ARG
   f << setw(3) << nxtuse << ", "; // NXTUSE - not required in final project
   f << setw(3) << alive << ", "; // ALIVE - not required in final project
   if (type) switch (type->grp()) { // TYPE

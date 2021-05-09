@@ -11,17 +11,21 @@
 
 // }
 
-int main() {
+int main(int arg, char *argv[]) {
   // char str[] = "abcd";
   // int a[5][6][7][8];
   // &a[0][1][2][3];
-  g5_printf("Hello %p, %s\n", 538571822); // 0x2019f42e
-  g5_exit(9);
-  g5_putc('\n');
-  g5_putc('5');
-  g5_putc('f');
-  g5_putc('6');
-  g5_putc('\n');
+  // g5_printf("Hello %p\n", 538571822); // 0x2019f42e
+  // // g5_exit(9);
+  // g5_putc('\n');
+  // g5_putc('5');
+  // g5_putc('f');
+  // g5_putc('6');
+  // g5_putc('\n');
+  // char x = g5_getc();
+  g5_putc(g5_getc());
+  g5_printf("%c\n", g5_getc());
+  // g5_putc(x);
 
   // g5_printf("Hello %f\n", 12.003); // "Hello12.003"
   // g5_printf("Hello %d\n", g5_printf("Hello%f", 12.003)); // expect = 1 // "Hello12.003Hello 1"
