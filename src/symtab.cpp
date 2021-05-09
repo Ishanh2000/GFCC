@@ -86,7 +86,11 @@ void libDumpSym(int lib_reqs) {
       Func* fn = new Func(new Base(INT_B)); fn->newParam(new Ptr(b)); fn->newParam(new Base(ELLIPSIS_B));
       SymRoot->pushSym(new sym("g5_printf", fn, { 3, 1 }, LIB_TYPO));
     }
-
+    {
+      Base *b = new Base(CHAR_B); b->isConst = true; 
+      Func* fn = new Func(new Base(VOID_B)); fn->newParam(b);
+      SymRoot->pushSym(new sym("g5_putc", fn, { 4, 1 }, LIB_TYPO));
+    }
   }
 }
 

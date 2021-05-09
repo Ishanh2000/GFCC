@@ -12,10 +12,19 @@
 // }
 
 int main() {
-  // g5_printf("Hello\n");
+  // char str[] = "abcd";
+  // int a[5][6][7][8];
+  // &a[0][1][2][3];
+  g5_printf("Hello%p\n", 538571822); // 0x2019f42e
+  g5_putc('\n');
+  g5_putc('5');
+  g5_putc('f');
+  g5_putc('6');
+  g5_putc('\n');
+
   // g5_printf("Hello %f\n", 12.003); // "Hello12.003"
   // g5_printf("Hello %d\n", g5_printf("Hello%f", 12.003)); // expect = 1 // "Hello12.003Hello 1"
-  g5_printf("Hello %dIITK, %c, %d\n, %s, %d\n", 89, 'c', 890, "MOOKIT", g5_printf("Hello%f", 12.003));
+  // g5_printf("Hello %dIITK, %c, %d\n, %s, %d\n", 89, 'c', 890, "MOOKIT", g5_printf("Hello%f", 12.003));
   
   return 0;
 }
