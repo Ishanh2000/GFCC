@@ -85,8 +85,9 @@ void regFlush(std::ofstream & f, reg_t reg, bool store = true) {
     // TODO: sw/sb/... for non 4 byte
     // TODO: offset from $gp
     // always do in case of global
-    if (store) { 
-      f << '\t' << "sw " << reg2str[reg]+", -"<< regDscr[reg]->offset <<"($fp)";
+    bool isArr = regDscr[reg]->type->grp() == ARR_G;
+    if (store && !isArr) {
+      f << '\t' << "sw " << reg2str[reg] + ", -"<< regDscr[reg]->offset <<"($fp)";
       f << " # flush register to stack (" + regDscr[reg]->name + ")"<< endl;
     }
     // clear addrDscr
@@ -99,8 +100,14 @@ void regFlush(std::ofstream & f, reg_t reg, bool store = true) {
 void regMap(std::ofstream & f, reg_t reg, sym* symb, bool load = true) {
   // TODO: sw/sb/... for non 4 byte
   // TODO: offset from $gp
-  if (load) {
-    f << '\t' << "lw " << reg2str[reg]+", -"<< symb->offset <<"($fp)";
+  /* array which is not an argument to the function */
+  bool isArr = symb->type->grp() == ARR_G && !symb->isArg;
+  if(isArr) {
+    f << '\t' << "subu " << reg2str[reg] + ",  $fp, " + to_string(symb->offset);
+    f << " # load front addr of array \"" + symb->name + "\" into register "<< endl;
+  }
+  else if (load) {
+    f << '\t' << "lw " << reg2str[reg] + ", -"<< symb->offset <<"($fp)";
     f << " # load into register (" + symb->name + ")"<< endl;
   }
   // add addrDscr entry
@@ -366,13 +373,20 @@ void genASM(ofstream & f, irquad_t & quad) {
     oprRegs regs = getReg(f, quad);
     if (regs.src1Reg == zero) {
       // TODO: infer size from const or add a compulsory "temp = const" intr in 3ac
-      paramOffset += 4; 
-      f << '\t' << "li " << reg2str[a0] + ", " + quad.src1 << endl;
+      paramOffset += 4;
+      // TODO: make type-based load, store functions
+      string loadInst = "li";
+      if(quad.src1.substr(0,7) == "string_")
+        loadInst = "la";
+      f << '\t' <<  loadInst+ " " << reg2str[a0] + ", " + quad.src1 << endl;
       f << '\t' << "sw " << reg2str[a0] + ", -" + to_string(paramOffset)+"("+ reg2str[sp] + ")";
       f << " # load parameter to func" << endl;
     }
     else {
-      paramOffset += lastdelta.src1Sym->size;
+      int size = lastdelta.src1Sym->size;
+      if(lastdelta.src1Sym->type->grp() == ARR_G)
+        size = 4; // store only pointer to the array in stack
+      paramOffset += size;
       f << '\t' << "sw " << reg2str[regs.src1Reg] + ", -" + to_string(paramOffset)+"("+ reg2str[sp] + ")";
       f << " # load parameter to func" << endl;
     }
@@ -518,32 +532,42 @@ void binOpr(std::ofstream & f, const irquad_t & q) {
 
 
 void assn(ofstream & f, const irquad_t &q) {
-    oprRegs regs = getReg(f, q);
-    /* just remapping resgisters */
-    if (regs.dstReg == regs.src1Reg) {
-      f << "\t # " + q.dst + " = " + reg2str[regs.src1Reg] <<endl;
+  deltaNxtUse lastdelta = nxtUse.lastdelta;
+  oprRegs regs = getReg(f, q);
+  /* just remapping resgisters */
+  if (regs.dstReg == regs.src1Reg) {
+    f << "\t # " + q.dst + " = " + reg2str[regs.src1Reg] <<endl;
+  }
+  /* load a constant */
+  else if(regs.src1Reg == zero) {
+    // TODO other types
+    if(lastdelta.dstType == 1){ // array
+      // TODO: non-constant offset -- lastdelta.dstArrSymb
+      f << '\t' << "li $a0, " + q.src1 << endl;
+      f << '\t' << "sb "
+        <<  "$a0, " + lastdelta.dstArrOff + "(" + reg2str[regs.dstReg] + ")"
+        << " # " + q.dst+ "[" +  lastdelta.dstArrOff + "]" << endl;
     }
-    /* load a constant */
-    else if(regs.src1Reg == zero) {
-      // TODO other types
+    else {
       f << '\t' << "li " << reg2str[regs.dstReg] + ", " + q.src1;
       f << " # " + q.dst <<endl;
     }
-    /* need to move */
-    else {
-      f << '\t' << "move " << reg2str[regs.dstReg] + ", " + reg2str[regs.src1Reg] ;
-      f << " # move " + q.dst + " = " + q.src1 << endl;
-    }
+  }
+  /* need to move */
+  else {
+    f << '\t' << "move " << reg2str[regs.dstReg] + ", " + reg2str[regs.src1Reg] ;
+    f << " # move " + q.dst + " = " + q.src1 << endl;
+  }
 }
 
 /** 1. Find next leader
  *  2. Process the next mainblock
  *      a. backward pass to get "alive", "nxtUse"
  *      b. search operands in symbol table
- *      c. 
+ *      c. process for array, struct, etc
  * 
 **/
-int getNxtLeader(const vector<irquad_t> & IR, int leader) {
+int getNxtLeader(vector<irquad_t> & IR, int leader) {
   int lenIR = IR.size();
   int nxtLeader = lenIR;
   // find next leader
@@ -565,11 +589,39 @@ int getNxtLeader(const vector<irquad_t> & IR, int leader) {
 
   nxtUse.clear();
   ofstream csv_out2;
-  if (dbg_print) csv_out2.open("1_tmp.csv");
+  if (dbg_print) csv_out2.open("tests/1_tmp.csv");
   // backward pass in the current main block
 
   for (int idx = nxtLeader - 1; idx >= leader; idx--) {
     deltaNxtUse delta;
+
+    int boxStart, boxEnd;
+
+    boxStart = IR[idx].dst.find('[');
+    boxEnd = IR[idx].dst.find(']');
+    if(boxStart >= 0 && boxEnd >= 0) {
+      delta.dstType = 1;
+      delta.dstArrOff = IR[idx].dst.substr(boxStart+1, boxEnd-boxStart-1);
+      delta.dstArrSymb = SymRoot->gLookup(delta.dstArrOff);
+      IR[idx].dst = IR[idx].dst.substr(0, boxStart);
+    }
+    boxStart = IR[idx].src1.find('[');
+    boxEnd = IR[idx].src1.find(']');
+    if(boxStart >= 0 && boxEnd >= 0) {
+      delta.src1Type = 1;
+      delta.src1ArrOff = IR[idx].src1.substr(boxStart+1, boxEnd-boxStart-1);
+      delta.src1ArrSymb = SymRoot->gLookup(delta.src1ArrOff);
+      IR[idx].src1 = IR[idx].src1.substr(0, boxStart);
+    }
+    boxStart = IR[idx].src2.find('[');
+    boxEnd = IR[idx].src2.find(']');
+    if(boxStart >= 0 && boxEnd >= 0) {      
+      delta.src2Type = 1;
+      delta.src2ArrOff = IR[idx].src2.substr(boxStart+1, boxEnd-boxStart-1);
+      delta.src2ArrSymb = SymRoot->gLookup(delta.src2ArrOff);
+      IR[idx].src2 = IR[idx].src2.substr(0, boxStart);
+    }
+
     sym* dstSym = SymRoot->gLookup(IR[idx].dst);
     sym* src1Sym = SymRoot->gLookup(IR[idx].src1);
     sym* src2Sym = SymRoot->gLookup(IR[idx].src2);

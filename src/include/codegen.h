@@ -42,12 +42,24 @@ struct deltaNxtUse {
   sym* dstSym = NULL;
   int dstNxtUse = -1;
   bool dstAlive = true;
+  sym * dstArrSymb = NULL;
+  std::string dstArrOff;
+  /* 0: simple, 1: array */
+  int dstType = 0;
+
   sym* src1Sym = NULL;
   int src1NxtUse = -1;
   bool src1Alive = true;
+  sym * src1ArrSymb = NULL;
+  std::string src1ArrOff;
+  int src1Type = 0;
+
   sym* src2Sym = NULL;
   int src2NxtUse = -1;
   bool src2Alive = true;
+  sym * src2ArrSymb = NULL;
+  std::string src2ArrOff;
+  int src2Type = 0;
 };
 
 class _nxtUse {
@@ -88,7 +100,9 @@ void binOpr(std::ofstream &, const irquad_t &); // handle binary operators
 
 void assn(std::ofstream &, const irquad_t &);
 
-int getNxtLeader(const std::vector<irquad_t> &, int);
+int getNxtLeader(std::vector<irquad_t> &, int);
+
+std::string getSymName(std::string); // get symbol name for struct, array, etc
 
 void libDumpASM(std::ofstream &, int);
 

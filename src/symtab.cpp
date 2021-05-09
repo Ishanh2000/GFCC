@@ -109,7 +109,7 @@ void libDumpSym(int lib_reqs) {
 /************ CLASS "sym" ************/
 /*************************************/
 
-sym::sym(string _name, class Type* _type, loc_t _pos) : name(_name), type(_type), pos(_pos), size(getSize(_type)) {
+sym::sym(string _name, class Type* _type, loc_t _pos, bool isArg) : name(_name), type(_type), pos(_pos), size(getSize(_type)), isArg(isArg) {
   if (_name == "" && dbg) msg(ERR) << "Invalid name \"" << _name << "\" or type \"" << str(_type) << "\" passed!";
 }
 
@@ -189,6 +189,9 @@ bool symtab::pushSym(sym* newSym) {
 
   else { /* offset from $fp or $gp */
     unsigned short size = getSize(newSym->type);
+    if(newSym->type->grp() == ARR_G && newSym->isArg)
+      size = 4; // store only pointer to the array in stack
+    
     this->offset += size/4 * 4;
     if(size % 4) this->offset += 4;
     // offset of symbol
@@ -201,12 +204,12 @@ bool symtab::pushSym(sym* newSym) {
   return true;
 }
 
-bool symtab::pushSym(string _name, class Type* _type, loc_t _pos) {
+bool symtab::pushSym(string _name, class Type* _type, loc_t _pos, bool isArg) {
   if (_name == "" || srchSym(_name)) {
     if (dbg) msg(WARN) << "Could not push \"" << _name << "\" in current scope.";
     return false;
   }
-  return pushSym(new sym(_name, _type, _pos));
+  return pushSym(new sym(_name, _type, _pos, isArg));
 }
 
 void symtab::dump(ofstream &f, string scopePath) {
@@ -305,9 +308,9 @@ bool symRoot::pushSym(sym* newSym) {
   return currScope->pushSym(newSym);
 }
 
-bool symRoot::pushSym(string _name, class Type* _type, loc_t _pos) {
+bool symRoot::pushSym(string _name, class Type* _type, loc_t _pos, bool isArg) {
   if (!currScope) return false;
-  return currScope->pushSym(_name, _type, _pos);
+  return currScope->pushSym(_name, _type, _pos, isArg);
 }
 
 void symRoot::dump(ofstream &f) {

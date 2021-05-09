@@ -44,7 +44,7 @@ class sym { // SYMBOL
     /* next use in the current mainblock */
     int nxtuse = -1;
 
-    sym(std::string, class Type*, loc_t);
+    sym(std::string, class Type*, loc_t, bool = false);
     sym(std::string, class Type*, loc_t, int);
     void dump(std::ofstream &); // dump all info into (opened writable) file
 };
@@ -75,7 +75,7 @@ class symtab { //  SYMBOL TABLE
     
     // push a symbol (if name and type is proper, and symbol did not pre-exist)
     bool pushSym(sym*);
-    bool pushSym(std::string, class Type*, loc_t);
+    bool pushSym(std::string, class Type*, loc_t, bool = false);
 
     void dump(std::ofstream &, std::string); // dump all info into (opened writable) file, scopePath
 };
@@ -97,7 +97,7 @@ class symRoot {
     sym* lookup(std::string);
     sym* gLookup(std::string);
     bool pushSym(sym*);
-    bool pushSym(std::string, class Type*, loc_t);
+    bool pushSym(std::string, class Type*, loc_t, bool = false);
     void dump(std::ofstream &); // dump all info into (opened writable) file
 };
 

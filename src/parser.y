@@ -1999,9 +1999,7 @@ function_definition
 						}
 						x = x->ch(1); while (x->tok != IDENTIFIER) x = x->ch((x->tok== DECLARATOR) ? 1 : 0);
 					}
-					SymRoot->pushSym(x->label, f->params[i], x->pos);
-					sym* justPushed = SymRoot->gLookup(x->label);
-					if (justPushed) justPushed->isArg = true;
+					SymRoot->pushSym(x->label, f->params[i], x->pos, true);
 				}
 			}
 		}
