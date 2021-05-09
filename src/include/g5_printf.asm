@@ -1,5 +1,7 @@
     .text
 
+
+
 .globl g5_printf
 g5_printf:
 	sw $ra, -4($sp) # return address
@@ -41,7 +43,7 @@ g5_printf_fmt:
   beq   $s2,  'd',  g5_printf_int    # print as a decimal integer.
   beq   $s2,  's',  g5_printf_str    # print as a string.
   beq   $s2,  'c',  g5_printf_char   # print as an ASCII char.
-  beq   $s2,  'f',  g5_printf_char   # print as a float
+  beq   $s2,  'f',  g5_printf_float   # print as a float
   li    $a0,  '%'    # if not matched, print as it is
   li  $v0,  11 # print character
   syscall
