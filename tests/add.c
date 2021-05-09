@@ -1,6 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-
 // void func1(const char *g) {
 //   g++;
 //   return;
@@ -16,8 +13,15 @@ int foo(char a[6])  {
 }
 
 int main() {
-  char a[] = "bcd%$";
-  foo(a);
+  // char a[4][5][6][7];
+  // a[0][1][2][5+8]++;
+  // char a = g5_getc();
+  int *x;
+  g5_scanf("abcd%p\n", 0);
+  
+  g5_printf("%p", x);
+  // char a[] = "bcd%$";
+  // foo(a);
   // g5_printf(a);
   return 0;
 }

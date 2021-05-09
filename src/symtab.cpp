@@ -95,6 +95,11 @@ void libDumpSym(int lib_reqs) {
       Func* fn = new Func(new Base(CHAR_B));
       SymRoot->pushSym(new sym("g5_getc", fn, { 5, 1 }, LIB_TYPO));
     }
+    { // int g5_scanf(const char *, ...);
+      Base *b = new Base(CHAR_B); b->isConst = true; 
+      Func* fn = new Func(new Base(INT_B)); fn->newParam(new Ptr(b)); fn->newParam(new Base(ELLIPSIS_B));
+      SymRoot->pushSym(new sym("g5_scanf", fn, { 6, 1 }, LIB_TYPO));
+    }
   }
 
   if (lib_reqs & LIB_STD) {
