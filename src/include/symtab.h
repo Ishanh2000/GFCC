@@ -30,6 +30,8 @@ class sym { // SYMBOL
     short unsigned int size = 1;
     unsigned int offset; // offset from the $fp or $gp (0 iff type like struct definition)
 
+    bool isArg = false;
+
     /* register of the symbol */
     reg_t reg = zero;
 

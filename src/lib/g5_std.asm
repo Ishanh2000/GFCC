@@ -15,7 +15,8 @@ g5_exit:
 	sw $s6, -36($fp) # callee saved register
 	sw $s7, -40($fp) # callee saved register
 
-  li  $v0,  10 # exit syscall
+  lw $a0, 0($sp) # return value
+  li $v0, 17 # "exit2" syscall
   syscall
   li $v0, -1  # return -1 if not exiting
 
