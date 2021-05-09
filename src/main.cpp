@@ -236,7 +236,6 @@ int main (int argc , char *argv[]) {
 			if (out_reqs & OUT_SYM) { // Symbol table to CSV conversion - dump library symbols too
 				sym_out << "# File Name: " << argv[_in] << endl << endl;
 				sym_out << csvHeaders << endl << endl; /// CSV HEADERS
-
 				SymRoot->dump(sym_out);
 			}
 
@@ -250,6 +249,8 @@ int main (int argc , char *argv[]) {
 				if (semanticErr) msg(WARN) << "Semantic error: NOT proceeding with code generation.";
 				else {
 					asm_out << "# File Name: " << argv[_in] << endl << endl;
+					libDumpASM(asm_out, lib_reqs);
+					asm_out << "## SOURCE FILE (" << argv[_in] << ")" << endl << endl;
 					dumpASM(asm_out, IRDump);
 				}
 			}
@@ -257,10 +258,11 @@ int main (int argc , char *argv[]) {
 		
 		// PREPARE FOR NEXT FILE (ITERATION)
 		tok_out.close(); ast_out.close(); sym_out.close(); a3c_out.close(); asm_out.close();
+	  resetLexer();
 		resetTypes();
 	  resetSymtab();
-	  resetLexer();
 	  resetIRCodes();
+		resetCodegen();
 	}
 
 	return file_failures;

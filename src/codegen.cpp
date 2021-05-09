@@ -257,11 +257,17 @@ oprRegs getReg(std::ofstream & f, const irquad_t &q) {
 }
 
 
-void dumpASM(ofstream &f, const vector<irquad_t> & IR) {
-  // clear reg
-  for(int i = 0; i<32; i++){
-    regDscr[i] = NULL;
+void dumpASM(ofstream &f, vector<irquad_t> & IR) {
+  f << "\t\t.data" << endl; // first print static data (strings)
+  int l = StrDump.size();
+  for (int i = 0; i < l; i++) {
+    f << "string_" << i << ":\t\t" << StrDump[i].encoding << "\t\t\"" << StrDump[i].contents << "\"" << endl;
   }
+
+  f << endl << endl;
+  f << "\t\t.text" << endl << endl; // code section begins
+  
+  for(int i = 0; i < 32; i++) regDscr[i] = NULL; // clear regs
 
   int lenIR = IR.size();
   int currleader = 0;
@@ -288,7 +294,9 @@ void dumpASM(ofstream &f, const vector<irquad_t> & IR) {
 }
 
 
-void genASM(std::ofstream & f, const irquad_t & quad) {
+void genASM(ofstream & f, irquad_t & quad) {
+  if (quad.src1.substr(0, 2) == "0s") quad.src1.replace(0, 2, "string");
+  if (quad.src2.substr(0, 2) == "0s") quad.src2.replace(0, 2, "string");
   
   deltaNxtUse lastdelta = nxtUse.step();
 
@@ -397,6 +405,7 @@ void genASM(std::ofstream & f, const irquad_t & quad) {
 void funcStart(std::ofstream & f, const irquad_t & quad) {
   // resetRegMaps(f);
   currFunc = quad.src1;
+  f << "\t.globl " + currFunc << endl;
   auto symtabs = SymRoot->currScope->subScopes; // currscope == root
   // search for function scope
   symtab * funTab;
@@ -406,9 +415,9 @@ void funcStart(std::ofstream & f, const irquad_t & quad) {
   // change scope
   SymRoot->currScope = funTab;
   // initialise reg for all symbols to "zero"
-  cout << "C:" << quad.src1 << endl;
-  cout << "A:" << funTab << endl;
-  cout << "B:" << funTab->name << endl;
+  // cout << "C:" << quad.src1 << endl;
+  // cout << "A:" << funTab << endl;
+  // cout << "B:" << funTab->name << endl;
   for (sym* symb: funTab->syms) {
     /* sanity checks */
     if (symb->reg != zero) 
@@ -422,14 +431,11 @@ void funcStart(std::ofstream & f, const irquad_t & quad) {
     symb->nxtuse = -1;
   }
 
-  // 40 for possible $t0---$t9
-  unsigned short s_offest = funTab->offset + 40;
-
   f << currFunc << ":" << endl;
   f << '\t' << "sw"<< " $ra, -4($sp)"<< " # return address" << endl;
   f << '\t' << "sw"<< " $fp, -8($sp)"<< " # frame pointer of caller" << endl;
   f << '\t' << "move" << " $fp, $sp" << " # begin new frame" << endl;
-  f << '\t' << "subu"<< " $sp, $sp, "<< s_offest << " # expad frame" << endl;
+  f << '\t' << "subu"<< " $sp, $sp, "<< funTab->offset << " # expad frame" << endl; // 40 for possible $t0---$t9
   f << '\t' << "sw"<< " $s0, -12($fp)"<< " # callee saved register" << endl;
   f << '\t' << "sw"<< " $s1, -16($fp)"<< " # callee saved register" << endl;
   f << '\t' << "sw"<< " $s2, -20($fp)"<< " # callee saved register" << endl;

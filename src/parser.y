@@ -1691,7 +1691,7 @@ compound_statement
 	: '{' '}'                                 { $$ = $1; 
 		for (int i = IRDump.size() - 1; i >= 0; i--)
 			if (IRDump[i].opr == "newScope") { IRDump.erase(IRDump.begin() + i); break; }
-		SymRoot->currScope->name.replace(0, 8, "__empty__");
+		SymRoot->currScope->name = "__empty__" + SymRoot->currScope->name; // replace(0, 8, "__empty__");
 		SymRoot->closeScope(); 
 	}
 	| '{' statement_list '}'                  { $$ = ($2) ? ($2) : ($1); SymRoot->closeScope(); }
@@ -2025,6 +2025,14 @@ function_definition
 				repErr(snode->pos, "return statement missing at end of non-void function", _FORE_MAGENTA_);
 				repErr(funcSym->pos, "previous declaration given here", _FORE_CYAN_);
 			}
+		}
+		if ($4->tok == EMPTY_BLOCK) { // rename the scope to "func <function name>"
+			int l = SymRoot->currScope->subScopes.size();
+			cout << SymRoot->currScope->subScopes[l-1]->name << endl;
+			SymRoot->currScope->subScopes[l-1]->name = SymRoot->currScope->subScopes[l-1]->name.substr(9);
+      emit(eps, "function end", eps);
+			
+			/* SymRoot->currScope->subScopes[l-1]->name = "func func1"; */
 		}
 	}
 	| declarator declaration_list compound_statement {

@@ -72,13 +72,13 @@ void regMap(std::ofstream &, reg_t, sym*, bool);
 
 void resetRegMaps(std::ofstream &, bool);
 
-void dumpASM(std::ofstream &, const std::vector<irquad_t> &); // convert IR code to ASM (mainly MIPS, for "spim" simulator)
+void dumpASM(std::ofstream &, std::vector<irquad_t> &); // convert IR code to ASM (mainly MIPS, for "spim" simulator)
 
 reg_t getSymReg(const std::string &);
 
 oprRegs getReg(std::ofstream &, const irquad_t &q);
 
-void genASM(std::ofstream &, const irquad_t &);
+void genASM(std::ofstream &, irquad_t &);
 
 void funcStart(std::ofstream &, const irquad_t &); // preliminaries at beginning of function
 
@@ -89,6 +89,8 @@ void binOpr(std::ofstream &, const irquad_t &); // handle binary operators
 void assn(std::ofstream &, const irquad_t &);
 
 int getNxtLeader(const std::vector<irquad_t> &, int);
+
+void libDumpASM(std::ofstream &, int);
 
 void resetCodegen();
 
