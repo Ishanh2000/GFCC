@@ -1,10 +1,13 @@
 ############ Scope = Global ############,
 TYPE,    (3:1),            g5_printf,   4,   4,  -1,   0, FUNCTION, "int ()(const char *, ...)"
 TYPE,    (4:1),              g5_putc,   4,   8,  -1,   0, FUNCTION, "void ()(const char)"
-----,   (14:5),                 main,   4,  12,  -1,   0, FUNCTION, "int ()()"
+    (3:1),              g5_exit,   4,  12,  -1,   0, FUNCTION, "int ()(int)"
+----,   (14:5),                 main,   4,  16,  -1,   0, FUNCTION, "int ()()"
 
 ############ Scope = Global >> func main ############,
-----,    (0:0),                 0t_0,   4,  44,  -1,   0, --------, "int"
+----,   (15:8),                  str,   4,  44,  -1,   1,    ARRAY, "char [5]"
+----,    (0:0),                 0t_0,   4,  48,  -1,   0, --------, "int"
+----,    (0:0),                 0t_1,   4,  52,  -1,   0, --------, "int"
 
 
 
@@ -14,12 +17,15 @@ TYPE,    (4:1),              g5_putc,   4,   8,  -1,   0, FUNCTION, "void ()(con
 
 
 ############ Scope = Global ############,
-TYPE,    (3:1),            g5_printf,   4,   4,   2,   0, FUNCTION, "int ()(const char *, ...)"
+TYPE,    (3:1),            g5_printf,   4,   4,   8,   0, FUNCTION, "int ()(const char *, ...)"
 TYPE,    (4:1),              g5_putc,   4,   8,  -1,   0, FUNCTION, "void ()(const char)"
-----,   (14:5),                 main,   4,  12,  -1,   0, FUNCTION, "int ()()"
+    (3:1),              g5_exit,   4,  12,  -1,   0, FUNCTION, "int ()(int)"
+----,   (14:5),                 main,   4,  16,  -1,   0, FUNCTION, "int ()()"
 
 ############ Scope = Global >> func main ############,
-----,    (0:0),                 0t_0,   4,  44,  -1,   0, --------, "int"
+----,   (15:8),                  str,   4,  44,  -1,   1,    ARRAY, "char [5]"
+----,    (0:0),                 0t_0,   4,  48,  -1,   0, --------, "int"
+----,    (0:0),                 0t_1,   4,  52,  -1,   0, --------, "int"
 
 
 
@@ -29,12 +35,15 @@ TYPE,    (4:1),              g5_putc,   4,   8,  -1,   0, FUNCTION, "void ()(con
 
 
 ############ Scope = Global ############,
-TYPE,    (3:1),            g5_printf,   4,   4,   2,   0, FUNCTION, "int ()(const char *, ...)"
+TYPE,    (3:1),            g5_printf,   4,   4,   8,   0, FUNCTION, "int ()(const char *, ...)"
 TYPE,    (4:1),              g5_putc,   4,   8,  -1,   0, FUNCTION, "void ()(const char)"
-----,   (14:5),                 main,   4,  12,  -1,   0, FUNCTION, "int ()()"
+    (3:1),              g5_exit,   4,  12,  -1,   0, FUNCTION, "int ()(int)"
+----,   (14:5),                 main,   4,  16,  -1,   0, FUNCTION, "int ()()"
 
 ############ Scope = Global >> func main ############,
-----,    (0:0),                 0t_0,   4,  44,  -1,   0, --------, "int"
+----,   (15:8),                  str,   4,  44,   7,   1,    ARRAY, "char [5]"
+----,    (0:0),                 0t_0,   4,  48,  -1,   0, --------, "int"
+----,    (0:0),                 0t_1,   4,  52,  -1,   0, --------, "int"
 
 
 
@@ -44,10 +53,121 @@ TYPE,    (4:1),              g5_putc,   4,   8,  -1,   0, FUNCTION, "void ()(con
 
 
 ############ Scope = Global ############,
-TYPE,    (3:1),            g5_printf,   4,   4,   2,   0, FUNCTION, "int ()(const char *, ...)"
+TYPE,    (3:1),            g5_printf,   4,   4,   8,   0, FUNCTION, "int ()(const char *, ...)"
 TYPE,    (4:1),              g5_putc,   4,   8,  -1,   0, FUNCTION, "void ()(const char)"
-----,   (14:5),                 main,   4,  12,  -1,   0, FUNCTION, "int ()()"
+    (3:1),              g5_exit,   4,  12,  -1,   0, FUNCTION, "int ()(int)"
+----,   (14:5),                 main,   4,  16,  -1,   0, FUNCTION, "int ()()"
 
 ############ Scope = Global >> func main ############,
-----,    (0:0),                 0t_0,   4,  44,  -1,   0, --------, "int"
+----,   (15:8),                  str,   4,  44,   7,   1,    ARRAY, "char [5]"
+----,    (0:0),                 0t_0,   4,  48,  -1,   0, --------, "int"
+----,    (0:0),                 0t_1,   4,  52,  -1,   0, --------, "int"
+
+
+
+
+##################
+
+
+
+############ Scope = Global ############,
+TYPE,    (3:1),            g5_printf,   4,   4,   8,   0, FUNCTION, "int ()(const char *, ...)"
+TYPE,    (4:1),              g5_putc,   4,   8,  -1,   0, FUNCTION, "void ()(const char)"
+    (3:1),              g5_exit,   4,  12,  -1,   0, FUNCTION, "int ()(int)"
+----,   (14:5),                 main,   4,  16,  -1,   0, FUNCTION, "int ()()"
+
+############ Scope = Global >> func main ############,
+----,   (15:8),                  str,   4,  44,   7,   1,    ARRAY, "char [5]"
+----,    (0:0),                 0t_0,   4,  48,  -1,   0, --------, "int"
+----,    (0:0),                 0t_1,   4,  52,  -1,   0, --------, "int"
+
+
+
+
+##################
+
+
+
+############ Scope = Global ############,
+TYPE,    (3:1),            g5_printf,   4,   4,   8,   0, FUNCTION, "int ()(const char *, ...)"
+TYPE,    (4:1),              g5_putc,   4,   8,  -1,   0, FUNCTION, "void ()(const char)"
+    (3:1),              g5_exit,   4,  12,  -1,   0, FUNCTION, "int ()(int)"
+----,   (14:5),                 main,   4,  16,  -1,   0, FUNCTION, "int ()()"
+
+############ Scope = Global >> func main ############,
+----,   (15:8),                  str,   4,  44,   7,   1,    ARRAY, "char [5]"
+----,    (0:0),                 0t_0,   4,  48,  -1,   0, --------, "int"
+----,    (0:0),                 0t_1,   4,  52,  -1,   0, --------, "int"
+
+
+
+
+##################
+
+
+
+############ Scope = Global ############,
+TYPE,    (3:1),            g5_printf,   4,   4,   8,   0, FUNCTION, "int ()(const char *, ...)"
+TYPE,    (4:1),              g5_putc,   4,   8,  -1,   0, FUNCTION, "void ()(const char)"
+    (3:1),              g5_exit,   4,  12,  -1,   0, FUNCTION, "int ()(int)"
+----,   (14:5),                 main,   4,  16,  -1,   0, FUNCTION, "int ()()"
+
+############ Scope = Global >> func main ############,
+----,   (15:8),                  str,   4,  44,   7,   1,    ARRAY, "char [5]"
+----,    (0:0),                 0t_0,   4,  48,  -1,   0, --------, "int"
+----,    (0:0),                 0t_1,   4,  52,  -1,   0, --------, "int"
+
+
+
+
+##################
+
+
+
+############ Scope = Global ############,
+TYPE,    (3:1),            g5_printf,   4,   4,   8,   0, FUNCTION, "int ()(const char *, ...)"
+TYPE,    (4:1),              g5_putc,   4,   8,  -1,   0, FUNCTION, "void ()(const char)"
+    (3:1),              g5_exit,   4,  12,  -1,   0, FUNCTION, "int ()(int)"
+----,   (14:5),                 main,   4,  16,  -1,   0, FUNCTION, "int ()()"
+
+############ Scope = Global >> func main ############,
+----,   (15:8),                  str,   4,  44,   7,   1,    ARRAY, "char [5]"
+----,    (0:0),                 0t_0,   4,  48,  -1,   0, --------, "int"
+----,    (0:0),                 0t_1,   4,  52,  -1,   0, --------, "int"
+
+
+
+
+##################
+
+
+
+############ Scope = Global ############,
+TYPE,    (3:1),            g5_printf,   4,   4,   8,   0, FUNCTION, "int ()(const char *, ...)"
+TYPE,    (4:1),              g5_putc,   4,   8,  -1,   0, FUNCTION, "void ()(const char)"
+    (3:1),              g5_exit,   4,  12,  -1,   0, FUNCTION, "int ()(int)"
+----,   (14:5),                 main,   4,  16,  -1,   0, FUNCTION, "int ()()"
+
+############ Scope = Global >> func main ############,
+----,   (15:8),                  str,   4,  44,   7,   1,    ARRAY, "char [5]"
+----,    (0:0),                 0t_0,   4,  48,  -1,   0, --------, "int"
+----,    (0:0),                 0t_1,   4,  52,  -1,   0, --------, "int"
+
+
+
+
+##################
+
+
+
+############ Scope = Global ############,
+TYPE,    (3:1),            g5_printf,   4,   4,   8,   0, FUNCTION, "int ()(const char *, ...)"
+TYPE,    (4:1),              g5_putc,   4,   8,  -1,   0, FUNCTION, "void ()(const char)"
+    (3:1),              g5_exit,   4,  12,  -1,   0, FUNCTION, "int ()(int)"
+----,   (14:5),                 main,   4,  16,  -1,   0, FUNCTION, "int ()()"
+
+############ Scope = Global >> func main ############,
+----,   (15:8),                  str,   4,  44,   7,   1,    ARRAY, "char [5]"
+----,    (0:0),                 0t_0,   4,  48,  -1,   0, --------, "int"
+----,    (0:0),                 0t_1,   4,  52,  -1,   0, --------, "int"
 

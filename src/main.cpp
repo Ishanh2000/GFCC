@@ -105,6 +105,7 @@ int main (int argc , char *argv[]) {
 
 				if (s_ele == "math") { lib_reqs |= LIB_MATH; }
 				else if (s_ele == "typo") { lib_reqs |= LIB_TYPO; }
+				else if (s_ele ==  "std") { lib_reqs |= LIB_STD ; }
 				else if (s_ele != "") {
 					msg(WARN) << "Ignoring \"" << s_ele << "\" specified in \"" << argv[i] << "\" flag. Use [--help|-h] flag for more help.";
 				}
@@ -120,7 +121,7 @@ int main (int argc , char *argv[]) {
 				return E_NO_OUT_REQS;
 			}
 			if (matches(argv[i], "--lib", "-l")) {
-				msg(ERR) << "Please specify one/more of {math,typo} after \"=\" after [--lib|-l] flag. Example: \"-l=math,typo\". Use [--help|-h] flag for more help.";
+				msg(ERR) << "Please specify one/more of {math,typo,std} after \"=\" after [--lib|-l] flag. Example: \"-l=math,typo\". Use [--help|-h] flag for more help.";
 				return E_NO_LIB_REQS;
 			}
 			msg(ERR) << "Invalid option \"" << argv[i] << "\". Use [--help|-h] flag for more help.";
@@ -134,13 +135,14 @@ int main (int argc , char *argv[]) {
 	}
 
 	if (num_l_flag && !lib_reqs) {
-		msg(ERR) << "Please specify one/more of {math,typo} after \"=\" in [--lib|-l] flag. Example: \"-l=math,typo\". Use [--help|-h] flag for more help.";
+		msg(ERR) << "Please specify one/more of {math,typo,std} after \"=\" in [--lib|-l] flag. Example: \"-l=math,typo\". Use [--help|-h] flag for more help.";
 		return E_NO_OUT_REQS;
 	}
 
 	if (num_t_flag) std::cout << _C_BOLD_ << _FORE_YELLOW_ << "Tab length set to " << tab_len << ".\n" << _C_NONE_;
 	if (lib_reqs & LIB_MATH) std::cout << _C_BOLD_ << _FORE_YELLOW_ << "Using GFCC maths library." << endl << _C_NONE_;
 	if (lib_reqs & LIB_TYPO) std::cout << _C_BOLD_ << _FORE_YELLOW_ << "Using GFCC typography library." << endl << _C_NONE_;
+	if (lib_reqs & LIB_STD ) std::cout << _C_BOLD_ << _FORE_YELLOW_ << "Using GFCC standard library." << endl << _C_NONE_;
 
 	start += (2*num_t_flag) + num_r_flag + num_l_flag;
 

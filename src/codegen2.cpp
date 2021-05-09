@@ -19,8 +19,12 @@ void libDumpASM(ofstream &f, int lib_reqs) {
   
   if (lib_reqs & LIB_TYPO) {
     f << "## GFCC TYPOGRAPHY LIBRARY" << endl;
-    f << ifstream("./src/include/g5_printf.asm").rdbuf() << endl << endl;
+    f << ifstream("./src/lib/g5_typo.asm").rdbuf() << endl << endl;
   }
-  
+
+  if (lib_reqs & LIB_STD) {
+    f << "## GFCC STANDARD LIBRARY" << endl;
+    f << ifstream("./src/lib/g5_std.asm").rdbuf() << endl << endl;
+  }
 }
 

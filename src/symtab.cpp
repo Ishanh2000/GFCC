@@ -81,15 +81,22 @@ void libDumpSym(int lib_reqs) {
   }
   
   if (lib_reqs & LIB_TYPO) {
-    { // int printf(const char *, ...);
+    { // int g5_printf(const char *, ...);
       Base *b = new Base(CHAR_B); b->isConst = true; 
       Func* fn = new Func(new Base(INT_B)); fn->newParam(new Ptr(b)); fn->newParam(new Base(ELLIPSIS_B));
       SymRoot->pushSym(new sym("g5_printf", fn, { 3, 1 }, LIB_TYPO));
     }
-    {
+    { // void g5_putc(const char)
       Base *b = new Base(CHAR_B); b->isConst = true; 
       Func* fn = new Func(new Base(VOID_B)); fn->newParam(b);
       SymRoot->pushSym(new sym("g5_putc", fn, { 4, 1 }, LIB_TYPO));
+    }
+  }
+
+  if (lib_reqs & LIB_STD) {
+    { // int g5_exit(int);
+      Func* fn = new Func(new Base(INT_B)); fn->newParam(new Base(INT_B));
+      SymRoot->pushSym(new sym("g5_exit", fn, { 3, 1 }, LIB_STD));
     }
   }
 }

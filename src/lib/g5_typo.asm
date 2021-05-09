@@ -88,7 +88,7 @@ g5_printf_str:                     # deal with a %s:
   b     g5_printf_loop   # conitnue
 
 g5_printf_ptr:
-	subu	$s3, $s3, 4	# 4 = roundup[ sizeof (char *) ]
+	subu	$s3, $s3, 4	# 4 = roundup[ sizeof (*) ]
   add  $s4, $sp,  $s3   # $s4 = argument address
   lw  $a1,  0($s4) # load required pointer value
 
@@ -97,6 +97,10 @@ g5_printf_ptr:
   syscall
   li $a0, 'x'
   syscall
+
+  # 0x2019f42e
+  # 0x0
+  # 0 = 0, '0' = 48
 
   li $s7, 28 # counter
 
@@ -115,7 +119,8 @@ g5_printf_ptr:
     syscall
     addi $s7, $s7, -4
     bge $s7, 0, g5_printf_ptr_loop
-    b g5_printf_loop
+
+  b g5_printf_loop
 
 g5_printf_ret:
   move  $v0, $v1      # will see how to manage return value later

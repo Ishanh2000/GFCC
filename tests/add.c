@@ -15,7 +15,8 @@ int main() {
   // char str[] = "abcd";
   // int a[5][6][7][8];
   // &a[0][1][2][3];
-  g5_printf("Hello%p\n", 538571822); // 0x2019f42e
+  g5_printf("Hello %p, %s\n", 538571822); // 0x2019f42e
+  g5_exit(9);
   g5_putc('\n');
   g5_putc('5');
   g5_putc('f');
