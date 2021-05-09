@@ -354,7 +354,7 @@ bool extMatch(class Type *prev, class Type *curr) { // match under "extern"
     return tMatch(prev, curr);
 }
 
-bool tMatch(class Type *prev, class Type *curr) {
+bool tMatch(class Type *prev, class Type *curr) { // "EXACTLY" matches two types
     if (!prev || !curr) return false;
     if (prev->isErr || curr->isErr) return false;
 
@@ -431,27 +431,30 @@ bool impCast(class Type *from, class Type *to) { // implicit type-casting
         if (gf == PTR_G || gf == ARR_G || gf == FUNC_G) return true; // any pointer/array/function is convertible to void *
     }
     
-    if( gf == BASE_G )
-    {
-        if( gt == BASE_G )
-        {
+    if (gf == BASE_G) {
+        if (gt == BASE_G) return true;
+        else {
+            if (gt == ARR_G) return false;
+            if (priority1[bf->base] > priority1[LONG_LONG_B]) return false;
             return true;
         }
-        else
-        {
-            if( gt == ARR_G ) return false;
-            if( priority1[bf->base] > priority1[LONG_LONG_B] ) return false;
+    } else { // from is ARR/PTR/FUNC
+        if (gt == BASE_G) { // treating "from" as a pointer here
+            if (priority1[bt->base] > priority1[LONG_LONG_B]) return false;
             return true;
-        }
-    }
-    else
-    {
-        if( gt == BASE_G )
-        {
-            if( priority1[bt->base] > priority1[LONG_LONG_B] ) return false;
+        } else { // to is ARR/PTR/FUNC
+            // ARR to ARR -ok directly
+            // ARR to PTR -ok directly
+            // ARR to FUNC -ok directly
+            // PTR to PTR - ok directly
+            // PTR to ARR -ok directly
+            // PTR to FUNC -ok directly
+            // FUNC to ARR -ok directly
+            // FUNC to PTR -ok directly
+            // FUNC to FUNC -ok directly
             return true;
+            // if (gt != PTR_G) return false;
         }
-        else if( gt != PTR_G ) return false;
         return true;
     }
 

@@ -3,14 +3,15 @@ TYPE,    (3:1),            g5_printf,   4,   4, FALSE,  -1,   0, FUNCTION, "int 
 TYPE,    (4:1),              g5_putc,   4,   8, FALSE,  -1,   0, FUNCTION, "void ()(const char)"
 TYPE,    (5:1),              g5_getc,   4,  12, FALSE,  -1,   0, FUNCTION, "char ()()"
  STD,    (3:1),              g5_exit,   4,  16, FALSE,  -1,   0, FUNCTION, "int ()(int)"
-----,   (14:5),                 main,   4,  20, FALSE,  -1,   0, FUNCTION, "int ()(int, char *[])"
+----,   (14:5),                  foo,   4,  20, FALSE,  -1,   0, FUNCTION, "int ()(char [6])"
+----,   (18:5),                 main,   4,  24, FALSE,  -1,   0, FUNCTION, "int ()()"
+
+############ Scope = Global >> func foo ############,
+----,  (14:14),                    a,   4,  44,  TRUE,  -1,   1,    ARRAY, "char [6]"
 
 ############ Scope = Global >> func main ############,
-----,  (14:14),                  arg,   4,  44,  TRUE,  -1,   1, --------, "int"
-----,  (14:25),                 argv,   4,  48,  TRUE,  -1,   1,    ARRAY, "char *[]"
-----,    (0:0),                 0t_0,   1,  52, FALSE,  -1,   0, --------, "char"
-----,    (0:0),                 0t_1,   1,  56, FALSE,  -1,   0, --------, "char"
-----,    (0:0),                 0t_2,   4,  60, FALSE,  -1,   0, --------, "int"
+----,   (19:8),                    a,   4,  44, FALSE,  -1,   0,    ARRAY, "char [6]"
+----,    (0:0),                 0t_0,   4,  48, FALSE,  -1,   0, --------, "int"
 
 
 
@@ -22,14 +23,15 @@ TYPE,    (5:1),              g5_getc,   4,  12, FALSE,  -1,   0, FUNCTION, "char
 ############ Scope = Global ############,
 TYPE,    (3:1),            g5_printf,   4,   4, FALSE,  -1,   0, FUNCTION, "int ()(const char *, ...)"
 TYPE,    (4:1),              g5_putc,   4,   8, FALSE,  -1,   0, FUNCTION, "void ()(const char)"
-TYPE,    (5:1),              g5_getc,   4,  12, FALSE,   0,   0, FUNCTION, "char ()()"
+TYPE,    (5:1),              g5_getc,   4,  12, FALSE,  -1,   0, FUNCTION, "char ()()"
  STD,    (3:1),              g5_exit,   4,  16, FALSE,  -1,   0, FUNCTION, "int ()(int)"
-----,   (14:5),                 main,   4,  20, FALSE,  -1,   0, FUNCTION, "int ()(int, char *[])"
+----,   (14:5),                  foo,   4,  20, FALSE,  -1,   0, FUNCTION, "int ()(char [6])"
+----,   (18:5),                 main,   4,  24, FALSE,  -1,   0, FUNCTION, "int ()()"
+
+############ Scope = Global >> func foo ############,
+----,  (14:14),                    a,   4,  44,  TRUE,  -1,   1,    ARRAY, "char [6]"
 
 ############ Scope = Global >> func main ############,
-----,  (14:14),                  arg,   4,  44,  TRUE,  -1,   1, --------, "int"
-----,  (14:25),                 argv,   4,  48,  TRUE,  -1,   1,    ARRAY, "char *[]"
-----,    (0:0),                 0t_0,   1,  52, FALSE,  -1,   0, --------, "char"
-----,    (0:0),                 0t_1,   1,  56, FALSE,  -1,   0, --------, "char"
-----,    (0:0),                 0t_2,   4,  60, FALSE,  -1,   0, --------, "int"
+----,   (19:8),                    a,   4,  44, FALSE,  -1,   0,    ARRAY, "char [6]"
+----,    (0:0),                 0t_0,   4,  48, FALSE,  -1,   0, --------, "int"
 

@@ -11,7 +11,18 @@
 
 // }
 
-int main(int arg, char *argv[]) {
+int foo(char a[6])  {
+  return 1;
+}
+
+int main() {
+  char a[] = "bcd%$";
+  foo(a);
+  // g5_printf(a);
+  return 0;
+}
+
+// int main(int arg, char *argv[]) {
   // char str[] = "abcd";
   // int a[5][6][7][8];
   // &a[0][1][2][3];
@@ -23,16 +34,16 @@ int main(int arg, char *argv[]) {
   // g5_putc('6');
   // g5_putc('\n');
   // char x = g5_getc();
-  g5_putc(g5_getc());
-  g5_printf("%c\n", g5_getc());
+  // g5_putc(g5_getc());
+  // g5_printf("%c\n", g5_getc());
   // g5_putc(x);
 
   // g5_printf("Hello %f\n", 12.003); // "Hello12.003"
   // g5_printf("Hello %d\n", g5_printf("Hello%f", 12.003)); // expect = 1 // "Hello12.003Hello 1"
   // g5_printf("Hello %dIITK, %c, %d\n, %s, %d\n", 89, 'c', 890, "MOOKIT", g5_printf("Hello%f", 12.003));
   
-  return 0;
-}
+//   return 0;
+// }
 // int main(int argc, char *argv[]) {
   // int x = 90;
   // char y = 'b';
