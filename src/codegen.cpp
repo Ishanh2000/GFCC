@@ -28,13 +28,13 @@ string reg2str[] = {
   "$s0", "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7",    // saved registers 0···7
   "$t8", "$t9",                                              // temporary registers 8···9
   "$k0", "$k1",                                              // kernel registers 0···1
-  "$gp", "$sp", "$fp", "$ra",                                 // global data ptr, stack ptr, frame ptr, return addr
+  "$gp", "$sp", "$fp", "$ra",                                // global data ptr, stack ptr, frame ptr, return addr
 
-  "$f0", "$f1", "$f2", "$f3",                                 // Function-returned values
-  "$f4", "$f5", "$f6", "$f7", "$f8", "$f9", "$f10", "$f11",   // Temporary values
-  "$f12", "$f13", "$f14", "$f15",                             // Arguments passed into a function
-  "$f16", "$f17", "$f18", "$f19",                             // More Temporary values
-  "$f20", "$f21", "$f31",                                     // Saved values
+  "$f0", "$f1", "$f2", "$f3",                                // Function-returned values
+  "$f4", "$f5", "$f6", "$f7", "$f8", "$f9", "$f10", "$f11",  // Temporary values
+  "$f12", "$f13", "$f14", "$f15",                            // Arguments passed into a function
+  "$f16", "$f17", "$f18", "$f19",                            // More Temporary values
+  "$f20", "$f21", "$f31",                                    // Saved values
 };
 
 
@@ -170,7 +170,7 @@ oprRegs getReg(std::ofstream & f, const irquad_t &q) {
         ret.src1Reg = t9;
       }
     }
-  }
+  } // end get reg for src1
 
   /* constant */
   if(!src2) ret.src2Reg = zero;
@@ -199,7 +199,7 @@ oprRegs getReg(std::ofstream & f, const irquad_t &q) {
         ret.src2Reg = cand1;
       }
     }
-  }
+  } // end get reg for src2
 
   if(!dst) ret.dstReg = zero;
   else {
@@ -215,7 +215,7 @@ oprRegs getReg(std::ofstream & f, const irquad_t &q) {
       ret.dstReg = ret.src1Reg;
     }
     /*
-     ! Can't do this as if dstReg = sr2Reg and src1 is constant then it will 
+     ! Can't do this as if dstReg = src2Reg and src1 is constant then it will 
      ! first load src1 into dstReg which will erase src2 content.
      ! Need to change logic if want to make this work.
     */
@@ -223,7 +223,7 @@ oprRegs getReg(std::ofstream & f, const irquad_t &q) {
     //   // soft flush any existing register mapped to dst
     //   regFlush(f, dst->reg, false);
     //   // soft flush src2Reg  
-    //   regFlush(f, ret.src2Reg, false);
+    //   regFlush(f, ret.src2Reg);
     //   // soft map dst to src2Reg (we )
     //   regMap(f, ret.src2Reg, dst, false);
     //   ret.dstReg = ret.src2Reg;
@@ -252,7 +252,8 @@ oprRegs getReg(std::ofstream & f, const irquad_t &q) {
         ret.dstReg = cand1;
       }
     }
-  }
+  } // end get reg for dst
+
    return ret;
 }
 
@@ -275,7 +276,7 @@ void dumpASM(ofstream &f, vector<irquad_t> & IR) {
   while(currleader < lenIR) {
     int nxtleader = getNxtLeader(IR, currleader);
     cout<< "Leader at: " << nxtleader << endl;
-    // gen code for a main block
+    
     // if label exist to this statement
     if(Labels.find(currleader) != Labels.end()) {
       resetRegMaps(f);
@@ -285,6 +286,8 @@ void dumpASM(ofstream &f, vector<irquad_t> & IR) {
       resetRegMaps(f);
       f << IR[currleader].src1+ ":"<< endl;
     }
+
+    // gen code for a main block
     while(currleader < nxtleader) {
       //  TODO: flush, reset etc
       genASM(f, IR[currleader]);
@@ -362,14 +365,14 @@ void genASM(ofstream & f, irquad_t & quad) {
     
     oprRegs regs = getReg(f, quad);
     if (regs.src1Reg == zero) {
-      // TODO: infer from const or add a compulsory "temp = const" intr in 3ac
+      // TODO: infer size from const or add a compulsory "temp = const" intr in 3ac
       paramOffset += 4; 
       f << '\t' << "li " << reg2str[a0] + ", " + quad.src1 << endl;
       f << '\t' << "sw " << reg2str[a0] + ", -" + to_string(paramOffset)+"("+ reg2str[sp] + ")";
       f << " # load parameter to func" << endl;
     }
     else {
-      paramOffset += lastdelta.src1Sym->size; 
+      paramOffset += lastdelta.src1Sym->size;
       f << '\t' << "sw " << reg2str[regs.src1Reg] + ", -" + to_string(paramOffset)+"("+ reg2str[sp] + ")";
       f << " # load parameter to func" << endl;
     }
@@ -486,13 +489,13 @@ void binOpr(std::ofstream & f, const irquad_t & q) {
   // TODO: unsigned, float, ...
   // if(opr == "+" || opr == "-" || opr == "*" || opr == "/" ) {
     string instr;
-    if      (opr == "+") instr = "add";
-    else if (opr == "-") instr = "sub";
-    else if (opr == "*") instr = "mul";
-    else if (opr == "/") instr = "div";
+    if   (opr == "+") instr     = "addu";
+    else if (opr == "-") instr  = "subu";
+    else if (opr == "*") instr  = "mul";
+    else if (opr == "/") instr  = "div";
     else if (opr == "==") instr = "seq";
-    else if (opr == ">") instr = "sgt";
-    else if (opr == "<") instr = "slt";
+    else if (opr == ">") instr  = "sgt";
+    else if (opr == "<") instr  = "slt";
     else if (opr == ">=") instr = "sge";
     else if (opr == "<=") instr = "sle";
     else if (opr == "&&") instr = "and";
@@ -533,7 +536,13 @@ void assn(ofstream & f, const irquad_t &q) {
     }
 }
 
-
+/** 1. Find next leader
+ *  2. Process the next mainblock
+ *      a. backward pass to get "alive", "nxtUse"
+ *      b. search operands in symbol table
+ *      c. 
+ * 
+**/
 int getNxtLeader(const vector<irquad_t> & IR, int leader) {
   int lenIR = IR.size();
   int nxtLeader = lenIR;
@@ -569,27 +578,27 @@ int getNxtLeader(const vector<irquad_t> & IR, int leader) {
     if (dbg_print) csv_out2 << "\n\n\n##################\n\n\n"<<endl;
     // break;
     if (dstSym) {
-      delta.dstSym = dstSym;
+      delta.dstSym    = dstSym;
       delta.dstNxtUse = dstSym->nxtuse;
-      delta.dstAlive = dstSym->alive;
+      delta.dstAlive  = dstSym->alive;
       if (dstSym->name[0] == '0')
         dstSym->alive = false;
       dstSym->nxtuse = -1;
     }
 
     if (src1Sym) {
-      delta.src1Sym = src1Sym;
+      delta.src1Sym    = src1Sym;
       delta.src1NxtUse = src1Sym->nxtuse;
-      delta.src1Alive = src1Sym->alive;
+      delta.src1Alive  = src1Sym->alive;
       if (src1Sym->name[0] == '0')
         src1Sym->alive = true;
       src1Sym->nxtuse =  idx - leader;
     }
 
     if (src2Sym) {
-      delta.src2Sym = src2Sym;
+      delta.src2Sym    = src2Sym;
       delta.src2NxtUse = src2Sym->nxtuse;
-      delta.src2Alive = src2Sym->alive;
+      delta.src2Alive  = src2Sym->alive;
       if (src2Sym->name[0] == '0')
         src2Sym->alive = true;
       src2Sym->nxtuse =  idx - leader;

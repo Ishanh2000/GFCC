@@ -491,7 +491,9 @@ bool isReal(class Type* t) {
 short unsigned int getSize(class Type *t) { // implmentation like "sizeof"
     if (!t) return 1;
     Base *b = (Base *) t;
+    Arr *a = (Arr *) t;
     int cmpSize = 0; // coumpound type size (struct/union)
+    int baseSize, arrSize, *dimSizePtr;
     vector<sym*> *li; int l;
     switch (t->grp()) {
         case BASE_G : switch (b->base) {
@@ -510,7 +512,16 @@ short unsigned int getSize(class Type *t) { // implmentation like "sizeof"
         }
         break;
         case PTR_G : return 4; break;
-        case ARR_G : return 4; break; // doubtful
+        case ARR_G : 
+            baseSize = getSize(a->item);
+            arrSize = 1;
+            for (auto dim: a->dims) {
+                if (!dim) continue;
+                dimSizePtr = eval(dim);
+                if(dimSizePtr) arrSize *= (*dimSizePtr);
+            }
+            return arrSize*baseSize;
+            break;
         case FUNC_G : return 4; // do this like a function pointer
     }
     return 1;
