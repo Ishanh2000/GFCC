@@ -611,7 +611,7 @@ void arrayInit(struct _loc_t eqPos, string arrName, class Arr *lhs, struct _node
                 index.push_back(0);
                 arrayInit(eqPos, arrName, lhs, ch, index);
                 index.pop_back();
-            } else {
+            } else { // at the very base : start assignment
                 index[is - 1] = i;
                 if (!impCast(ch->type, lhs->item)) {
                     repErr(ch->pos, "cannot implicitly typecast from \"" + str(ch->type) + "\" to \"" + str(lhs->item) + "\"", _FORE_RED_);
@@ -619,7 +619,12 @@ void arrayInit(struct _loc_t eqPos, string arrName, class Arr *lhs, struct _node
                 string s = arrName;
                 int l = index.size();
                 for (int j = 0; j < l; j++) s += "[" + to_string(index[j]) + "]";
-                emit(s, eps, ch->eval);
+                // 4 cases of assignment
+                string _opr = eps;
+                bool realLHS = isReal(lhs->item), realRHS = isReal(ch->type);
+                if (realLHS != realRHS) _opr = realLHS ? "int2real" : "real2int";
+                emit(s, _opr, ch->eval);
+                if (realLHS && realRHS) IRDump.back().eq = "real=";
             }
         }
     }

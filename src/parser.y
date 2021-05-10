@@ -591,8 +591,7 @@ shift_expression
 
 relational_expression
 	: shift_expression { $$ = $1; }
-	| relational_expression '<' shift_expression	{ 
-		$$ = op( $2, 0, 2, ej($1), ej($3) ); 
+	| relational_expression '<' shift_expression { $$ = op( $2, 0, 2, ej($1), ej($3) ); 
 		handle($$,$1,$3,'<', "<");
 	 }
 	| relational_expression '>' shift_expression	{ 
@@ -735,26 +734,24 @@ assignment_expression
 				case OR_ASSIGN : opr = "|"; break;
 			}
 			
-			bool cast_flag = false;
-			if(isReal(tr) != isReal(t1)) {
-				cast_flag = true;
-			}
-			
-			if(opr == "="){
+			bool realLHS = isReal(t1), realRHS = isReal(tr);
+
+			if (opr == "=") { // 4 cases: R to I, I to I, I to R, R to R
 				opr = eps;
-				if(cast_flag) {
-					if(isReal(t1)) opr = "int2real";
-					else opr = "real2int";
-				}
+				if (realLHS != realRHS) opr = realLHS ? "int2real" : "real2int";
 				emit($1->eval, opr, e2);
-			}
-			else{
-				if(cast_flag) {
+				if (realLHS && realRHS) IRDump.back().eq = "real=";
+
+			} else {
+				if (realLHS == realRHS) {
+					emit($1->eval, opr, e1, e2);
+					if (realLHS && realRHS) IRDump.back().eq = "real=";
+				}
+				else {
 					string tmp = newTmp(clone(t1));
 					emit(tmp, opr, e1, e2);
-					emit($1->eval, isReal(t1) ? "int2real" : "real2int", tmp, eps);
+					emit($1->eval, realLHS ? "int2real" : "real2int", tmp);
 				}
-				else emit($1->eval, opr, e1, e2);
 			}
 			
 			$$->eval = e1;
@@ -859,7 +856,11 @@ declaration
 						if (!impCast(initNode->type, ut)) {
 							repErr(eqPos, "cannot implicitly typecast from \"" + str(initNode->type) + "\" to \"" + str(ut) + "\"", _FORE_RED_);
 						}
-						emit(cnode->label, eps, initNode->eval);
+						string opr = eps; // 4 cases: R to I, I to I, I to R, R to R
+						bool realLHS = isReal(ut), realRHS = isReal(initNode->type);
+						if (realLHS != realRHS) opr = realLHS ? "int2real" : "real2int";
+						emit(cnode->label, opr, initNode->eval);
+						if (realLHS && realRHS) IRDump.back().eq = "real=";
 					}
 					
 				}

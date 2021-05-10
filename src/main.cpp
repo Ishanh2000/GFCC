@@ -243,6 +243,7 @@ int main (int argc , char *argv[]) {
 
 			if (out_reqs & OUT_3AC) { // 3AC code dump - do not dump library 3AC
 				a3c_out << "# File Name: " << argv[_in] << endl << endl;
+				// revisit3AC(IRDump);
 				dumpStr(a3c_out, StrDump);
 				dumpIR(a3c_out, IRDump);
 			}

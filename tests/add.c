@@ -16,10 +16,24 @@ int main() {
   // char a[4][5][6][7];
   // a[0][1][2][5+8]++;
   // char a = g5_getc();
-  int *x;
-  g5_scanf("abcd%p\n", 0);
+  // int *x;
+  // char a = g5_getc();
+  // a, a+1, a+2;
+  float a, b, c;
+  c = a + b;
+
+  // float a, b = 9;
+  // double c = 9.0;
+  // char d = 9.0;
+  // char e = 90;
+
+
   
-  g5_printf("%p", x);
+  // if (a == b) a++;
+  // g5_printf("%c", a);
+  // int f;
+  // if (f > 78) f++
+  // if (a && b) g5_printf("Hello\n");
   // char a[] = "bcd%$";
   // foo(a);
   // g5_printf(a);

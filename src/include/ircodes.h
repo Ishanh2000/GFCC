@@ -11,6 +11,7 @@
 
 typedef struct _irquad_t {
     std::string dst = "";
+    std::string eq = "=";
     std::string opr = "";
     std::string src1 = "";
     std::string src2 = "";
@@ -69,6 +70,10 @@ std::vector<unsigned int> merge(std::vector<std::vector<unsigned int>>);
 void handle(node_t*,node_t*,node_t*, int, std::string);
 
 Type* handle_as(int ,node_t*,node_t*, std::string &, std::string &, bool, bool);
+
+// revisit 3ac codes once to expand array/member access and addressof operators.
+// may be used for optimization purposes too.
+void revisit3AC(std::vector <irquad_t> &);
 
 void resetIRCodes(); // reset all global variables for next file
 

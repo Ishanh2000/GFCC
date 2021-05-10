@@ -255,13 +255,13 @@ void dumpIR(ofstream &f, vector<irquad_t> &irArr) { // dump 3AC codes into a fil
         else if (q.opr == "function end") f << q.opr << endl;
         
         // dst = <src1> [load/store/move]
-        else if (q.opr == eps) f << q.dst << " = " << q.src1;
+        else if (q.opr == eps) f << q.dst << " " << q.eq << " " << q.src1;
 
         else {
             // <dst> = <opr> <src1> [unary]
             if (q.src2 == eps) f << q.dst << " = " << q.opr << " " << q.src1;
 
-            // <dst> = <src1> <opr> <src2> [real operations]
+            // <dst> = <src1> <opr> <src2> [actually "binary" operations]
             else f << q.dst << " = " << q.src1 << " " << q.opr << " " << q.src2;
         }
 
@@ -269,6 +269,26 @@ void dumpIR(ofstream &f, vector<irquad_t> &irArr) { // dump 3AC codes into a fil
     }
     f << endl;
 }
+
+void revisit3AC(vector <irquad_t> & codes) {
+    vector <irquad_t> codes2;
+    unsigned int l = codes.size(), diff = 0;
+    for (unsigned int i = 0; i < l; i++) {
+        irquad_t q = codes[i]; // make a copy
+
+        // TASK 1: LABEL MODIFICATION
+        if (q.opr == "goto" || q.opr == "ifgoto") q.src1 = to_string(stoul(q.src1) + diff);
+
+        // TASK 2: NOW TRANSFORM THE INSTRUCTION q AND APPEND TO codes2
+        // if (q.opr == "+") { // transform to 2 instructions
+        //     irquad_t q1(q.src1, "+", q.src1, "0"); // doing nothing
+        //     codes2.push_back(q1);
+        //     codes2.push_back(q);
+        // }
+    }
+    codes = codes2; // literally copying everything (overwriting)
+}
+
 
 #ifdef TEST_IRCODES
 vector<unsigned int> nextlist = {1,2,5};

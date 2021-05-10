@@ -271,7 +271,7 @@ g5_scanf:
     add   $s4,  $sp,  $s3   # $s4 = argument address
     lw    $s4,  0($s4)      # $s4 = destination of contents
     
-    g5_scanf_str_loop:
+    g5_scanf_str_loop: # CHECK SCAN OF WHITESPACE
       # RISKY LOOPING - MAY OVERWRITE UNINTENDED MEMORY AREAS
       li    $v0,  12        # get char
       syscall
