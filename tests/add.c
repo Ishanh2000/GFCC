@@ -8,9 +8,9 @@
 
 // }
 
-int foo(char a[6])  {
-  return 1;
-}
+// int foo(char a[6])  {
+//   return 1;
+// }
 
 int main() {
   // char a[4][5][6][7];
@@ -20,8 +20,13 @@ int main() {
   // char a = g5_getc();
   // a, a+1, a+2;
 
+  
   // PROBLEM
-  float a = 0.2e-3F; // 0.002
+  // float aa = 0.0; // 0.002
+  int a = 10, i;
+  
+  // for (i = 0; i < 10; i++) a++;
+  g5_printf("%d\n", a);
   // float a = 1.3, b, c = 9;
   // int aa[3];
   // aa[2] = aa[1] + aa[0];
