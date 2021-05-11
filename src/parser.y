@@ -143,7 +143,7 @@ postfix_expression
 		string e2 = $3->eval;
 		if (e2.find("[") != string::npos || e2.find(".") != string::npos || e2.find("->") != string::npos) { // means e2 itself is accessed type (array/struct)
 			string _tmp = newTmp(clone(t2));
-			emit(_tmp, eps, e2); // no need to check assignment type because t2/_tmp are not reals.
+			emit(_tmp, t2, eps, e2, t2); // no need to check assignment type because t2/_tmp are not reals.
 			e2 = _tmp;
 		}
 		$$->eval = $1->eval + "[" + e2 + "]"; // handle at assembly code generation
@@ -173,10 +173,10 @@ postfix_expression
 		}
 		$$->type->lvalue = false;
 		if (!$$->type->isErr) { // param h | call main, 1 | r = retval
-			emit(eps, "call", $1->eval, "0"); // call <func / func_ptr>, 0
+			emit(eps, NULL, "call", $1->eval, t, "0", NULL); // call <func / func_ptr>, 0
 			Type* _t = $$->type;
 			if ((!_t) || (_t->grp() != BASE_G) || (((Base*)_t)->base != VOID_B)) {
-				emit($$->eval = newTmp(clone(_t)), eps, "$retval"); // call <func / func_ptr>, 0
+				emit($$->eval = newTmp(clone(_t)), _t, eps, "$retval", NULL); // call <func / func_ptr>, 0
 				if (isReal(_t)) IRDump.back().eq = "real=";
 			}
 		}
@@ -246,12 +246,12 @@ postfix_expression
 		if (!$$->type->isErr) { // param h | call main, 1 | r = retval
 			int l = $3->numChild;
 			for (int i = 0; i < l; i++) {
-				node_t *ch = $3->ch(i); if (ch) emit(eps, "param", ch->eval); // param <ch->eval>
+				node_t *ch = $3->ch(i); if (ch) emit(eps, NULL, "param", ch->eval, ch->type); // param <ch->eval>
 			}
-			emit(eps, "call", $1->eval, to_string(l)); // call <func / func_ptr>, l
+			emit(eps, NULL, "call", $1->eval, t, to_string(l), NULL); // call <func / func_ptr>, l
 			Type *_t = $$->type;
 			if ((!_t) || (_t->grp() != BASE_G) || (((Base*)_t)->base != VOID_B)) {
-				emit($$->eval = newTmp(clone(_t)), eps, "$retval"); // call <func / func_ptr>, 0
+				emit($$->eval = newTmp(clone(_t)), _t, eps, "$retval", NULL); // call <func / func_ptr>, 0
 				if (isReal(_t)) IRDump.back().eq = "real=";
 			}
 		}
@@ -284,7 +284,7 @@ postfix_expression
 		if (e1.find("[") != string::npos || e1.find(".") != string::npos || e1.find("->") != string::npos) {
 			// means e1 itself is accessed type (array/struct)
 			string _tmp = newTmp(clone(_t1));
-			emit(_tmp, eps, e1); // no need to check assignment type because t2/_tmp are not reals.
+			emit(_tmp, _t1, eps, e1, t1); // no need to check assignment type because t2/_tmp are not reals.
 			e1 = _tmp;
 		}
 		$$->eval = e1 + "." + $3->label; // handle at assembly code generation
@@ -316,7 +316,7 @@ postfix_expression
 		if (e1.find("[") != string::npos || e1.find(".") != string::npos || e1.find("->") != string::npos) {
 			// means e1 itself is accessed type (array/struct)
 			string _tmp = newTmp(clone(_t1));
-			emit(_tmp, eps, e1); // no need to check assignment type because t2/_tmp are not reals.
+			emit(_tmp, _t1, eps, e1, t1); // no need to check assignment type because t2/_tmp are not reals.
 			e1 = _tmp;
 		}
 		$$->eval = e1 + "->" + $3->label; // handle at assembly code generation
@@ -336,15 +336,15 @@ postfix_expression
 		}
 
 		$$->eval = newTmp(clone(t));
-		emit($$->eval, eps, $1->eval);
+		emit($$->eval, t, eps, $1->eval, t);
 		if (isReal(t)) IRDump.back().eq = "real=";
 		if(g == BASE_G){
 			base_t bs = ((Base *) t)->base;
-			if (priority1[bs] >= priority1[FLOAT_B]) emit($1->eval, "real+", $1->eval, "1");
-			else emit($1->eval, "+", $1->eval, "1");
+			if (priority1[bs] >= priority1[FLOAT_B]) emit($1->eval, t, "real+", $1->eval, t, "1", NULL);
+			else emit($1->eval, t, "+", $1->eval, t, "1", NULL);
 		}
 		/* #########TODO for Pointer###########*/
-		else emit($1->eval, "+", $1->eval, "1");
+		else emit($1->eval, t, "+", $1->eval, t, "1", NULL);
 
 
 		$$->type = t;
@@ -365,18 +365,18 @@ postfix_expression
 		}
 
 		$$->eval = newTmp(clone(t));
-		emit($$->eval, eps, $1->eval);
+		emit($$->eval, t, eps, $1->eval, t);
 		if (isReal(t)) IRDump.back().eq = "real=";
 
 		if(g == BASE_G){
 			base_t bs = ((Base *) t)->base;
 			if(priority1[bs] >= priority1[FLOAT_B]){
-				emit($1->eval, "real-", $1->eval, "1");
+				emit($1->eval, t, "real-", $1->eval, t, "1", NULL);
 			}
-			else emit($1->eval, "-", $1->eval, "1");
+			else emit($1->eval, t, "-", $1->eval, t, "1", NULL);
 		}
 		/* #########TODO for Pointer###########*/
-		else emit($1->eval, "-", $1->eval, "1");
+		else emit($1->eval, t, "-", $1->eval, t, "1", NULL);
 		
 		$$->type = t;
 		$$->type->lvalue = false;
@@ -408,13 +408,13 @@ unary_expression
 		if(g == BASE_G){
 			base_t bs = ((Base *) t)->base;
 			if(priority1[bs] >= priority1[FLOAT_B]){
-				emit($2->eval, "real+", $2->eval, "1");
+				emit($2->eval, t, "real+", $2->eval, t, "1", NULL);
 			}
-			else emit($2->eval, "+", $2->eval, "1");
+			else emit($2->eval, t, "+", $2->eval, t, "1", NULL);
 		}
 		/* #########TODO for Pointer###########*/
-		else emit($2->eval, "+", $2->eval, "1");
-		emit($$->eval, eps, $2->eval);
+		else emit($2->eval, t, "+", $2->eval, t, "1", NULL);
+		emit($$->eval, t, eps, $2->eval, t);
 		if (isReal(t)) IRDump.back().eq = "real=";
 
 
@@ -439,13 +439,13 @@ unary_expression
 		if(g == BASE_G){
 			base_t bs = ((Base *) t)->base;
 			if(priority1[bs] >= priority1[FLOAT_B]){
-				emit($2->eval, "real-", $2->eval, "1");
+				emit($2->eval, t, "real-", $2->eval, t, "1", NULL);
 			}
-			else emit($2->eval, "-", $2->eval, "1");
+			else emit($2->eval, t, "-", $2->eval, t, "1", NULL);
 		}
 		/* #########TODO for Pointer###########*/
-		else emit($2->eval, "-", $2->eval, "1");
-		emit($$->eval, eps, $2->eval);
+		else emit($2->eval, t, "-", $2->eval, t, "1", NULL);
+		emit($$->eval, t, eps, $2->eval, t);
 		if (isReal(t)) IRDump.back().eq = "real=";
 
 		$$->type = t;
@@ -469,7 +469,7 @@ unary_expression
 				if ($1->tok == '+') $$->eval = $2->eval;
 				else if ($2->tok == CONSTANT) $$->eval = "-" + $2->eval;
 				else {
-					emit($$->eval = newTmp(clone(t)), isReal(t) ? "real-" : "-", $2->eval); // t_1 = - t_0
+					emit($$->eval = newTmp(clone(t)), t, isReal(t) ? "real-" : "-", $2->eval, t); // t_1 = - t_0
 					if (isReal(t)) IRDump.back().eq = "real=";
 				}
 				break;
@@ -486,9 +486,9 @@ unary_expression
 					string _tmp = $2->eval;
 					if (isReal(_t)) {
 						_tmp = newTmp(clone(new Base(INT_B)));
-						emit(_tmp, "real2int", $2->eval);
+						emit(_tmp, t, "real2int", $2->eval, t);
 					}
-					emit($$->eval = newTmp(clone(t)), "!", _tmp); // t_1 = ! t_0
+					emit($$->eval = newTmp(clone(t)), t, "!", _tmp, t); // t_1 = ! t_0
 				}
 				
 				break;
@@ -500,7 +500,7 @@ unary_expression
 				}
 				if (!tilda_good) { repErr($1->pos, "bitwise NOT operator (~) used with incompatible type", _FORE_RED_); t->isErr = true; }
 				$$->type = t; $$->type->lvalue = false;
-				emit($$->eval = newTmp(clone(t)), "~", $2->eval); // t_1 = ~ t_0
+				emit($$->eval = newTmp(clone(t)), t, "~", $2->eval, t); // t_1 = ~ t_0
 				if (isReal(t)) IRDump.back().eq = "real=";
 				break;
 
@@ -526,7 +526,7 @@ unary_expression
 						repErr($1->pos, "cannot dereference a value that is not an array, a pointer or a function", _FORE_RED_); t->isErr = true; $$->type = t;
 				}
 				$$->type->lvalue = true;
-				emit($$->eval = newTmp(clone($$->type)), "*", $2->eval); // t_1 = * t_0
+				emit($$->eval = newTmp(clone($$->type)), $$->type, "*", $2->eval, t); // t_1 = * t_0
 				if (isReal($$->type)) IRDump.back().eq = "real=";
 				break;
 
@@ -539,7 +539,7 @@ unary_expression
 				}
 				else $$->type = new Ptr(t);
 				$$->type->lvalue = false;
-				emit($$->eval = newTmp(clone($$->type)), "&", $2->eval); // t_1 = & t_0
+				emit($$->eval = newTmp(clone($$->type)), $$->type, "&", $2->eval, t); // t_1 = & t_0
 				if (isReal($$->type)) IRDump.back().eq = "real=";
 		}
 	}
@@ -781,19 +781,19 @@ assignment_expression
 			if (opr == "=") { // 4 cases: R to I, I to I, I to R, R to R
 				opr = eps;
 				if (realLHS != realRHS) opr = realLHS ? "int2real" : "real2int";
-				emit($1->eval, opr, e2);
+				emit($1->eval, t1, opr, e2, t2);
 				if (realLHS && realRHS) IRDump.back().eq = "real=";
 
 			} else {
 				if (realLHS == realRHS) {
-					emit($1->eval, opr, e1, e2);
+					emit($1->eval, t1, opr, e1, t1, e2, t2);
 					if (realLHS && realRHS) IRDump.back().eq = "real=";
 				}
 				else {
 					string tmp = newTmp(clone(t1));
-					emit(tmp, opr, e1, e2);
+					emit(tmp, t1, opr, e1, t1, e2, t2);
 					if (realLHS) IRDump.back().eq = "real=";
-					emit($1->eval, realLHS ? "int2real" : "real2int", tmp);
+					emit($1->eval, t1, realLHS ? "int2real" : "real2int", tmp, t1);
 				}
 			}
 			
@@ -902,7 +902,7 @@ declaration
 						string opr = eps; // 4 cases: R to I, I to I, I to R, R to R
 						bool realLHS = isReal(ut), realRHS = isReal(initNode->type);
 						if (realLHS != realRHS) opr = realLHS ? "int2real" : "real2int";
-						emit(cnode->label, opr, initNode->eval);
+						emit(cnode->label, t2, opr, initNode->eval, initNode->type);
 						if (realLHS && realRHS) IRDump.back().eq = "real=";
 					}
 					
@@ -1695,17 +1695,17 @@ M3 : CASE constant_expression ':' {
 		$$->caselist.push_back(nextIdx());
 		string tmp = $2->eval;
 		$$->eval = newTmp(clone($$->type));
-		emit($$->eval,"==","---",tmp); // no need to check for real type assignment since LHS will be non-real
+		emit($$->eval, $$->type, "==","---", NULL,tmp, $2->type); // no need to check for real type assignment since LHS will be non-real
 		$$->truelist.push_back(nextIdx());
-		emit(eps, "ifgoto", "---", $$->eval);
+		emit(eps, NULL, "ifgoto", "---", NULL, $$->eval, $$->type);
 		$$->falselist.push_back(nextIdx());
-		emit(eps,"goto","---");
+		emit(eps, NULL, "goto","---", NULL);
 		// CHECK LATER
 		// $$->eval = tmp;
 	}
 
 labeled_statement
-	: IDENTIFIER ':' { emit(eps, "label", "USER_LABEL_" + string($1->label)); } statement{ ($1)->attr = label_attr; $$ = op( $1, 0, 1, ej($4) ); }
+	: IDENTIFIER ':' { emit(eps, NULL, "label", "USER_LABEL_" + string($1->label), NULL); } statement{ ($1)->attr = label_attr; $$ = op( $1, 0, 1, ej($4) ); }
 	| M3 M statement  { 
 		// $$ = op( $1, 0, 2, ej($2), ej($6) );
 		Type *t = $1->type; grp_t g = t->grp();
@@ -1832,9 +1832,9 @@ selection_statement
 
 M1: IF '(' expression ')'
 	{
-		emit(eps, "ifgoto", to_string(nextIdx()+2), $3->eval);
+		emit(eps, NULL, "ifgoto", to_string(nextIdx()+2), NULL, $3->eval, $3->type);
 		$3->falselist.push_back(nextIdx());
-		emit(eps, "goto", "---");
+		emit(eps, NULL, "goto", "---", NULL);
 		backpatch($3->truelist, nextIdx());
 		$$ = $3;
 	}
@@ -1844,9 +1844,9 @@ M1: IF '(' expression ')'
 iteration_statement
 	: WHILE '('	M expression ')' 
 		{
-			emit(eps, "ifgoto", to_string(nextIdx()+2), $4->eval);
+			emit(eps, NULL, "ifgoto", to_string(nextIdx()+2), NULL, $4->eval, $4->type);
 			$4->falselist.push_back(nextIdx());
-			emit(eps, "goto", "---");
+			emit(eps, NULL, "goto", "---", NULL);
 			backpatch($4->truelist, nextIdx());
 		}
 	statement { 
@@ -1856,7 +1856,7 @@ iteration_statement
 			base_t bs = ((Base*)t)->base;
 			if (bs == VOID_B || bs == STRUCT_B || bs == UNION_B) repErr($4->pos, "expression is of pure \"void\" type, a struct or a union", _FORE_RED_);
 		}
-		emit(eps, "goto", to_string($3));
+		emit(eps, NULL, "goto", to_string($3), NULL);
 		backpatch($7->nextlist, $3);
 		backpatch($7->contlist, $3);
 		$$->nextlist = merge({$7->breaklist, $4->falselist});
@@ -1870,7 +1870,7 @@ iteration_statement
 			base_t bs = ((Base*)t)->base;
 			if (bs == VOID_B || bs == STRUCT_B || bs == UNION_B) repErr($7->pos, "expression is of pure \"void\" type, a struct or a union", _FORE_RED_);
 		}
-		emit(eps, "ifgoto", to_string($2), $7->eval);
+		emit(eps, NULL, "ifgoto", to_string($2), NULL, $7->eval, $7->type);
 		backpatch($3->nextlist, $6);
 		backpatch($3->contlist, $6);
 		backpatch($7->nextlist, $2);
@@ -1881,7 +1881,7 @@ iteration_statement
 	| FOR '(' expression_statement M M2 ')' M statement 
 		{ 
 			/* $$ = op( $1, 0, 3, Ej($3, "expr", NULL), Ej($4, "expr", NULL), Ej($6, "stmts", NULL) ); */
-			emit(eps, "goto", to_string($4));
+			emit(eps, NULL, "goto", to_string($4), NULL);
 			backpatch($8->nextlist, $4);
 			backpatch($8->contlist, $4);
 			backpatch($5->truelist, $7);
@@ -1892,7 +1892,7 @@ iteration_statement
 
 	| FOR '(' expression_statement M M2 M expression 
 		{
-			emit(eps, "goto", to_string($4));
+			emit(eps, NULL, "goto", to_string($4), NULL);
 			backpatch($7->nextlist, $4);
 		}
 	')' M statement  
@@ -1903,7 +1903,7 @@ iteration_statement
 				base_t bs = ((Base*)t)->base;
 				if (bs == VOID_B || bs == STRUCT_B || bs == UNION_B) repErr($7->pos, "expression is of pure \"void\" type, a struct or a union", _FORE_RED_);
 			}
-			emit(eps, "goto", to_string($6));
+			emit(eps, NULL, "goto", to_string($6), NULL);
 			backpatch($11->nextlist, $6);
 			backpatch($11->contlist, $6);
 			backpatch($5->truelist, $10);
@@ -1917,18 +1917,18 @@ M2 : expression_statement
 	{
 		$$ = $1;
 		$$->truelist.push_back(nextIdx());
-		emit(eps, "ifgoto", "---", $1->eval);
+		emit(eps, NULL, "ifgoto", "---", NULL, $1->eval, $1->type);
 		$$->falselist.push_back(nextIdx());
-		emit(eps, "goto", "---");
+		emit(eps, NULL, "goto", "---", NULL);
 	}
 
 jump_statement
 	: GOTO IDENTIFIER ';'	{ $$ = op( $1, 0, 1, ej($2) );
-												 emit(eps, "goto", "USER_LABEL_" + string($2->label)); } // ignore for now
+												 emit(eps, NULL, "goto", "USER_LABEL_" + string($2->label), NULL); } // ignore for now
 	| CONTINUE ';'			{ $$ = $1; 
-											$$->contlist.push_back(nextIdx()); emit(eps, "goto", "---");}
+											$$->contlist.push_back(nextIdx()); emit(eps, NULL, "goto", "---", NULL);}
 	| BREAK ';'				{ $$ = $1; 
-										$$->breaklist.push_back(nextIdx()); emit(eps, "goto", "---");}
+										$$->breaklist.push_back(nextIdx()); emit(eps, NULL, "goto", "---", NULL);}
 	| RETURN ';'			{ $$ = $1;
 		symtab* curr = SymRoot->currScope;
 		while (!isFuncScope(curr)) { if (!curr) break; curr = curr->parent; }
@@ -1942,7 +1942,7 @@ jump_statement
 				repErr(funcSym->pos, "previous declaration available here", _FORE_CYAN_);
 			}
 		}
-		emit(eps, "return", eps);
+		emit(eps, NULL, "return", eps, NULL);
 	} // TODO: check if current function is actually "VOID_B"
 	| RETURN expression ';'	{ $$ = op( $1, 0, 1, ej($2) );
 		symtab* curr = SymRoot->currScope;
@@ -1957,7 +1957,7 @@ jump_statement
 				repErr(funcSym->pos, "previous declaration available here", _FORE_CYAN_);
 			}
 		}
-		emit(eps, "return", $2->eval);
+		emit(eps, NULL, "return", $2->eval, $2->type);
 	}
 	;
 
@@ -2027,7 +2027,7 @@ function_definition
 				}				
 			}
 
-			emit(eps, "func", funcName);
+			emit(eps, NULL, "func", funcName, t2);
 
 			// now insert parameters.
 			if (_good) { // works for simple functions ans function params only - do not use a complicated declarator (like function pointers)
@@ -2074,7 +2074,7 @@ function_definition
 			int l = SymRoot->currScope->subScopes.size();
 			cout << SymRoot->currScope->subScopes[l-1]->name << endl;
 			SymRoot->currScope->subScopes[l-1]->name = SymRoot->currScope->subScopes[l-1]->name.substr(9);
-      emit(eps, "function end", eps);
+      emit(eps, NULL, "function end", eps, NULL);
 			
 			/* SymRoot->currScope->subScopes[l-1]->name = "func func1"; */
 		}
@@ -2108,7 +2108,7 @@ function_definition
 				_good = true;
 			}
 			
-			emit(eps, "func", funcName);
+			emit(eps, NULL, "func", funcName, t2);
 
 			if (_good) { // works for simple functions ans function params only - do not use a complicated declarator (like function pointers)
 				Func *f = (Func *)t2; int l = f->params.size();

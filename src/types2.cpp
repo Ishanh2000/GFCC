@@ -623,7 +623,7 @@ void arrayInit(struct _loc_t eqPos, string arrName, class Arr *lhs, struct _node
                 string _opr = eps;
                 bool realLHS = isReal(lhs->item), realRHS = isReal(ch->type);
                 if (realLHS != realRHS) _opr = realLHS ? "int2real" : "real2int";
-                emit(s, _opr, ch->eval);
+                emit(s, lhs, _opr, ch->eval, ch->type);
                 if (realLHS && realRHS) IRDump.back().eq = "real=";
             }
         }

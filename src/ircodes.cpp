@@ -37,6 +37,8 @@ void resetIRCodes() { // reset all global variables for next file
 
 _irquad_t::_irquad_t (string opr, string dst, string src1, string src2) : opr(opr), dst(dst), src1(src1), src2(src2) { }
 
+_irquad_t::_irquad_t (string opr, string dst, class Type * t_dst, string src1, class Type * t_src1, string src2, class Type * t_src2) : opr(opr), dst(dst), src1(src1), src2(src2), t_dst(t_dst), t_src1(t_src1), t_src2(t_src2) { }
+
 _str_t::_str_t (string _contents) : contents(_contents) { }
 
 _str_t::_str_t (string _contents, string _encoding) : contents(_contents), encoding(_encoding) { }
@@ -45,8 +47,8 @@ unsigned int nextIdx() {
     return IRDump.size();
 }
 
-void emit(string dst, string opr, string src1, string src2) { // emit into global (incremental) code stream
-    irquad_t q = _irquad_t(opr, dst, src1, src2);
+void emit(string dst, class Type * t_dst, string opr, string src1, class Type * t_src1, string src2, class Type * t_src2) { // emit into global (incremental) code stream
+    irquad_t q = _irquad_t(opr, dst, t_dst, src1, t_src1, src2, t_src2);
     q.label = nextQuadLabel;
     IRDump.push_back(q);
     if((opr == "goto" || opr == "ifgoto") && src1 != "---") {
@@ -61,7 +63,7 @@ void emit(string dst, string opr, string src1, string src2) { // emit into globa
     nextQuadLabel = eps;
 }
 
-void emit(string dst, string opr, string src) { emit(dst, opr, src, eps); }
+void emit(string dst, class Type *  t_dst, string opr, string src, class Type * t_src) { emit(dst, t_dst, opr, src, t_src, eps, NULL); }
 
 string newLabel() { return newLabel("LABEL"); }
 
@@ -130,24 +132,24 @@ void handle(node_t* dollar, node_t* one, node_t* three, int op, string op_label)
     if(isReal(tr)) {
         if(!r1) {
             string tmp = newTmp(clone(tr));
-            emit(tmp, "int2real", e1, eps);
+            emit(tmp, tr, "int2real", e1, one->type, eps, NULL);
             e1 = tmp;
         }
         if(!r2) {
             string tmp = newTmp(clone(tr));
-            emit(tmp, "int2real", e2, eps);
+            emit(tmp, tr, "int2real", e2, three->type, eps, NULL);
             e2 = tmp;
         }
     }
     else {
         if(r1) {
             string tmp = newTmp(clone(tr));
-            emit(tmp, "real2int", e1, eps);
+            emit(tmp, tr, "real2int", e1, one->type, eps, NULL);
             e1 = tmp;
         }
         if(r2) {
             string tmp = newTmp(clone(tr));
-            emit(tmp, "real2int", e2, eps);
+            emit(tmp, tr, "real2int", e2, three->type, eps, NULL);
             e2 = tmp;
         }
     }
@@ -164,7 +166,7 @@ void handle(node_t* dollar, node_t* one, node_t* three, int op, string op_label)
     //     case 'b': opr += ">>"; break;
     //     default: opr += to_string(op);
     // }
-    emit(dollar->eval, opr + op_label, e1, e2);
+    emit(dollar->eval, tr, opr + op_label, e1, one->type, e2, three->type);
     dollar->type = tr;
     dollar->type->lvalue = false;
 }
@@ -177,24 +179,24 @@ Type* handle_as(int op,node_t* one,node_t* three, std::string & e1, std::string 
     if(isReal(tr)) {
         if(!r1) {
             string tmp = newTmp(clone(tr));
-            emit(tmp, "int2real", e1, eps);
+            emit(tmp, tr, "int2real", e1, one->type, eps, NULL);
             e1 = tmp;
         }
         if(!r2) {
             string tmp = newTmp(clone(tr));
-            emit(tmp, "int2real", e2, eps);
+            emit(tmp, tr, "int2real", e2, three->type, eps, NULL);
             e2 = tmp;
         }
     }
     else {
         if(r1) {
             string tmp = newTmp(clone(tr));
-            emit(tmp, "real2int", e1, eps);
+            emit(tmp, tr, "real2int", e1, one->type, eps, NULL);
             e1 = tmp;
         }
         if(r2) {
             string tmp = newTmp(clone(tr));
-            emit(tmp, "real2int", e2, eps);
+            emit(tmp, tr, "real2int", e2, three->type, eps, NULL);
             e2 = tmp;
         }
     }
@@ -292,6 +294,8 @@ void revisit3AC(vector <irquad_t> & codes) {
 
 #ifdef TEST_IRCODES
 vector<unsigned int> nextlist = {1,2,5};
+
+// IMPORTANT : check new definition of emit() and change tests accordingly 
 
 void testIRCodes_1() { // a = b*-c + b*-c
     emit("t1", "-", "c"); // t1 = -c
