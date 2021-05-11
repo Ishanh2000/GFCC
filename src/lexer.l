@@ -106,9 +106,47 @@ using namespace std;
     return (IDENTIFIER);
 }
 
-0[xX]{H}+{IS}?			{ count(); node_t* n = yylval.node = nd(CONSTANT, strdup(yytext), gpos); Base *b = new Base(INT_B); b->isConst = true; n->type = b; return (CONSTANT); } /* const int / const long */
-0{D}+{IS}?				{ count(); node_t* n = yylval.node = nd(CONSTANT, strdup(yytext), gpos); Base *b = new Base(INT_B); b->isConst = true; n->type = b; return (CONSTANT); } /* const int / const long */
-{D}+{IS}?				{ count(); node_t* n = yylval.node = nd(CONSTANT, strdup(yytext), gpos); Base *b = new Base(INT_B); b->isConst = true; n->type = b; return (CONSTANT); } /* const int / const long */
+0[xX]{H}+{IS}? { /* const int / const long */
+    // count(); node_t* n = yylval.node = nd(CONSTANT, strdup(yytext), gpos); Base *b = new Base(INT_B); b->isConst = true; n->type = b; return (CONSTANT);
+    count();
+    char *lexstr = strdup(yytext);
+    const_t cp = constParse(lexstr, false);
+    Base *b = new Base(cp.isLong ? LONG_B : INT_B); b->sign = cp.isUnsigned ? UNSIGNED_X : SIGNED_X; b->isConst = true;
+    node_t* n = yylval.node = nd(CONSTANT, lexstr, gpos);
+    n->type = b; n->eval = cp.label;
+    if (cp.multiWarn != "") repErr(gpos, "multiple incompatible specifications \"" + cp.multiWarn + "\" given for a constant", _FORE_RED_);
+    else if (cp.limitWarn) repErr(gpos, "warning: value " + string(strdup(yytext)) + " too big to fit for " + str(b), _FORE_MAGENTA_);
+    
+    return (CONSTANT);
+}
+
+0{D}+{IS}? { /* const int / const long */
+    // count(); node_t* n = yylval.node = nd(CONSTANT, strdup(yytext), gpos); Base *b = new Base(INT_B); b->isConst = true; n->type = b; return (CONSTANT);
+    count();
+    char *lexstr = strdup(yytext);
+    const_t cp = constParse(lexstr, false);
+    Base *b = new Base(cp.isLong ? LONG_B : INT_B); b->sign = cp.isUnsigned ? UNSIGNED_X : SIGNED_X; b->isConst = true;
+    node_t* n = yylval.node = nd(CONSTANT, lexstr, gpos);
+    n->type = b; n->eval = cp.label;
+    if (cp.multiWarn != "") repErr(gpos, "multiple incompatible specifications \"" + cp.multiWarn + "\" given for a constant", _FORE_RED_);
+    else if (cp.limitWarn) repErr(gpos, "warning: value " + string(strdup(yytext)) + " too big to fit for " + str(b), _FORE_MAGENTA_);
+    
+    return (CONSTANT);
+}
+
+{D}+{IS}? { /* const int / const long */
+    // count(); node_t* n = yylval.node = nd(CONSTANT, strdup(yytext), gpos); Base *b = new Base(INT_B); b->isConst = true; n->type = b; return (CONSTANT);
+    count();
+    char *lexstr = strdup(yytext);
+    const_t cp = constParse(lexstr, false);
+    Base *b = new Base(cp.isLong ? LONG_B : INT_B); b->sign = cp.isUnsigned ? UNSIGNED_X : SIGNED_X; b->isConst = true;
+    node_t* n = yylval.node = nd(CONSTANT, lexstr, gpos);
+    n->type = b; n->eval = cp.label;
+    if (cp.multiWarn != "") repErr(gpos, "multiple incompatible specifications \"" + cp.multiWarn + "\" given for a constant", _FORE_RED_);
+    else if (cp.limitWarn) repErr(gpos, "warning: value " + string(strdup(yytext)) + " too big to fit for " + str(b), _FORE_MAGENTA_);
+    
+    return (CONSTANT);
+}
 
 L?'(\\.|[^\\'])+'		{ // const char
     count();
@@ -121,9 +159,45 @@ L?'(\\.|[^\\'])+'		{ // const char
     return (CONSTANT);
 } 
 
-{D}+{E}{FS}?			{ count(); node_t* n = yylval.node = nd(CONSTANT, strdup(yytext), gpos); Base *b = new Base(DOUBLE_B); b->isConst = true; n->type = b;return (CONSTANT); } /* const double / const long double */
-{D}*"."{D}+({E})?{FS}?	{ count(); node_t* n = yylval.node = nd(CONSTANT, strdup(yytext), gpos); Base *b = new Base(DOUBLE_B); b->isConst = true; n->type = b; return (CONSTANT); } /* const double / const long double */
-{D}+"."{D}*({E})?{FS}?	{ count(); node_t* n = yylval.node = nd(CONSTANT, strdup(yytext), gpos); Base *b = new Base(DOUBLE_B); b->isConst = true; n->type = b; return (CONSTANT); } /* const double / const long double */
+
+{D}+{E}{FS}? { /* const double / const long double */
+    count();
+    char *lexstr = strdup(yytext);
+    const_t cp = constParse(lexstr, true);
+    Base *b = new Base(cp.isLong ? DOUBLE_B : FLOAT_B); b->isConst = true;
+    node_t* n = yylval.node = nd(CONSTANT, lexstr, gpos);
+    n->type = b; n->eval = cp.label;
+    if (cp.multiWarn != "") repErr(gpos, "multiple incompatible specifications \"" + cp.multiWarn + "\" given for a constant", _FORE_RED_);
+    else if (cp.limitWarn) repErr(gpos, "warning: value " + string(strdup(yytext)) + " too big to fit for " + str(b), _FORE_MAGENTA_);
+    
+    return (CONSTANT);
+}
+
+{D}*"."{D}+({E})?{FS}? { /* const double / const long double */
+    count();
+    char *lexstr = strdup(yytext);
+    const_t cp = constParse(lexstr, true);
+    Base *b = new Base(cp.isLong ? DOUBLE_B : FLOAT_B); b->isConst = true;
+    node_t* n = yylval.node = nd(CONSTANT, lexstr, gpos);
+    n->type = b; n->eval = cp.label;
+    if (cp.multiWarn != "") repErr(gpos, "multiple incompatible specifications \"" + cp.multiWarn + "\" given for a constant", _FORE_RED_);
+    else if (cp.limitWarn) repErr(gpos, "warning: value " + string(strdup(yytext)) + " too big to fit for " + str(b), _FORE_MAGENTA_);
+    
+    return (CONSTANT);
+}
+
+{D}+"."{D}*({E})?{FS}? { /* const double / const long double */
+    count();
+    char *lexstr = strdup(yytext);
+    const_t cp = constParse(lexstr, true);
+    Base *b = new Base(cp.isLong ? DOUBLE_B : FLOAT_B); b->isConst = true;
+    node_t* n = yylval.node = nd(CONSTANT, lexstr, gpos);
+    n->type = b; n->eval = cp.label;
+    if (cp.multiWarn != "") repErr(gpos, "multiple incompatible specifications \"" + cp.multiWarn + "\" given for a constant", _FORE_RED_);
+    else if (cp.limitWarn) repErr(gpos, "warning: value " + string(strdup(yytext)) + " too big to fit for " + str(b), _FORE_MAGENTA_);
+    
+    return (CONSTANT);
+}
 
 L?\"(\\.|[^\\"])*\"		{ // const char *
     count();

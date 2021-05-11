@@ -110,6 +110,14 @@ typedef struct _edge_t {
 	const char *attr;
 } edge_t;
 
+typedef struct _const_t {
+	std::string label;
+	bool limitWarn = false; // warning if limit exceeded
+	std::string multiWarn = ""; // warning if multiple/incompatible specs
+	bool isUnsigned = false;
+	bool isLong = false; // in context of reals, means double (by default true)
+} const_t;
+
 extern const char* TOKEN_NAME_ARRAY[]; // make this const
 
 extern int column, tab_len, bad_char_seen;
@@ -196,5 +204,11 @@ bool accept(node_t *node);
 void resetLexer(); // reset global variables
 
 void dumpTok(std::ofstream &, std::vector<struct _token_t> &); // to dump tokens (like Milestone 1)
+
+const_t constParse(std::string, bool); // parse passed constant into SPIM-digestable format.
+
+ull_t maxLimit(bool, bool);
+
+bool intExceeds(ull_t, ull_t, ull_t, bool, bool);
 
 #endif

@@ -333,6 +333,152 @@ void dumpTok(std::ofstream &f, std::vector<struct _token_t> &arr) { // to dump t
 	f << endl;
 }
 
+ull_t maxLimit(bool isUnsigned, bool isLong) {
+	if (isUnsigned && isLong) return ((ull_t)(-1)); // true, true
+	else if (isUnsigned) return (((ull_t)1) << 32) - 1; // true, false
+	else if (isLong) return (((ull_t)1) << 63) - 1; // false, true
+	return (((ull_t)1) << 31) - 1; // false, false
+}
+
+bool intExceeds(ull_t system, ull_t num, ull_t add, bool isUnsigned, bool isLong) {
+	if (isUnsigned && isLong) { // check num + add > (2^64 - 1)
+		return (num*system + add) < num; // overflow for UL
+	} else if (isUnsigned) { // check num + add > 2^32 - 1 = (1 << 32) - 1
+		return (num*system + add) > maxLimit(true, false);
+	} else if (isLong) { // check num + add > 2^63 - 1 = (1 << 63) - 1
+		return (num*system + add) > maxLimit(false, true);
+	} // means normal int - check num + add > 2^31 - 1
+	return (num*system + add) > maxLimit(false, false);
+}
+
+const_t constParse(string num, bool realContext) { // parse passed constant into SPIM-digestable format.
+	const_t ret;
+	if (realContext) {
+		// cout << "HERE" << endl;
+		int specStart = -1;
+		int _l = num.size();
+		for (int i = 0; i < _l; i++)
+			if (num[i] == 'f' || num[i] == 'F' || num[i] == 'l' || num[i] == 'L') { specStart = i; break; }
+		
+		string fullSpec = (specStart > 0) ? num.substr(specStart) : "";
+		
+		if (fullSpec.size() > 1) ret.multiWarn = true;
+		ret.isLong = true; // double (default)
+		if (fullSpec.size() > 0 && (fullSpec[0] == 'f' || fullSpec[0] == 'F')) ret.isLong = false; // float
+
+		int _exp = -1, _dot = -1; // one will surely be non-negative after for loop.
+		for (int i = 0; i < _l; i++) {
+			if (num[i] == 'E' || num[i] == 'e') { _exp = i; continue; }
+			if (num[i] == '.' || num[i] == '.') { _dot = i; continue; }
+		}
+		string exp = "0";
+		if (_exp > -1) {
+			if (specStart < 0) exp = num.substr(_exp + 1); else exp = num.substr(_exp + 1, specStart - _exp - 1);
+		}
+		if (exp[0] == '+') exp = exp.substr(1); // truncate the plus
+		int expVal = stoi(exp); // can be +ve/0/-ve
+		// expVal is the power of 10 to multiply
+
+		string core = "";
+		if (_exp > -1) core = num.substr(0, _exp);
+		else { // dot must exist if there is no exponent
+			if (specStart < 0) core = num; else core = num.substr(0, specStart);
+		}
+		if (core[0] == '.') core = string("0") + core; // add a zero if missing in front of dot
+		if (_dot < 0) core += ".0";
+		int l = core.size();
+		for (int i = 0; i < l; i++) if (core[i] == '.') { _dot = i; break; }
+		// core is now a decimal number with a decimal and _dot is location of that decimal
+
+		string s1 = core.substr(0, _dot), s2 = core.substr(_dot + 1);
+		if (expVal > 0) {
+			int s2l = s2.size();
+			if (expVal == s2l) core = s1 + s2 + ".0";
+			else if (expVal < s2l) core = s1 + s2.substr(0, expVal) + "." + s2.substr(expVal);
+			else core = s1 + s2 + string(expVal - s2l, '0') + ".0";
+		} else if (expVal < 0) {
+			expVal = -expVal;
+			int s1l = s1.size();
+			if (expVal == s1l) core = "0." + s1 + s2;
+			else if (expVal < s1l) core = s1.substr(0, s1l - expVal) + "." + s1.substr(s1l - expVal) + s2;
+			else core = "0." + string(expVal - s1l, '0') + s1 + s2;
+		} // else do nothing
+
+		l = core.size();
+		int fnz = 0; // first non-zero
+		while (fnz < l && core[fnz] == '0') fnz++;
+		if (fnz < l) core = core.substr(fnz);
+		if (core[0] == '.') core = string("0") + core;
+
+		ret.label = core;
+		// limitWarn is left
+
+	} else { // parse like INT or its derivatives.
+		int specStart = -1;
+		int _l = num.size();
+		for (int i = 0; i < _l; i++)
+			if (num[i] == 'u' || num[i] == 'U' || num[i] == 'l' || num[i] == 'L') { specStart = i; break; }
+		
+		string fullSpec = (specStart >= 0) ? num.substr(specStart) : "";
+		
+		if (fullSpec != "") {
+			for (auto spec : fullSpec) {
+				if (spec == 'u' || spec == 'U') { if (ret.isUnsigned) ret.multiWarn = fullSpec;	else ret.isUnsigned = true; }
+				if (spec == 'l' || spec == 'L') { if (ret.isLong) ret.multiWarn = fullSpec;	else ret.isLong = true; }
+			}
+		}
+
+		ull_t system = 10; // decimal
+		if (num[0] == '0') system = (num[1] == 'x' || num[1] == 'X') ? 16 : 8; // octal or hexadecimal
+		
+		int _start, _end; // range to scan in "num"
+		switch (system) { case  8 : _start = 1; break; case 16 : _start = 2; break; default : _start = 0; }
+		_end = ((specStart < 0) ? num.size() : specStart) - 1;
+
+		unsigned long long int prog = 0; // progressively store the integer formed in this
+
+		for (int i = _start; i <= _end; i++) {
+			ull_t add;
+			switch (system) {
+				case 16 :
+					if (num[i] <= '9') add = num[i] - '0'; // 0-9
+					else if (num[i] < 'a') add = num[i] - 'A' + 10; // A-F
+					else add = num[i] - 'a' + 10; // a-f
+					break;
+				default : add = num[i] - '0';
+			}
+
+			if (fullSpec != "") { // if not within range for given specs
+				if (intExceeds(system, prog, add, ret.isUnsigned, ret.isLong)) {
+					ret.limitWarn = true; prog = maxLimit(ret.isUnsigned, ret.isLong); break;
+				}
+				prog = (prog * system) + add;
+
+			} else {
+				if (intExceeds(system, prog, add, ret.isUnsigned, ret.isLong)) {
+					if (ret.isUnsigned) { // means isLong is also true
+						ret.limitWarn = true; prog = maxLimit(ret.isUnsigned, ret.isLong); break;
+					} else if (ret.isLong) { // upgrade to unsigned
+						ret.isUnsigned = true; prog = (prog * system) + add;
+					} else { // upgrade to long
+						ret.isLong = true; prog = (prog * system) + add;
+					}
+				} else prog = (prog * system) + add;
+			}
+		}
+		ret.label = "";
+		while (prog) { ret.label += to_string(prog % 10); prog /= 10;	}
+		
+		string revLabel;
+		int l = ret.label.size();
+		for (int i = 0; i < l; i++) revLabel.push_back(ret.label[l-1-i]);
+		ret.label = revLabel;
+  
+	}
+	return ret;
+}
+
+
 /* yywrap() { return 1; } */
 
 void resetLexer() {

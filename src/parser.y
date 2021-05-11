@@ -99,7 +99,7 @@ primary_expression
 		Type *t = $$->type;
 		if (t && t->grp() == BASE_G && (((Base*)t)->base == CHAR_B)) { // char
 			$$->eval = char2num($$->label);
-		} else $$->eval = $$->label; // number(int/real)
+		} // number(int/real)
 	}
 	// get sematic number (means 0x56 = 86, 0227 = 151, etc) during semantic analysis - but ENCODE HERE ITSELF
 	| STRING_LITERAL		{ $$ = $1;

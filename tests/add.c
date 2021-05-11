@@ -21,8 +21,10 @@ int main() {
   // a, a+1, a+2;
 
   // PROBLEM
-  float a = 1.3, b, c = 9;
-
+  float a = 0.2e-3F; // 0.002
+  // float a = 1.3, b, c = 9;
+  // int aa[3];
+  // aa[2] = aa[1] + aa[0];
   // int*x;
   // a = (c + 9);
   // a = (int)(c + 9 + b);
@@ -31,7 +33,7 @@ int main() {
   // int x;
   // c += a + b;
   // c += a * -b;
-  if (!a) a = -a;
+  // if (!a) a = -a;
   // x = foo((char *)0);
 
   // int a[4][4][4];
