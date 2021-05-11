@@ -311,16 +311,37 @@ void genASM(ofstream & f, irquad_t & quad) {
   
   deltaNxtUse lastdelta = nxtUse.step();
 
-  if (quad.opr == "+" || quad.opr == "-" ||
+  if (quad.src2 != eps && (
+      quad.opr == "+" || quad.opr == "-" ||
       quad.opr == "*" || quad.opr == "/" ||
       quad.opr == ">" || quad.opr == "<" ||
       quad.opr == ">=" || quad.opr == "<=" ||
       quad.opr == "==" || quad.opr == "&&" || 
       quad.opr == "||" || quad.opr == "&"|| 
       quad.opr == "|"||quad.opr == "<<"||
-      quad.opr == ">>"||quad.opr == "^") binOpr(f, quad);
- 
+      quad.opr == ">>"||quad.opr == "^"
+      )) binOpr(f, quad);
+
   else if (quad.opr == eps) assn(f, quad);
+
+  else if (quad.opr == "&") {
+    oprRegs regs = getReg(f, quad);
+    string paramAddr = loadArrAddr(f, lastdelta.src1Sym, lastdelta.src1ArrSymb,
+                                      lastdelta.src1ArrOff, lastdelta.src1Type, "1");
+    if(paramAddr != "") {
+      // ($fp)
+      f << '\t' << "la " << reg2str[regs.dstReg] + ", " + paramAddr;
+    }
+    else {
+      f << '\t' << "la " << reg2str[regs.dstReg] + ", -" + to_string(lastdelta.src1Sym->offset)
+        << "($fp)";
+    }
+    f << " # " + quad.dst + " = & " + quad.src1 << endl;
+  }
+
+  else if (quad.opr == "*") {
+    // TODO
+  }
   
   else if (quad.opr == "goto") {
     // resetRegMaps(f);
@@ -614,6 +635,7 @@ void assn(ofstream & f, const irquad_t &q) {
   string addrSrc1 = loadArrAddr(f, lastdelta.src1Sym, 
                                    lastdelta.src1ArrSymb, 
                                    lastdelta.src1ArrOff, lastdelta.src1Type, "1");
+
   if (regs.dstReg == regs.src1Reg && lastdelta.dstType == 0) {
     f << "\t # " + q.dst + " = " + reg2str[regs.src1Reg] <<endl;
   }
