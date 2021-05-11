@@ -23,8 +23,9 @@ typedef struct _irquad_t {
 typedef struct _str_t { // for strings to be used in ".data" section
     // std::string label = ""; // will uncomment if required
     std::string encoding = ".asciiz";
-    std::string contents = ""; // store without any double quotes.
-    _str_t(std::string, std::string); // contents, encoding
+    std::string contents = ""; // store with any double quotes.
+    std::string glbName = "";  // eps if string literal else name of global symbol
+    _str_t(std::string, std::string, std::string); // contents, encoding
     _str_t(std::string); // contents
 } str_t;
 

@@ -22,8 +22,6 @@ int main() {
 
   
   // PROBLEM
-<<<<<<< HEAD
-=======
   // float aa = 0.0; // 0.002
   int a[][4] = {{1,2,3,4,5}, {6,7,8,9}}, l = 4, i, j;
   
@@ -43,7 +41,6 @@ int main() {
   // int x;
   // c += a + b;
   // c += a * -b;
->>>>>>> 7a1728ceb644639f19df15e5e5c1f34f35a1f6c4
   // if (!a) a = -a;
   // x = foo((char *)0);
   int a[4][4][4];

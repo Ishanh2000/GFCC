@@ -25,6 +25,7 @@ class sym { // SYMBOL
   public:
     std::string name;
     class Type* type = NULL;
+    class symtab* parent = NULL;
     loc_t pos; // there can be two positions - last defined / last declared - later, if time permits
     int lib = 0x0; // what library does this symbol belongs to
     short unsigned int size = 1;

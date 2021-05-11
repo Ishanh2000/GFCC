@@ -214,7 +214,9 @@ bool symtab::pushSym(string _name, class Type* _type, loc_t _pos, bool isArg) {
     if (dbg) msg(WARN) << "Could not push \"" << _name << "\" in current scope.";
     return false;
   }
-  return pushSym(new sym(_name, _type, _pos, isArg));
+  sym* tmp = new sym(_name, _type, _pos, isArg);
+  tmp->parent = this;
+  return pushSym(tmp);
 }
 
 void symtab::dump(ofstream &f, string scopePath) {

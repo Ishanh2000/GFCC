@@ -452,6 +452,7 @@ bool impCast(class Type *from, class Type *to) { // implicit type-casting
             // FUNC to ARR -ok directly
             // FUNC to PTR -ok directly
             // FUNC to FUNC -ok directly
+            cout << "$$$$$$$$$$$$here$$$$$$$4" << endl;
             return true;
             // if (gt != PTR_G) return false;
         }
@@ -500,16 +501,25 @@ short unsigned int getSize(class Type *t) { // implmentation like "sizeof"
     vector<sym*> *li; int l;
     switch (t->grp()) {
         case BASE_G : switch (b->base) {
+            case SHORT_B: return 2;
             case INT_B : case FLOAT_B : case ENUM_B : return 4;
             case LONG_B : case DOUBLE_B : return 8;
             case LONG_LONG_B : case LONG_DOUBLE_B : return 8;
             case STRUCT_B :
                 li = &(b->subDef->syms); l = li->size();
-                for (int i = 0; i < l; i++) cmpSize += (*li)[i]->size;
+                for (int i = 0; i < l; i++) {
+                    sym* s = (*li)[i];
+                    int size = s->size;
+                    if(size %4 != 0) size = size - size%4 + 4;
+                    s->offset = cmpSize;
+                    cmpSize += size;
+                    cout << s->name << "  " << s->size << " "<< s->offset << endl;
+                }
                 return cmpSize;
             case UNION_B :
                 li = &(b->subDef->syms); l = li->size();
                 for (int i = 0; i < l; i++) if (cmpSize < (*li)[i]->size) cmpSize = (*li)[i]->size;
+                if(cmpSize % 4 != 0) cmpSize = cmpSize - cmpSize%4 + 4;
                 return cmpSize;
             default : return 1; // NONE_B, VOID_B, CHAR_B, SHORT_B, ELLIPSIS_B
         }
@@ -630,6 +640,16 @@ void arrayInit(struct _loc_t eqPos, string arrName, class Arr *lhs, struct _node
     }
 }
 
+bool isFuncType(class Type* t) {
+    if(!t) return false;
+    if(t->grp() == FUNC_G) return true;
+    if(t->grp() == PTR_G) {
+        Ptr * p = (Ptr *) t;
+        if(p->ptrs.size() == 1 && p->pt->grp() == FUNC_G)
+            return true;
+    }
+    return false;
+}
 
 /************************************************/
 /****************** TEST SUITE ******************/

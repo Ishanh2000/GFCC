@@ -43,7 +43,7 @@ _irquad_t::_irquad_t (string opr, string dst, class Type * t_dst, string src1, c
 
 _str_t::_str_t (string _contents) : contents(_contents) { }
 
-_str_t::_str_t (string _contents, string _encoding) : contents(_contents), encoding(_encoding) { }
+_str_t::_str_t (string _contents, string _encoding, string _glbName) : contents(_contents), encoding(_encoding), glbName(_glbName) { }
 
 unsigned int nextIdx() {
     return IRDump.size();
@@ -212,8 +212,18 @@ void dumpStr(ofstream &f, vector<str_t> &strArr) { // dump string literals into 
 
     for (int i = 0; i < l; i++) {
         str_t &s = strArr[i];
-        f << setw(_w) << "0s_" + to_string(i) << " : ";
-        f << setw(10) << s.encoding << " \"" << s.contents << "\"" << endl;
+        if(s.glbName != eps){
+            f << setw(_w) << "0g_" + s.glbName << " : ";
+            f << setw(10) << s.encoding << '\t' << s.contents << endl;
+        }
+    }
+
+    for (int i = 0; i < l; i++) {
+        str_t &s = strArr[i];
+        if(s.glbName == eps){
+            f << setw(_w) << "0s_" + to_string(i) << " : ";
+            f << setw(10) << s.encoding << '\t' << s.contents << endl;
+        }
     }
     
     f << endl;

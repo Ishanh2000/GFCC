@@ -104,7 +104,7 @@ primary_expression
 	// get sematic number (means 0x56 = 86, 0227 = 151, etc) during semantic analysis - but ENCODE HERE ITSELF
 	| STRING_LITERAL		{ $$ = $1;
 		$$->eval = "0s_" + to_string(StrDump.size());
-		StrDump.push_back(str_t($$->label));
+		StrDump.push_back(str_t("\"" + string($$->label) + "\""));
 	} // encode as (const char *) - or some other appropriate enc.
 	| '(' expression ')'	{ $$ = $2; }
 	;
@@ -228,10 +228,10 @@ postfix_expression
 							bool _good = true;
 							for (int i = 0; i < numProto; i++) {
 								Type *proto = f->params[i], *given = $3->ch(i)->type;
-								if (!impCast(given, proto)) { // check given against proto
+								/* if (!impCast(given, proto)) { // check given against proto
 									repErr($3->ch(i)->pos, string("expected argument of type \"") + str(proto) + "\", but got type \"" + str(given) + "\"", _FORE_RED_);
 									_good = false;
-								}
+								} */
 							}
 							if (_good) $$->type = clone(f->retType);
 							else { $$->type = new Base(INT_B); $$->type->isErr = true; }
@@ -902,8 +902,11 @@ declaration
 						string opr = eps; // 4 cases: R to I, I to I, I to R, R to R
 						bool realLHS = isReal(ut), realRHS = isReal(initNode->type);
 						if (realLHS != realRHS) opr = realLHS ? "int2real" : "real2int";
-						emit(cnode->label, t2, opr, initNode->eval, initNode->type);
+						emit(cnode->label, initNode->type, opr, initNode->eval, initNode->type);
 						if (realLHS && realRHS) IRDump.back().eq = "real=";
+						if(SymRoot->currScope->parent == NULL){ // global scope
+							StrDump.push_back(str_t(initNode->eval, ".word", cnode->label));
+						}
 					}
 					
 				}
@@ -1739,7 +1742,7 @@ compound_statement
 		SymRoot->closeScope(); 
 	}
 	| '{' statement_list '}'                  { $$ = ($2) ? ($2) : ($1); SymRoot->closeScope(); }
-	| '{' declaration_list '}'                { $$ = ($3) ? ($3) : ($1); SymRoot->closeScope(); }
+	| '{' declaration_list '}'                { $$ = ($2) ? ($2) : ($1); SymRoot->closeScope(); }
 	| '{' declaration_list statement_list '}' {
 		if (($2) && ($3)) { $$ = op( nd(GEN_BLOCK, "block", { 0, 0 }), 0, 2, ej($2), ej($3) ); }
 		else if ($2) { $$ = $2; } // only useful decl. list.
@@ -2004,7 +2007,14 @@ function_definition
 				} else if (!extMatch(ret->type, ut)) {
 					repErr($2->pos, "definition does not match previous declaration", _FORE_RED_);
 					repErr(ret->pos, "previous declaration given here", _FORE_CYAN_);
-				} else { ret->type->strg = NONE_S; ret->pos = cnode->pos; _good = true; }
+				} else { 
+					ret->type->strg = NONE_S; 
+					ret->pos = cnode->pos; _good = true; 
+					SymRoot->currScope->name = string("func ") + cnode->label;
+					for (int i = IRDump.size() - 1; i >= 0; i--) {
+						if (IRDump[i].opr == "newScope") { IRDump.erase(IRDump.begin() + i); break; }
+					}
+				}
 			} else { // good to go
 				bool _err = false;
 				if (t1->grp() == BASE_G) { // if struct or union and not defined, check that the declarator has pointer tail - else generate error.

@@ -87,7 +87,13 @@ void regFlush(std::ofstream & f, reg_t reg, bool store = true) {
     // always do in case of global
     bool isArr = regDscr[reg]->type->grp() == ARR_G;
     if (store && !isArr) {
-      f << '\t' << "sw " << reg2str[reg] + ", -"<< regDscr[reg]->offset <<"($fp)";
+      if(regDscr[reg]->parent == SymRoot->root) {
+        if(!isFuncType(regDscr[reg]->type)) 
+          f << '\t' << "sw " << reg2str[reg] + ", global_" + regDscr[reg]->name;
+      }
+      else {
+        f << '\t' << "sw " << reg2str[reg] + ", -"<< regDscr[reg]->offset <<"($fp)";
+      }
       f << " # flush register to stack (" + regDscr[reg]->name + ")"<< endl;
     }
     // clear addrDscr
@@ -107,7 +113,15 @@ void regMap(std::ofstream & f, reg_t reg, sym* symb, bool load = true) {
     f << " # load front addr of array \"" + symb->name + "\" into register "<< endl;
   }
   else if (load) {
-    f << '\t' << "lw " << reg2str[reg] + ", -"<< symb->offset <<"($fp)";
+    if(symb->parent == SymRoot->root) {
+      if(isFuncType(symb->type))
+        f << '\t' << "la " << reg2str[reg] +  ", " + symb->name;
+      else
+        f << '\t' << "lw " << reg2str[reg] +  ", global_" + symb->name;
+    }
+      
+    else 
+      f << '\t' << "lw " << reg2str[reg] + ", -"<< symb->offset <<"($fp)";
     f << " # load into register (" + symb->name + ")"<< endl;
   }
   // add addrDscr entry
@@ -270,10 +284,18 @@ void dumpASM(ofstream &f, vector<irquad_t> & IR) {
   f << "\t\t.data" << endl; // first print static data (strings)
   int l = StrDump.size();
   for (int i = 0; i < l; i++) {
-    f << "string_" << i << ":\t\t" << StrDump[i].encoding << "\t\t\"" << StrDump[i].contents << "\"" << endl;
+    str_t &s = StrDump[i];
+    if(s.glbName != eps)
+      f << "global_" << s.glbName << ":\t\t" << s.encoding << "\t\t" << s.contents << endl;
+  }
+  for (int i = 0; i < l; i++) {
+    str_t &s = StrDump[i];
+    if(s.glbName == eps)
+      f << "string_" << i << ":\t\t" << s.encoding << "\t\t" << s.contents << endl;
   }
 
   f << endl << endl;
+
   f << "\t\t.text" << endl << endl; // code section begins
   
   for(int i = 0; i < 32; i++) regDscr[i] = NULL; // clear regs
@@ -311,6 +333,7 @@ void genASM(ofstream & f, irquad_t & quad) {
   if (quad.src2.substr(0, 2) == "0s") quad.src2.replace(0, 2, "string");
   
   deltaNxtUse lastdelta = nxtUse.step();
+  
 
   if (quad.src2 != eps && (
       quad.opr == "+" || quad.opr == "-" ||
@@ -471,15 +494,19 @@ void genASM(ofstream & f, irquad_t & quad) {
 
 
 void funcStart(std::ofstream & f, const irquad_t & quad) {
-  // resetRegMaps(f);
+  resetRegMaps(f);
   currFunc = quad.src1;
   f << "\t.globl " + currFunc << endl;
   auto symtabs = SymRoot->currScope->subScopes; // currscope == root
   // search for function scope
-  symtab * funTab;
+  symtab * funTab = NULL;
   for (auto tab: symtabs) {
     if (tab->name == "func " + currFunc) { funTab = tab; break; }
   }
+  if(!funTab) {
+    cout << "void funcStart():: can't find function scope" << endl;
+  }
+
   // change scope
   SymRoot->currScope = funTab;
   // initialise reg for all symbols to "zero"
@@ -520,7 +547,11 @@ void funcEnd(std::ofstream & f, const irquad_t & quad) {
   // soft flush every register
   resetRegMaps(f, false);
   // close scope
-  SymRoot->currScope = SymRoot->currScope->parent;
+  if(SymRoot->currScope->parent)
+  {
+    cout << "funcEnd" <<endl;
+    SymRoot->currScope = SymRoot->currScope->parent;
+  }
   f << currFunc + "_ret:" << endl;
   f << '\t' << "lw"<< " $s7, -40($fp)" << " # restore callee saved register" << endl;
   f << '\t' << "lw"<< " $s6, -36($fp)" << " # restore callee saved register" << endl;
@@ -627,6 +658,7 @@ void binOpr(std::ofstream & f, const irquad_t & q) {
 
 
 void assn(ofstream & f, const irquad_t &q) {
+  if(SymRoot->currScope == SymRoot->root) return;
   deltaNxtUse lastdelta = nxtUse.lastdelta;
   oprRegs regs = getReg(f, q);
   /* just remapping resgisters */

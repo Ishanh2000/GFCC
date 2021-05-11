@@ -152,4 +152,6 @@ std::string char2num(std::string); // convert char to num
 
 void resetTypes(); // reset appropriate global variables
 
+bool isFuncType(class Type*);
+
 #endif
