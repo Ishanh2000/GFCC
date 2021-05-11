@@ -23,10 +23,13 @@ int main() {
   
   // PROBLEM
   // float aa = 0.0; // 0.002
-  int a = 10, i;
+  int a[][4] = {{1,2,3,4,5}, {6,7,8,9}}, l = 4, i, j;
   
-  // for (i = 0; i < 10; i++) a++;
-  g5_printf("%d\n", a);
+  for (i = 0; i < 2; i++) 
+    for(j =0 ;j<l; j++){
+      g5_printf("Value of a[%d][%d]: %d  %f\n", i, j, a[i][j], 2.1e10);
+    }
+  g5_printf("%p\n", a);
   // float a = 1.3, b, c = 9;
   // int aa[3];
   // aa[2] = aa[1] + aa[0];

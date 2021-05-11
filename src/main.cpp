@@ -431,7 +431,6 @@ const_t constParse(string num, bool realContext) { // parse passed constant into
 
 		ull_t system = 10; // decimal
 		if (num[0] == '0' && _l > 1) system = (num[1] == 'x' || num[1] == 'X') ? 16 : 8; // octal or hexadecimal
-		cout << system << endl;
 		int _start, _end; // range to scan in "num"
 		switch (system) { case  8 : _start = 1; break; case 16 : _start = 2; break; default : _start = 0; }
 		_end = ((specStart < 0) ? num.size() : specStart) - 1;
