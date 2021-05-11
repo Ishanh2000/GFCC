@@ -19,8 +19,33 @@ int main() {
   // int *x;
   // char a = g5_getc();
   // a, a+1, a+2;
-  float a, b, c;
-  c = a + b;
+
+  // PROBLEM
+  float a = 1.3, b, c = 9;
+
+  // int*x;
+  // a = (c + 9);
+  // a = (int)(c + 9 + b);
+  // x = (int)(c + 9 + b);
+
+  // int x;
+  // c += a + b;
+  // c += a * -b;
+  if (!a) a = -a;
+  // x = foo((char *)0);
+
+  // int a[4][4][4];
+  // struct { int x; char y; struct { int x; char y; }* z; } *p[3];
+  // // a[1]++;
+  // a[a[3][(&p)->x][1]][2][p.x]++;
+  // p[3]->x++;
+  // p[3]->z->y++;
+
+  // int (*a)[5];
+  // int *****b[3][5];
+
+  // (*a)[4]++;
+  // (****b[2][4])++;
 
   // float a, b = 9;
   // double c = 9.0;

@@ -116,12 +116,12 @@ grp_t Func::grp() { return FUNC_G; }
 static void replace(string &str, const string &a, const string &b) {
     // Replace the instance of a (in str) with b. Only one instance guaranteed.
     int _start = str.find(a);
-    if (_start >= 0) str.replace(_start, a.size(), b);
+    if (_start != string::npos) str.replace(_start, a.size(), b);
 }
 
 static void rm(string &str, const string &a) { // remove all instances of a in str.
     int la = a.size(), _start;
-    while ((_start = str.find(a)) >= 0) str.replace(_start, la, "");
+    while ((_start = str.find(a)) != string::npos) str.replace(_start, la, "");
 }
 
 string str(class Type *t) {
@@ -147,9 +147,9 @@ string str(class Type *t) {
     
     // undesired : "( ", " )", add more ...
     int _start;
-    while ((_start = str.find("( ")) >= 0) str.replace(_start, 2, "(");
-    while ((_start = str.find(" )")) >= 0) str.replace(_start, 2, ")");
-    while ((_start = str.find(" ,")) >= 0) str.replace(_start, 2, ",");
+    while ((_start = str.find("( ")) != string::npos) str.replace(_start, 2, "(");
+    while ((_start = str.find(" )")) != string::npos) str.replace(_start, 2, ")");
+    while ((_start = str.find(" ,")) != string::npos) str.replace(_start, 2, ",");
     
     // NOTE: Assured that all double spaces ("  ") removed.
     if (str[0] == ' ') str.erase(0, 1);

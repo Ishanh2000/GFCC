@@ -10,11 +10,11 @@
 #include <types2.h>
 
 typedef struct _irquad_t {
-    std::string dst = "";
+    std::string dst = ""; class sym* s_dst = NULL;
     std::string eq = "=";
     std::string opr = "";
-    std::string src1 = "";
-    std::string src2 = "";
+    std::string src1 = ""; class sym* s_src1 = NULL;
+    std::string src2 = ""; class sym* s_src2 = NULL;
     std::string label = "";
     // some constructors
     _irquad_t(std::string, std::string, std::string, std::string);

@@ -218,7 +218,7 @@ void dumpStr(ofstream &f, vector<str_t> &strArr) { // dump string literals into 
 void dumpIR(ofstream &f, vector<irquad_t> &irArr) { // dump 3AC codes into a file
     f << ".text" << endl << endl;
     int l = irArr.size(), _w = to_string(l).size();
-
+    bool  show_eq = false;
     for (int i = 0; i < l; i++) {
         irquad_t &q = irArr[i];
         if (q.label != eps) f << q.label << " :" << endl;
@@ -255,14 +255,14 @@ void dumpIR(ofstream &f, vector<irquad_t> &irArr) { // dump 3AC codes into a fil
         else if (q.opr == "function end") f << q.opr << endl;
         
         // dst = <src1> [load/store/move]
-        else if (q.opr == eps) f << q.dst << " " << q.eq << " " << q.src1;
+        else if (q.opr == eps) f << q.dst << " " << (show_eq ? q.eq : "=") << " " << q.src1;
 
         else {
             // <dst> = <opr> <src1> [unary]
-            if (q.src2 == eps) f << q.dst << " = " << q.opr << " " << q.src1;
+            if (q.src2 == eps) f << q.dst << " " << (show_eq ? q.eq : "=") << " " << q.opr << " " << q.src1;
 
             // <dst> = <src1> <opr> <src2> [actually "binary" operations]
-            else f << q.dst << " = " << q.src1 << " " << q.opr << " " << q.src2;
+            else f << q.dst << " " << (show_eq ? q.eq : "=") << " " << q.src1 << " " << q.opr << " " << q.src2;
         }
 
         f << endl;

@@ -140,7 +140,13 @@ postfix_expression
 		}
 		$$->type->lvalue = true;
 
-		$$->eval = $1->eval + "[" + $3->eval + "]"; // handle at assembly code generation
+		string e2 = $3->eval;
+		if (e2.find("[") != string::npos || e2.find(".") != string::npos || e2.find("->") != string::npos) { // means e2 itself is accessed type (array/struct)
+			string _tmp = newTmp(clone(t2));
+			emit(_tmp, eps, e2); // no need to check assignment type because t2/_tmp are not reals.
+			e2 = _tmp;
+		}
+		$$->eval = $1->eval + "[" + e2 + "]"; // handle at assembly code generation
 	}
 	| postfix_expression '(' ')' {
 		$2->tok = FUNC_CALL; $2->label = "() [func-call]"; $2->attr = func_call_attr; $$ = op( $2, 0, 1, ej($1) );
@@ -171,6 +177,7 @@ postfix_expression
 			Type* _t = $$->type;
 			if ((!_t) || (_t->grp() != BASE_G) || (((Base*)_t)->base != VOID_B)) {
 				emit($$->eval = newTmp(clone(_t)), eps, "$retval"); // call <func / func_ptr>, 0
+				if (isReal(_t)) IRDump.back().eq = "real=";
 			}
 		}
 	}
@@ -245,11 +252,12 @@ postfix_expression
 			Type *_t = $$->type;
 			if ((!_t) || (_t->grp() != BASE_G) || (((Base*)_t)->base != VOID_B)) {
 				emit($$->eval = newTmp(clone(_t)), eps, "$retval"); // call <func / func_ptr>, 0
+				if (isReal(_t)) IRDump.back().eq = "real=";
 			}
 		}
 	}
 	| postfix_expression '.' IDENTIFIER						{ $$ = op( $2, 0, 2, ej($1), ej($3) ); // search for definition by name of "struct|union _abc"
-		Type *t1 = $1->type;
+		Type *t1 = $1->type; Type* _t1 = clone(t1);
 		if (t1->isErr) { $$->type = t1; }
 		else if (!( (t1->grp() == BASE_G) &&  (   ((Base *)t1)->base == STRUCT_B || ((Base *)t1)->base == UNION_B   ))) {
 			repErr($1->pos, "left operand for member access is not a struct or a union", _FORE_RED_); t1->isErr = true;
@@ -272,10 +280,17 @@ postfix_expression
 		}
 		$$->type->lvalue = true;
 
-		$$->eval = $1->eval + "." + $3->label; // handle at assembly code generation
+		string e1 = $1->eval;
+		if (e1.find("[") != string::npos || e1.find(".") != string::npos || e1.find("->") != string::npos) {
+			// means e1 itself is accessed type (array/struct)
+			string _tmp = newTmp(clone(_t1));
+			emit(_tmp, eps, e1); // no need to check assignment type because t2/_tmp are not reals.
+			e1 = _tmp;
+		}
+		$$->eval = e1 + "." + $3->label; // handle at assembly code generation
 	}
 	| postfix_expression PTR_OP IDENTIFIER					{ $$ = op( $2, 0, 2, ej($1), ej($3) ); // search for definition by name of "struct|union _abc"
-		Type *t1 = $1->type;
+		Type *t1 = $1->type; Type* _t1 = clone(t1);
 		if (t1->isErr) { $$->type = t1; }
 		else if (!( (t1->grp() == PTR_G) && (((Ptr *)t1)->pt->grp() == BASE_G) && (   ((Base *)(((Ptr *)t1)->pt))->base == STRUCT_B || ((Base *)(((Ptr *)t1)->pt))->base == UNION_B   ))) {
 			repErr($1->pos, "left operand for member access is not a pointer to a struct or a union", _FORE_RED_); t1->isErr = true;
@@ -297,7 +312,14 @@ postfix_expression
 			}
 		}
 		$$->type->lvalue = true;
-		$$->eval = $1->eval + "->" + $3->label; // handle at assembly code generation
+		string e1 = $1->eval;
+		if (e1.find("[") != string::npos || e1.find(".") != string::npos || e1.find("->") != string::npos) {
+			// means e1 itself is accessed type (array/struct)
+			string _tmp = newTmp(clone(_t1));
+			emit(_tmp, eps, e1); // no need to check assignment type because t2/_tmp are not reals.
+			e1 = _tmp;
+		}
+		$$->eval = e1 + "->" + $3->label; // handle at assembly code generation
 	}
 	| postfix_expression INC_OP								{ $$ = op( $2, 0, 1, ej($1) ); // not allowed on function, array, void, struct, union
 		Type *t = $1->type; grp_t g = t->grp();
@@ -315,11 +337,10 @@ postfix_expression
 
 		$$->eval = newTmp(clone(t));
 		emit($$->eval, eps, $1->eval);
+		if (isReal(t)) IRDump.back().eq = "real=";
 		if(g == BASE_G){
 			base_t bs = ((Base *) t)->base;
-			if(priority1[bs] >= priority1[FLOAT_B]){
-				emit($1->eval, "real+", $1->eval, "1");
-			}
+			if (priority1[bs] >= priority1[FLOAT_B]) emit($1->eval, "real+", $1->eval, "1");
 			else emit($1->eval, "+", $1->eval, "1");
 		}
 		/* #########TODO for Pointer###########*/
@@ -345,6 +366,8 @@ postfix_expression
 
 		$$->eval = newTmp(clone(t));
 		emit($$->eval, eps, $1->eval);
+		if (isReal(t)) IRDump.back().eq = "real=";
+
 		if(g == BASE_G){
 			base_t bs = ((Base *) t)->base;
 			if(priority1[bs] >= priority1[FLOAT_B]){
@@ -392,6 +415,8 @@ unary_expression
 		/* #########TODO for Pointer###########*/
 		else emit($2->eval, "+", $2->eval, "1");
 		emit($$->eval, eps, $2->eval);
+		if (isReal(t)) IRDump.back().eq = "real=";
+
 
 		$$->type = t;
 		$$->type->lvalue = false;
@@ -421,12 +446,13 @@ unary_expression
 		/* #########TODO for Pointer###########*/
 		else emit($2->eval, "-", $2->eval, "1");
 		emit($$->eval, eps, $2->eval);
+		if (isReal(t)) IRDump.back().eq = "real=";
 
 		$$->type = t;
 		$$->type->lvalue = false;
 	}
 	| unary_operator cast_expression	{ $$ = op( $1, 0, 1, ej($2) );
-		Type *t = $2->type; grp_t g = t->grp(); base_t bs; bool tilda_good = false;
+		Type *t = $2->type; grp_t g = t->grp(); base_t bs; bool tilda_good = false; Type* _t = clone(t);
 		Arr *a; Ptr *p;
 		if (t->isErr) { $$->type = t; }
 		else switch ($1->tok) {
@@ -442,7 +468,10 @@ unary_expression
 				$$->type = t; $$->type->lvalue = false;
 				if ($1->tok == '+') $$->eval = $2->eval;
 				else if ($2->tok == CONSTANT) $$->eval = "-" + $2->eval;
-				else emit($$->eval = newTmp(clone(t)), "-", $2->eval); // t_1 = - t_0
+				else {
+					emit($$->eval = newTmp(clone(t)), isReal(t) ? "real-" : "-", $2->eval); // t_1 = - t_0
+					if (isReal(t)) IRDump.back().eq = "real=";
+				}
 				break;
 			
 			case '!' :
@@ -453,7 +482,15 @@ unary_expression
 					}
 				}
 				$$->type = t; $$->type->lvalue = false;
-				emit($$->eval = newTmp(clone(t)), "!", $2->eval); // t_1 = ! t_0
+				{
+					string _tmp = $2->eval;
+					if (isReal(_t)) {
+						_tmp = newTmp(clone(new Base(INT_B)));
+						emit(_tmp, "real2int", $2->eval);
+					}
+					emit($$->eval = newTmp(clone(t)), "!", _tmp); // t_1 = ! t_0
+				}
+				
 				break;
 			
 			case '~': // bitwise NOT
@@ -464,6 +501,7 @@ unary_expression
 				if (!tilda_good) { repErr($1->pos, "bitwise NOT operator (~) used with incompatible type", _FORE_RED_); t->isErr = true; }
 				$$->type = t; $$->type->lvalue = false;
 				emit($$->eval = newTmp(clone(t)), "~", $2->eval); // t_1 = ~ t_0
+				if (isReal(t)) IRDump.back().eq = "real=";
 				break;
 
 			case '*' : // only if array, pointer or function
@@ -489,6 +527,7 @@ unary_expression
 				}
 				$$->type->lvalue = true;
 				emit($$->eval = newTmp(clone($$->type)), "*", $2->eval); // t_1 = * t_0
+				if (isReal($$->type)) IRDump.back().eq = "real=";
 				break;
 
 			case '&' :
@@ -501,6 +540,7 @@ unary_expression
 				else $$->type = new Ptr(t);
 				$$->type->lvalue = false;
 				emit($$->eval = newTmp(clone($$->type)), "&", $2->eval); // t_1 = & t_0
+				if (isReal($$->type)) IRDump.back().eq = "real=";
 		}
 	}
 	| SIZEOF unary_expression			{ $$ = op( $1, 0, 1, ej($2) );
@@ -544,6 +584,8 @@ cast_expression
 		}
 		$$->type = t1;
 		$$->type->lvalue = false;
+		$$->eval = $4->eval;
+		/* if (isReal(t1)) */
 	}
 	;
 
@@ -750,6 +792,7 @@ assignment_expression
 				else {
 					string tmp = newTmp(clone(t1));
 					emit(tmp, opr, e1, e2);
+					if (realLHS) IRDump.back().eq = "real=";
 					emit($1->eval, realLHS ? "int2real" : "real2int", tmp);
 				}
 			}
@@ -1652,7 +1695,7 @@ M3 : CASE constant_expression ':' {
 		$$->caselist.push_back(nextIdx());
 		string tmp = $2->eval;
 		$$->eval = newTmp(clone($$->type));
-		emit($$->eval,"==","---",tmp);
+		emit($$->eval,"==","---",tmp); // no need to check for real type assignment since LHS will be non-real
 		$$->truelist.push_back(nextIdx());
 		emit(eps, "ifgoto", "---", $$->eval);
 		$$->falselist.push_back(nextIdx());
