@@ -298,6 +298,7 @@ void dumpASM(ofstream &f, vector<irquad_t> & IR) {
     // gen code for a main block
     while(currleader < nxtleader) {
       //  TODO: flush, reset etc
+      f << endl << "#### "; dumpIRCode(f, 5, currleader, IR[currleader]); f << " ####" << endl;
       genASM(f, IR[currleader]);
       currleader++;
     }

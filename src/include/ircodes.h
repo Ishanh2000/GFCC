@@ -42,11 +42,15 @@ extern unsigned int totLabels;
 
 extern unsigned int totalTmp;
 
+extern bool show_eq; // to show different types of '=' (deprecated).
+
 unsigned int nextIdx();
 
 void emit(std::string, class Type *, std::string, std::string, class Type *, std::string, class Type *); // emit into global (incremental) code stream
 
 void emit(std::string, class Type *, std::string, std::string, class Type *); // emit into global (incremental) code stream
+
+void dumpIRCode(std::ofstream &, int, int, irquad_t &); // dump single 3AC code into a file
 
 void dumpIR(std::ofstream &f, std::vector<irquad_t> &irArr); // dump 3AC code into a file
 
