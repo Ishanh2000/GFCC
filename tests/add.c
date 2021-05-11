@@ -22,6 +22,28 @@ int main() {
 
   
   // PROBLEM
+<<<<<<< HEAD
+=======
+  // float aa = 0.0; // 0.002
+  int a[][4] = {{1,2,3,4,5}, {6,7,8,9}}, l = 4, i, j;
+  
+  for (i = 0; i < 2; i++) 
+    for(j =0 ;j<l; j++){
+      g5_printf("Value of a[%d][%d]: %d  %f\n", i, j, a[i][j], 2.1e10);
+    }
+  g5_printf("%p\n", a);
+  // float a = 1.3, b, c = 9;
+  // int aa[3];
+  // aa[2] = aa[1] + aa[0];
+  // int*x;
+  // a = (c + 9);
+  // a = (int)(c + 9 + b);
+  // x = (int)(c + 9 + b);
+
+  // int x;
+  // c += a + b;
+  // c += a * -b;
+>>>>>>> 7a1728ceb644639f19df15e5e5c1f34f35a1f6c4
   // if (!a) a = -a;
   // x = foo((char *)0);
   int a[4][4][4];

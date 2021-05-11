@@ -23,6 +23,8 @@ string eps = ""; // empty string (epsilon)
 
 string nextQuadLabel = ""; // label for next (upcoming) instruction
 
+bool show_eq = false; // to show different types of '=' (deprecated).
+
 unsigned int totLabels = 0;
 unsigned int totalTmp = 0;
 
@@ -217,58 +219,56 @@ void dumpStr(ofstream &f, vector<str_t> &strArr) { // dump string literals into 
     f << endl;
 }
 
+void dumpIRCode(ofstream &f, int _w, int i, irquad_t &q) { // dump single 3AC code into a file
+    if (q.label != eps) f << q.label << " :" << endl;
+    f << setw(_w) << (i) << " : ";
+
+    // goto <src1>
+    if (q.opr == "goto") f << "goto " << q.src1;
+
+    // label <src1>
+    else if (q.opr == "label") f << "label " << q.src1;
+    
+    // if <src2> then goto <src1>
+    else if (q.opr == "ifgoto") f << "if " << q.src2 << " then goto " << q.src1;
+    
+    // call <src1>, <src2>
+    else if (q.opr == "call") f << "call " << q.src1 << ", " << q.src2;
+    
+    // param <src1>
+    else if (q.opr == "param") f << "param " << q.src1;
+    
+    // func <src1>
+    else if (q.opr == "func") f << "function <" + q.src1 << "> :";
+
+    // return <src1>
+    else if (q.opr == "return") f << ((q.src1 == eps) ? "return" : "return ") << q.src1;
+
+    // scope related stuff
+    else if ((q.opr == "newScope") || (q.opr == "closeScope")) {
+        // do not print if not a regular scope
+        // if (q.src1.substr(0, 5) != "func ") f << q.opr << " " << q.src1;
+        f << q.opr << " " << q.src1;
+    }
+
+    else if (q.opr == "function end") f << q.opr << endl;
+    
+    // dst = <src1> [load/store/move]
+    else if (q.opr == eps) f << q.dst << " " << (show_eq ? q.eq : "=") << " " << q.src1;
+
+    else {
+        // <dst> = <opr> <src1> [unary]
+        if (q.src2 == eps) f << q.dst << " " << (show_eq ? q.eq : "=") << " " << q.opr << " " << q.src1;
+
+        // <dst> = <src1> <opr> <src2> [actually "binary" operations]
+        else f << q.dst << " " << (show_eq ? q.eq : "=") << " " << q.src1 << " " << q.opr << " " << q.src2;
+    }
+}
+
 void dumpIR(ofstream &f, vector<irquad_t> &irArr) { // dump 3AC codes into a file
     f << ".text" << endl << endl;
     int l = irArr.size(), _w = to_string(l).size();
-    bool  show_eq = false;
-    for (int i = 0; i < l; i++) {
-        irquad_t &q = irArr[i];
-        if (q.label != eps) f << q.label << " :" << endl;
-        f << setw(_w) << (i) << " : ";
-
-        // goto <src1>
-        if (q.opr == "goto") f << "goto " << q.src1;
-
-        // label <src1>
-        else if (q.opr == "label") f << "label " << q.src1;
-        
-        // if <src2> then goto <src1>
-        else if (q.opr == "ifgoto") f << "if " << q.src2 << " then goto " << q.src1;
-        
-        // call <src1>, <src2>
-        else if (q.opr == "call") f << "call " << q.src1 << ", " << q.src2;
-        
-        // param <src1>
-        else if (q.opr == "param") f << "param " << q.src1;
-        
-        // func <src1>
-        else if (q.opr == "func") f << "function <" + q.src1 << "> :";
-
-        // return <src1>
-        else if (q.opr == "return") f << ((q.src1 == eps) ? "return" : "return ") << q.src1;
-
-        // scope related stuff
-        else if ((q.opr == "newScope") || (q.opr == "closeScope")) {
-            // do not print if not a regular scope
-            // if (q.src1.substr(0, 5) != "func ") f << q.opr << " " << q.src1;
-            f << q.opr << " " << q.src1;
-        }
-
-        else if (q.opr == "function end") f << q.opr << endl;
-        
-        // dst = <src1> [load/store/move]
-        else if (q.opr == eps) f << q.dst << " " << (show_eq ? q.eq : "=") << " " << q.src1;
-
-        else {
-            // <dst> = <opr> <src1> [unary]
-            if (q.src2 == eps) f << q.dst << " " << (show_eq ? q.eq : "=") << " " << q.opr << " " << q.src1;
-
-            // <dst> = <src1> <opr> <src2> [actually "binary" operations]
-            else f << q.dst << " " << (show_eq ? q.eq : "=") << " " << q.src1 << " " << q.opr << " " << q.src2;
-        }
-
-        f << endl;
-    }
+    for (int i = 0; i < l; i++) { dumpIRCode(f, _w, i, irArr[i]); f << endl; }
     f << endl;
 }
 

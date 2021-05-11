@@ -252,9 +252,10 @@ int main (int argc , char *argv[]) {
 				if (semanticErr) msg(WARN) << "Semantic error: NOT proceeding with code generation.";
 				else {
 					asm_out << "# File Name: " << argv[_in] << endl << endl;
-					libDumpASM(asm_out, lib_reqs);
+					// first source file, then libraries (for better debugging)
 					asm_out << "## SOURCE FILE (" << argv[_in] << ")" << endl << endl;
 					dumpASM(asm_out, IRDump);
+					libDumpASM(asm_out, lib_reqs);
 				}
 			}
 		}
@@ -429,8 +430,7 @@ const_t constParse(string num, bool realContext) { // parse passed constant into
 		}
 
 		ull_t system = 10; // decimal
-		if (num[0] == '0') system = (num[1] == 'x' || num[1] == 'X') ? 16 : 8; // octal or hexadecimal
-		
+		if (num[0] == '0' && _l > 1) system = (num[1] == 'x' || num[1] == 'X') ? 16 : 8; // octal or hexadecimal
 		int _start, _end; // range to scan in "num"
 		switch (system) { case  8 : _start = 1; break; case 16 : _start = 2; break; default : _start = 0; }
 		_end = ((specStart < 0) ? num.size() : specStart) - 1;
@@ -455,7 +455,7 @@ const_t constParse(string num, bool realContext) { // parse passed constant into
 				prog = (prog * system) + add;
 
 			} else {
-				if (intExceeds(system, prog, add, ret.isUnsigned, ret.isLong)) {
+				if (intExceeds(system, prog, add, ret.isUnsigned, ret.isLong)) { // 10 0 0 0 0
 					if (ret.isUnsigned) { // means isLong is also true
 						ret.limitWarn = true; prog = maxLimit(ret.isUnsigned, ret.isLong); break;
 					} else if (ret.isLong) { // upgrade to unsigned
@@ -467,8 +467,11 @@ const_t constParse(string num, bool realContext) { // parse passed constant into
 			}
 		}
 		ret.label = "";
-		while (prog) { ret.label += to_string(prog % 10); prog /= 10;	}
+		if (!prog) ret.label = "0";
+		else while (prog) { ret.label += to_string(prog % 10); prog /= 10;	}
 		
+		// reverse(ret.label.begin(), ret.label.end()); # include <algorithm>
+
 		string revLabel;
 		int l = ret.label.size();
 		for (int i = 0; i < l; i++) revLabel.push_back(ret.label[l-1-i]);

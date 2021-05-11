@@ -298,6 +298,7 @@ void dumpASM(ofstream &f, vector<irquad_t> & IR) {
     // gen code for a main block
     while(currleader < nxtleader) {
       //  TODO: flush, reset etc
+      f << endl << "#### "; dumpIRCode(f, 5, currleader, IR[currleader]); f << " ####" << endl;
       genASM(f, IR[currleader]);
       currleader++;
     }
@@ -344,7 +345,7 @@ void genASM(ofstream & f, irquad_t & quad) {
   }
   
   else if (quad.opr == "goto") {
-    // resetRegMaps(f);
+    resetRegMaps(f);
     string src1 = quad.src1;
     cout << src1 <<endl;
     if(!src1.empty() &&  src1[0] == 'U'); // TODO: use better check
@@ -355,7 +356,7 @@ void genASM(ofstream & f, irquad_t & quad) {
 
   else if (quad.opr == "ifgoto") {
     oprRegs regs = getReg(f, quad);
-    // resetRegMaps(f);
+    resetRegMaps(f);
     string src2Addr = loadArrAddr(f, lastdelta.src2Sym, lastdelta.src2ArrSymb,
                                 lastdelta.src2ArrOff, lastdelta.src2Type, "1");
     if (src2Addr != "") {
