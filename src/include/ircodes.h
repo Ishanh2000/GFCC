@@ -10,14 +10,15 @@
 #include <types2.h>
 
 typedef struct _irquad_t {
-    std::string dst = ""; class sym* s_dst = NULL;
+    std::string dst = ""; class Type* t_dst = NULL;
     std::string eq = "=";
     std::string opr = "";
-    std::string src1 = ""; class sym* s_src1 = NULL;
-    std::string src2 = ""; class sym* s_src2 = NULL;
+    std::string src1 = ""; class Type* t_src1 = NULL;
+    std::string src2 = ""; class Type* t_src2 = NULL;
     std::string label = "";
     // some constructors
     _irquad_t(std::string, std::string, std::string, std::string);
+    _irquad_t(std::string, std::string, class Type *, std::string, class Type *, std::string, class Type *);
 } irquad_t;
 typedef struct _str_t { // for strings to be used in ".data" section
     // std::string label = ""; // will uncomment if required
@@ -43,9 +44,9 @@ extern unsigned int totalTmp;
 
 unsigned int nextIdx();
 
-void emit(std::string, std::string, std::string, std::string); // emit into global (incremental) code stream
+void emit(std::string, class Type *, std::string, std::string, class Type *, std::string, class Type *); // emit into global (incremental) code stream
 
-void emit(std::string, std::string, std::string); // emit into global (incremental) code stream
+void emit(std::string, class Type *, std::string, std::string, class Type *); // emit into global (incremental) code stream
 
 void dumpIR(std::ofstream &f, std::vector<irquad_t> &irArr); // dump 3AC code into a file
 

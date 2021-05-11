@@ -254,7 +254,7 @@ bool symRoot::newScope(string scope_name) {
   if (!currScope) return false;
   symtab* new_scope = new symtab(scope_name, currScope);
   if (!new_scope) return false;
-  emit(eps, "newScope", scope_name);
+  emit(eps, NULL, "newScope", scope_name, NULL);
   currScope->subScopes.push_back(new_scope);
   
   /* offset: initialise for a child */
@@ -272,9 +272,9 @@ void symRoot::closeScope() {
     if (dbg) cout << "Closing existing scope \"" << name << "\"." << endl;
     
     if (name.substr(0, 9) == "_unnamed_")
-      emit(eps, "closeScope", currScope->name);
+      emit(eps, NULL, "closeScope", currScope->name, NULL);
     else if (name.substr(0, 5) == "func ")
-      emit(eps, "function end", eps);
+      emit(eps, NULL, "function end", eps, NULL);
 
     /* offset */
     // global scope offset from $gp is independent from its child scopes

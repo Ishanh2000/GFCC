@@ -42,23 +42,23 @@ struct deltaNxtUse {
   sym* dstSym = NULL;
   int dstNxtUse = -1;
   bool dstAlive = true;
-  sym * dstArrSymb = NULL;
-  std::string dstArrOff;
+  std::vector<sym*> dstArrSymb;
+  std::vector<std::string> dstArrOff;
   /* 0: simple, 1: array */
   int dstType = 0;
 
   sym* src1Sym = NULL;
   int src1NxtUse = -1;
   bool src1Alive = true;
-  sym * src1ArrSymb = NULL;
-  std::string src1ArrOff;
+  std::vector<sym*> src1ArrSymb;
+  std::vector<std::string> src1ArrOff;
   int src1Type = 0;
 
   sym* src2Sym = NULL;
   int src2NxtUse = -1;
   bool src2Alive = true;
-  sym * src2ArrSymb = NULL;
-  std::string src2ArrOff;
+  std::vector<sym*> src2ArrSymb;
+  std::vector<std::string> src2ArrOff;
   int src2Type = 0;
 };
 
@@ -107,5 +107,10 @@ std::string getSymName(std::string); // get symbol name for struct, array, etc
 void libDumpASM(std::ofstream &, int);
 
 void resetCodegen();
+
+std::string loadArrAddr(std::ofstream &, const sym*, 
+                        std::vector<sym*>, 
+                        std::vector<std::string>, 
+                        int, std::string);
 
 #endif
