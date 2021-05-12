@@ -18,6 +18,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 # add executable
 add_executable(gfcc
   ${CMAKE_CURRENT_SOURCE_DIR}/src/codegen.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/codegen_utils.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/consts.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/ircodes.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/libdump.cpp

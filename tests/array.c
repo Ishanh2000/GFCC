@@ -17,7 +17,7 @@ int main() {
 	// aa[0][1] = c[3] * b[1]; // 4 * 2 = 8
 	d = foo(aa);
 	g5_printf("asgasdg\n");
-	g5_printf("%d %d\n", d, 1);
+	g5_printf("%d %d\n", foo(aa), 1);
 
 	return 0;
 }

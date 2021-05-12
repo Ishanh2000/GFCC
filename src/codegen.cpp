@@ -149,10 +149,9 @@ void regFlush(std::ofstream & f, reg_t reg, bool store = true) {
 void regMap(std::ofstream & f, reg_t reg, sym* symb, bool load = true) {
   // TODO: sw/sb/... for non 4 byte
   // TODO: offset from $gp
-  /* array which is not an argument to the function */
   inst_t I = getInst(symb->type);
-  bool isArr = symb->type->grp() == ARR_G;
-  if(isArr) {
+  /* array which is not an argument to the function */
+  if(isArr(symb->type) ||  isStruct(symb->type)) {
     if(!symb->isArg) { // Not an argument
       f << '\t' << "subu " << reg2str[reg] + ", $fp, " + to_string(symb->offset);
       f << " # load front addr of array \"" + symb->name + "\" into register "<< endl;
@@ -444,10 +443,10 @@ void genASM(ofstream & f, irquad_t & quad) {
     oprRegs Reg = getReg(f,quad);
     string addrDst = loadArrAddr(f,lastdelta.dstSym, 
                                 lastdelta.dstArrSymb, 
-                                lastdelta.dstArrOff, lastdelta.dstType, "0");
+                                lastdelta.dstArrOff, lastdelta.dstType, "0", lastdelta.dstPfxOprs);
     string addrSrc1 = loadArrAddr(f, lastdelta.src1Sym, 
                                    lastdelta.src1ArrSymb, 
-                                   lastdelta.src1ArrOff, lastdelta.src1Type, "1");
+                                   lastdelta.src1ArrOff, lastdelta.src1Type, "1", lastdelta.src1PfxOprs);
     if(addrSrc1 != "") { // src1 of type a[][]
       f << '\t' << Isrc1.load_instr << " " << reg2str[Rsrc1.exreg] << " , " + addrSrc1 << endl;
       Reg.src1Reg = Rsrc1.exreg;
@@ -479,14 +478,14 @@ void genASM(ofstream & f, irquad_t & quad) {
     tmp_regs Rsrc1 = getTmpRegs(quad.t_src1);
     // tmp registor for dst
     tmp_regs Rdst = getTmpRegs(quad.t_dst);
-
     oprRegs Reg = getReg(f,quad);
+
     string addrDst = loadArrAddr(f,lastdelta.dstSym, 
                                 lastdelta.dstArrSymb, 
-                                lastdelta.dstArrOff, lastdelta.dstType, "0");
+                                lastdelta.dstArrOff, lastdelta.dstType, "0", lastdelta.dstPfxOprs);
     string addrSrc1 = loadArrAddr(f, lastdelta.src1Sym, 
                                    lastdelta.src1ArrSymb, 
-                                   lastdelta.src1ArrOff, lastdelta.src1Type, "1");
+                                   lastdelta.src1ArrOff, lastdelta.src1Type, "1", lastdelta.src1PfxOprs);
     
     if(addrSrc1 != "") { // src1 of type a[][]
       f << '\t' << Isrc1.load_instr << " " << reg2str[Rsrc1.exreg] << " , " + addrSrc1 << endl;
@@ -516,7 +515,7 @@ void genASM(ofstream & f, irquad_t & quad) {
   else if (quad.opr == "&") {
     oprRegs regs = getReg(f, quad);
     string paramAddr = loadArrAddr(f, lastdelta.src1Sym, lastdelta.src1ArrSymb,
-                                      lastdelta.src1ArrOff, lastdelta.src1Type, "1");
+                                      lastdelta.src1ArrOff, lastdelta.src1Type, "1", lastdelta.src1PfxOprs);
     if(paramAddr != "") {
       // ($fp)
       f << '\t' << "la " << reg2str[regs.dstReg] + ", " + paramAddr;
@@ -546,7 +545,7 @@ void genASM(ofstream & f, irquad_t & quad) {
     oprRegs regs = getReg(f, quad);
     resetRegMaps(f,true,false);
     string src2Addr = loadArrAddr(f, lastdelta.src2Sym, lastdelta.src2ArrSymb,
-                                lastdelta.src2ArrOff, lastdelta.src2Type, "1");
+                                lastdelta.src2ArrOff, lastdelta.src2Type, "1", lastdelta.src2PfxOprs);
     if (src2Addr != "") {
       f << '\t' << "lw $a3 , " + src2Addr << endl;
       f << "\t" <<"bnez $a3, LABEL_" + quad.src1 << endl;
@@ -611,10 +610,16 @@ void genASM(ofstream & f, irquad_t & quad) {
     }
     else {
       int size = lastdelta.src1Sym->size;
+      size = ((size+3)/4)*4;
       string paramAddr = loadArrAddr(f, lastdelta.src1Sym, lastdelta.src1ArrSymb,
-                                      lastdelta.src1ArrOff, lastdelta.src1Type, "1");
-      if(paramAddr != "") { // a[0]
-        size = getSize(((Arr *)lastdelta.src1Sym->type)->item);
+                                      lastdelta.src1ArrOff, lastdelta.src1Type, "1", lastdelta.src1PfxOprs);
+      if(paramAddr != "") { // a[0], a.x
+        // TODO:: use better method
+        if(lastdelta.src1Type == 1)
+          size = getSize(((Arr *)lastdelta.src1Sym->type)->item);
+        else if(lastdelta.src1Type == 2)
+          size = getSize(lastdelta.src1FinalType);
+        size = ((size+3)/4)*4;
         paramOffset += size;
         f << '\t' << Isrc1.load_instr << " " << reg2str[Rsrc1.exreg] << " , " + paramAddr << endl;
         f << '\t' << Isrc1.store_instr << " " << reg2str[Rsrc1.exreg] << ", -" + to_string(paramOffset)+"("+ reg2str[sp] + ")";
@@ -626,7 +631,7 @@ void genASM(ofstream & f, irquad_t & quad) {
           paramOffset += size;
           f << '\t' << "sw" << " " << reg2str[regs.src1Reg] + ", -" + to_string(paramOffset)+"("+ reg2str[sp] + ")";
         }
-        else{
+        else {
           paramOffset += size;
           f << '\t' << Isrc1.store_instr << " " << reg2str[regs.src1Reg] + ", -" + to_string(paramOffset)+"("+ reg2str[sp] + ")";
         }
@@ -654,7 +659,7 @@ void genASM(ofstream & f, irquad_t & quad) {
     }
     else {
       string src1Addr = loadArrAddr(f, lastdelta.src1Sym, lastdelta.src1ArrSymb,
-                                      lastdelta.src1ArrOff, lastdelta.src1Type, "1");
+                                      lastdelta.src1ArrOff, lastdelta.src1Type, "1", lastdelta.src1PfxOprs);
       if(src1Addr!= ""){
         f << '\t' << Isrc1.load_instr << " " << reg2str[Rsrc1.exreg] << " , " + src1Addr << endl;
         f << '\t' << Isrc1.move_instr << " " + reg2str[Rsrc1.retreg1] + ", " << reg2str[Rsrc1.exreg] << " " << endl;
@@ -800,13 +805,13 @@ void binOpr(std::ofstream & f, irquad_t & q) {
     oprRegs regs = getReg(f, q);
     string addrDst = loadArrAddr(f,lastdelta.dstSym, 
                                 lastdelta.dstArrSymb, 
-                                lastdelta.dstArrOff, lastdelta.dstType, "0");
+                                lastdelta.dstArrOff, lastdelta.dstType, "0", lastdelta.dstPfxOprs);
     string addrSrc1 = loadArrAddr(f, lastdelta.src1Sym, 
                                    lastdelta.src1ArrSymb, 
-                                   lastdelta.src1ArrOff, lastdelta.src1Type, "1");
+                                   lastdelta.src1ArrOff, lastdelta.src1Type, "1", lastdelta.src1PfxOprs);
     string addrSrc2 = loadArrAddr(f, lastdelta.src2Sym, 
                                    lastdelta.src2ArrSymb, 
-                                   lastdelta.src2ArrOff, lastdelta.src2Type, "2");
+                                   lastdelta.src2ArrOff, lastdelta.src2Type, "2", lastdelta.src2PfxOprs);
     if(addrSrc1 != "") {
       f << '\t' << Isrc1.load_instr << " " << reg2str[Rsrc1.exreg] << " , " + addrSrc1 << endl;
       regs.src1Reg = Rsrc1.exreg;
@@ -875,11 +880,10 @@ void assn(ofstream & f, const irquad_t &q) {
   /* just remapping resgisters */
   string addrDst = loadArrAddr(f,lastdelta.dstSym, 
                                 lastdelta.dstArrSymb, 
-                                lastdelta.dstArrOff, lastdelta.dstType, "0");
+                                lastdelta.dstArrOff, lastdelta.dstType, "0", lastdelta.dstPfxOprs);
   string addrSrc1 = loadArrAddr(f, lastdelta.src1Sym, 
                                    lastdelta.src1ArrSymb, 
-                                   lastdelta.src1ArrOff, lastdelta.src1Type, "1");
-
+                                   lastdelta.src1ArrOff, lastdelta.src1Type, "1", lastdelta.src1PfxOprs);
   if (regs.dstReg == regs.src1Reg && lastdelta.dstType == 0) {
     f << "\t # " + q.dst + " = " + reg2str[regs.src1Reg] <<endl;
   }
@@ -1011,6 +1015,10 @@ int getNxtLeader(vector<irquad_t> & IR, int leader) {
       }
       IR[idx].src2 = tmp;
     }
+    /* For struct parsing */
+    parseStruct(IR[idx].dst, delta.dstType, delta.dstPfxOprs, delta.dstFinalType);
+    parseStruct(IR[idx].src1, delta.src1Type, delta.src1PfxOprs,  delta.src1FinalType);
+    parseStruct(IR[idx].src2, delta.src2Type, delta.src2PfxOprs,  delta.src2FinalType);
 
     sym* dstSym = SymRoot->gLookup(IR[idx].dst);
     sym* src1Sym = SymRoot->gLookup(IR[idx].src1);
@@ -1058,111 +1066,6 @@ int getNxtLeader(vector<irquad_t> & IR, int leader) {
   } // backward pass in the current main block
   if (dbg_print) SymRoot->dump(csv_out2);
   return nxtLeader;
-}
-
-string loadArrAddr(ofstream & f, const sym* symb,
-                        vector<sym*> offsetSymb, 
-                        vector<string> offset, int type, string pos) {
-  /*
-    * pos:  0 for dst (use $a0, $a3)
-    *       1 for src1 (use $a1, $a3)
-    *       2 for src2 (use $a2, $a3)
-  */
-
-  if(!symb || type != 1) {
-    // cout << "string loadArrAddr: Called for non-array" << endl;
-    return "";
-  }
-
-  string addrReg = "$a" + pos;
-
-  f << "\t #### <Load array address> ###" << endl;
-  
-  
-  vector<int> dimSize;
-  Arr *a = (Arr *) symb->type;
-  for(auto dim: a->dims) {
-    int * sizePtr = eval(dim);
-    if(!sizePtr) {
-      cout << "string loadArrAddr: eval(dim) failed for a dimension" << endl;
-      dimSize.push_back(INT16_MAX);
-    }
-    else dimSize.push_back(*sizePtr);
-  }
-  
-  /* for array part */
-  if(dimSize.size() > offset.size())
-    cout << "string loadArrAddr: some problem in semantic analysis" << endl;
-  
-  int constOffset = 0, dimWidth = getSize(a->item);
-  bool allConst = true;
-  for(int i = dimSize.size()-1; i>=0; i--) {
-    if(!offsetSymb[i]) {
-      /* constant  operand*/
-      constOffset += stoi(offset[i]) * dimWidth;
-    }
-    else {
-      /* variable offset */
-      /* eg. lw $a3, -44($fp) */
-      f << '\t' << "lw $a3, -" + to_string(offsetSymb[i]->offset) + "($fp)"
-        << " # load " + offsetSymb[i]->name << endl;
-      /* eg. mul $a3, $a3, dimWidth */
-      if (dimWidth != 1)
-        f << '\t' << "mul $a3, $a3, " + to_string(dimWidth)
-          << " # multiply with dimWidth" << endl;
-      
-      if(allConst){
-        allConst = false;
-        // base + currOffset
-        /* eg. addu $a0, $t0, $a3 */
-        f << '\t' << "addu " + addrReg + ", " + reg2str[symb->reg] +", $a3"
-          << " # offset calc" << endl;
-      }
-      else 
-        // offsetTillNow + currOffset
-        /* eg. addu $a0, $a0, $a3 */
-        f << '\t' << "addu " + addrReg + ", " + addrReg + ", $a3" 
-          << " # offset calc" << endl;
-    }
-    dimWidth *= dimSize[i];
-  }
-  f << "\t #### </Load array address> ###" << endl;
-  /* eg. "10($t0)" */
-  if(allConst) return to_string(constOffset) + "("+reg2str[symb->reg]+")";
-  /* eg. "$a0" */
-  else {
-    if (constOffset)
-    /* addu $a0, $a0, constOffset */
-    f << '\t' << "addu " + addrReg + ", " + addrReg + ", " + to_string(constOffset) 
-          << " # add const offset" << endl;
-    return "("+addrReg+")";
-  }
-
-  /* for pointer part */
-  // TODO: pointer
-  return "aa";
-}
-
-
-void memCopy(std::ofstream &f, reg_t src, reg_t dst, int size) {
-  string srcReg = reg2str[src], dstReg = reg2str[dst], freeReg = "$a3";
-  string loadInstr[] = {"lw", "ls", "lb"};
-  string storeInstr[] = {"sw", "ss", "lb"};
-  int chnkSize = 4, instr = 0, remSize = size;
-  while(remSize > 0) {
-    if(remSize < chnkSize) {
-      chnkSize /= 2;
-      instr++;
-      continue;
-    }
-    /* eg. lw $a3, 20($a0) */
-    f << '\t' << loadInstr[instr] + " " + freeReg + ", "
-      << to_string(size-remSize) + "("  << srcReg + ")";
-    /* eg. sw $a3, 20($a1) */
-    f << '\t' << storeInstr[instr] + " " + freeReg + ", "
-      << to_string(size-remSize) + "("  << srcReg + ")";
-    remSize -= chnkSize;
-  }
 }
 
 

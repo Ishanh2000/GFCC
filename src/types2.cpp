@@ -531,6 +531,22 @@ bool isArr(class Type* t) {
     return false;
 }
 
+bool isStruct(class Type* t) {
+    if(t && !t->isErr && t->grp() == BASE_G){
+        Base* b = (Base*) t;
+        if(b->base == STRUCT_B)
+            return true;
+    }
+    return false;
+}
+
+bool isPtr(class Type* t) {
+    if(t && !t->isErr && t->grp() == PTR_G){
+        return true;
+    }
+    return false;
+}
+
 short unsigned int getSize(class Type *t) { // implmentation like "sizeof"
     if (!t) return 1;
     Base *b = (Base *) t;

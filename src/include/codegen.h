@@ -38,28 +38,41 @@ extern class sym* regDscr[];
 
 extern bool semanticErr;
 
+struct pfxOpr {
+  sym* symb;
+  std::string type;
+  std::string name; // for array
+};
+
 struct deltaNxtUse {
   sym* dstSym = NULL;
   int dstNxtUse = -1;
   bool dstAlive = true;
   std::vector<sym*> dstArrSymb;
   std::vector<std::string> dstArrOff;
-  /* 0: simple, 1: array */
+  std::vector<pfxOpr> dstPfxOprs;
+  /* 0: simple, 1: array, 2: struct */
   int dstType = 0;
+  /* filled in case of struct, array, etc */
+  Type * dstFinalType = NULL;
 
   sym* src1Sym = NULL;
   int src1NxtUse = -1;
   bool src1Alive = true;
   std::vector<sym*> src1ArrSymb;
   std::vector<std::string> src1ArrOff;
+  std::vector<pfxOpr> src1PfxOprs;
   int src1Type = 0;
+  Type * src1FinalType = NULL;
 
   sym* src2Sym = NULL;
   int src2NxtUse = -1;
   bool src2Alive = true;
   std::vector<sym*> src2ArrSymb;
   std::vector<std::string> src2ArrOff;
+  std::vector<pfxOpr> src2PfxOprs;
   int src2Type = 0;
+  Type * src2FinalType = NULL;
 };
 
 class _nxtUse {
@@ -123,10 +136,16 @@ std::string getSymName(std::string); // get symbol name for struct, array, etc
 
 void resetCodegen();
 
+void parseStruct(std::string &q, int &type, std::vector<pfxOpr> &PfxOprs, Type * &finalType);
+
+std::size_t Find_first_of(std::string s, std::vector<std::string> tokens, std::size_t pos = 0U);
+
+sym* findStructChild(Type* st_type, std::string chName);
+
 std::string loadArrAddr(std::ofstream &, const sym*, 
                         std::vector<sym*>, 
                         std::vector<std::string>, 
-                        int, std::string);
+                        int, std::string, std::vector<pfxOpr> PfxOprs);
 
 
 void memCopy(std::ofstream &, reg_t src, reg_t dst, int size);

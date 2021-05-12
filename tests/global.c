@@ -1,4 +1,5 @@
 int a = 1;
+float b = 2.0;
 int main();
 
 int foo(){
@@ -9,7 +10,7 @@ int foo(){
 
 int main(){
 	// int b = a;
-	g5_printf("%p\n", main);
+	g5_printf("%d %f\n", a, b);
 	foo();
 	return 0;
 }

@@ -1,6 +1,11 @@
 # GFCC: Group Five's C Compiler
 
-### About:
+## About:
+<!-- ![GFCC Logo](./logo_t.png) -->
+<center>
+  <img src="./logo_t.png" width="400" margin="200">
+</center>
+
 CS335A (Compiler Design) Project, Semester 6, 2020-21-II (Jan - Apr 2021).
 Official name of compiler will be "gfcc".
 
@@ -10,7 +15,7 @@ Implemetation (I): C++.
 
 Target (T): MIPS (might change, if backend can be better implemented on another target).
 
-### Usage:
+## Usage:
 Building Project:
 ```bash
   ./runme.sh build     # will generate parser binary in bin/
@@ -32,23 +37,23 @@ Running parser:
 
 Use help flag for more details.
 
-#### Documentation: https://www.overleaf.com/read/qjpzyjmycknt (may not be updated)
+### Documentation: https://www.overleaf.com/read/qjpzyjmycknt (may not be updated)
 
-### Participants:
+## Participants:
  - Debarsho Sannyasi (180218) - debarsho@iitk.ac.in
  - Ishanh Misra (180313) - imisra@iitk.ac.in
  - Prashant Kumar (180539) - praskr@iitk.ac.in
  - Priyanshu Agrarwal (180559) - priyanag@iitk.ac.in
  - Rwit Panda (180635) - rwit@iitk.ac.in
 
-### Dependecies
+## Dependecies
  - flex v2.6.4
  - bison v3.0.4 or above
  - cmake v3.10.2 or above
  - gcc v7.5 or above
 
 
- ### Misc
+## Misc
   To install cmake-3.18.5 which is used in development (NOTE: Also tested on cmake-3.10.2):
  ```bash
   # Source: https://askubuntu.com/a/865294/884513

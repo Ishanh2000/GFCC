@@ -15,7 +15,7 @@
 // int g5_printf() {
   
 // }
-float z = 90;
+float z = 2.0;
 int g = 450;
 
 int main() {

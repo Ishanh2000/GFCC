@@ -146,6 +146,10 @@ bool isShort(class Type *); // check is type is short
 
 bool isArr(class Type*); // check is type is array
 
+bool isStruct(class Type*); // check is type is array
+
+bool isPtr(class Type*); // check is type is array
+
 short unsigned int getSize(class Type *); // implmentation like "sizeof"
 
 void arrayInit(struct _loc_t, std::string, class Arr *, struct _node_t *, std::vector<int>); // check array compatibility
