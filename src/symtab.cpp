@@ -39,77 +39,6 @@ void resetSymtab() { // reset appropriate global variables
   SymRoot = new symRoot();
 }
 
-void libDumpSym(int lib_reqs) {
-  if (lib_reqs & LIB_MATH) { // insert symbols into SymRoot
-    Base* b = new Base(DOUBLE_B); b->isConst = true;    
-    SymRoot->pushSym(new sym("GFCC_M_PI", clone(b), { 3, 1 }, LIB_MATH));
-    SymRoot->pushSym(new sym("GFCC_M_E", clone(b), { 4, 1 }, LIB_MATH));
-    SymRoot->pushSym(new sym("__GFCC_M_PREC__", clone(b), { 5, 1 }, LIB_MATH));
-    SymRoot->pushSym(new sym("__GFCC_M_LOG2__", clone(b), { 6, 1 }, LIB_MATH));
-    SymRoot->pushSym(new sym("__GFCC_M_LOG10__", clone(b), { 7, 1 }, LIB_MATH));
-
-    { // unsigned long long gfcc_abs(long long);
-      Base *ret = new Base(LONG_LONG_B); ret->sign = UNSIGNED_X;
-      Func* fn = new Func(ret); fn->newParam(new Base(LONG_LONG_B));
-      SymRoot->pushSym(new sym("gfcc_abs", fn, { 8, 1 }, LIB_MATH));
-    }
-    { // unsigned long long gfcc_fact(int);
-      Base *ret = new Base(LONG_LONG_B); ret->sign = UNSIGNED_X;
-      Func* fn = new Func(ret); fn->newParam(new Base(INT_B));
-      SymRoot->pushSym(new sym("gfcc_fact", fn, { 9, 1 }, LIB_MATH));
-    }
-    { // long long gfcc_fib(int);
-      Func* fn = new Func(new Base(LONG_LONG_B)); fn->newParam(new Base(INT_B));
-      SymRoot->pushSym(new sym("gfcc_fib", fn, { 10, 1 }, LIB_MATH));
-    }
-    { // double gfcc_intpow(double, int);
-      Func* fn = new Func(new Base(DOUBLE_B)); fn->newParam(new Base(DOUBLE_B)); fn->newParam(new Base(INT_B));
-      SymRoot->pushSym(new sym("gfcc_intpow", fn, { 11, 1 }, LIB_MATH));
-    }
-
-    Func* d2df = new Func(new Base(DOUBLE_B)); d2df->newParam(new Base(DOUBLE_B));
-    vector<string> d2dfNames = {
-      "gfcc_fabs", "gfcc_sqrt", "gfcc_exp", "gfcc_sin", "gfcc_cos", "gfcc_tan",
-      "gfcc_arcsin", "gfcc_arccos", "gfcc_arctan", "gfcc_sinh", "gfcc_cosh", "gfcc_tanh",
-      "gfcc_log", "gfcc_log2", "gfcc_log10", "gfcc_arcsinh", "gfcc_arccosh", "gfcc_arctanh"
-    };
-    int l = d2dfNames.size();
-    for (int i = 0; i < l; i++) {
-      loc_t tmp; tmp.line = 12 + i; tmp.column = 1;
-      SymRoot->pushSym(new sym(d2dfNames[i], clone(d2df), tmp, LIB_MATH));
-    }
-  }
-  
-  if (lib_reqs & LIB_TYPO) {
-    { // int g5_printf(const char *, ...);
-      Base *b = new Base(CHAR_B); b->isConst = true; 
-      Func* fn = new Func(new Base(INT_B)); fn->newParam(new Ptr(b)); fn->newParam(new Base(ELLIPSIS_B));
-      SymRoot->pushSym(new sym("g5_printf", fn, { 3, 1 }, LIB_TYPO));
-    }
-    { // void g5_putc(const char)
-      Base *b = new Base(CHAR_B); b->isConst = true; 
-      Func* fn = new Func(new Base(VOID_B)); fn->newParam(b);
-      SymRoot->pushSym(new sym("g5_putc", fn, { 4, 1 }, LIB_TYPO));
-    }
-    { // char g5_getc()
-      Func* fn = new Func(new Base(CHAR_B));
-      SymRoot->pushSym(new sym("g5_getc", fn, { 5, 1 }, LIB_TYPO));
-    }
-    { // int g5_scanf(const char *, ...);
-      Base *b = new Base(CHAR_B); b->isConst = true; 
-      Func* fn = new Func(new Base(INT_B)); fn->newParam(new Ptr(b)); fn->newParam(new Base(ELLIPSIS_B));
-      SymRoot->pushSym(new sym("g5_scanf", fn, { 6, 1 }, LIB_TYPO));
-    }
-  }
-
-  if (lib_reqs & LIB_STD) {
-    { // int g5_exit(int);
-      Func* fn = new Func(new Base(INT_B)); fn->newParam(new Base(INT_B));
-      SymRoot->pushSym(new sym("g5_exit", fn, { 3, 1 }, LIB_STD));
-    }
-  }
-}
-
 /*************************************/
 /************ CLASS "sym" ************/
 /*************************************/
@@ -118,9 +47,9 @@ sym::sym(string _name, class Type* _type, loc_t _pos, bool isArg) : name(_name),
   if (_name == "" && dbg) msg(ERR) << "Invalid name \"" << _name << "\" or type \"" << str(_type) << "\" passed!";
 }
 
-sym::sym(string _name, class Type* _type, loc_t _pos, int _lib) : name(_name), type(_type), pos(_pos), size(getSize(_type)), lib(_lib) {
-  if (_name == "" && dbg) msg(ERR) << "Invalid name \"" << _name << "\" or type \"" << str(_type) << "\" passed!";
-}
+// sym::sym(string _name, class Type* _type, loc_t _pos) : name(_name), type(_type), pos(_pos), size(getSize(_type)) {
+//   if (_name == "" && dbg) msg(ERR) << "Invalid name \"" << _name << "\" or type \"" << str(_type) << "\" passed!";
+// }
 
 void sym::dump(ofstream &f) {
   f << setw(4);

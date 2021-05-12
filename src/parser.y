@@ -392,7 +392,7 @@ postfix_expression
 	;
 
 argument_expression_list
-	: assignment_expression									{ $$ = op( nd(ARG_EXPR_LIST, "arg-expr-list", { 0, 0 }), 0, 1, ej($1) ); }
+	: assignment_expression									{ $$ = op( nd(ARG_EXPR_LIST, "arg-expr-list", nonPos), 0, 1, ej($1) ); }
 	| argument_expression_list ',' assignment_expression	{ $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
@@ -578,7 +578,7 @@ unary_operator
 
 cast_expression
 	: unary_expression { $$ = $1; }
-	| '(' type_name ')' cast_expression { $$ = op( nd(CAST_EXPR, "cast_expression", { 0, 0 }), 0, 2, Ej($2, "type", NULL), Ej($4, "expression", NULL) );
+	| '(' type_name ')' cast_expression { $$ = op( nd(CAST_EXPR, "cast_expression", nonPos), 0, 2, Ej($2, "type", NULL), Ej($4, "expression", NULL) );
 		Type *t1 = $2->type, *t2 = $4->type; // assume both not NULL
 		t2->isErr |= t1->isErr;
 		if (t2->grp() == BASE_G) {
@@ -943,7 +943,7 @@ declaration
 
 // A list of three kinds of objects. Also, new child appends to the left.
 declaration_specifiers
-	: storage_class_specifier                        { $$ = op( nd(DECL_SPEC_LIST, "decl-specs", { 0, 0 }), 0, 1, ej($1) );
+	: storage_class_specifier                        { $$ = op( nd(DECL_SPEC_LIST, "decl-specs", nonPos), 0, 1, ej($1) );
 		Base* b = new Base();
 		switch ($1->tok) {
 			case     AUTO : b->strg = AUTO_S; break;
@@ -967,7 +967,7 @@ declaration_specifiers
 			case  TYPEDEF : b->strg = TYPEDEF_S; break;
 		}
 	}
-	| type_specifier                                 { $$ = op( nd(DECL_SPEC_LIST, "decl-specs", { 0, 0 }), 0, 1, ej($1) );
+	| type_specifier                                 { $$ = op( nd(DECL_SPEC_LIST, "decl-specs", nonPos), 0, 1, ej($1) );
 		Type *b;
 		switch ($1->tok) {
 			case      VOID : b = new Base(VOID_B); break;
@@ -1014,7 +1014,7 @@ declaration_specifiers
 			}
 		}
 	}
-	| type_qualifier                                 { $$ = op( nd(DECL_SPEC_LIST, "decl-specs", { 0, 0 }), 0, 1, ej($1) ); // completed
+	| type_qualifier                                 { $$ = op( nd(DECL_SPEC_LIST, "decl-specs", nonPos), 0, 1, ej($1) ); // completed
 		Base *b = new Base();
 		switch ($1->tok) { case CONST : b->isConst = true; break; case VOLATILE : b->isVoltl = true; }
 		$$->type = b;
@@ -1045,7 +1045,7 @@ declaration_specifiers
 
 // useless iff NULL
 init_declarator_list
-	: init_declarator { $$ = op( nd(INIT_DECL_LIST, "var-list", { 0, 0 }), 0, 1, ej($1) ); }
+	: init_declarator { $$ = op( nd(INIT_DECL_LIST, "var-list", nonPos), 0, 1, ej($1) ); }
 	| init_declarator_list ',' init_declarator { $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
@@ -1168,12 +1168,12 @@ struct_or_union
 	;
 
 struct_declaration_list 
-	: struct_declaration                         { $$ = op( nd(ALL_MEMBERS, "member-list", { 0, 0 }), 0, 1, ej($1) ); }
+	: struct_declaration                         { $$ = op( nd(ALL_MEMBERS, "member-list", nonPos), 0, 1, ej($1) ); }
 	| struct_declaration_list struct_declaration { $$ = op( $1, 0, 1, ej($2) ); }
 	;
 
 struct_declaration
-	: specifier_qualifier_list struct_declarator_list ';' { $$ = op( nd(STRUCT_MEMBER, "member", { 0, 0 }), 0, 2, ej($1), ej($2) );
+	: specifier_qualifier_list struct_declarator_list ';' { $$ = op( nd(STRUCT_MEMBER, "member", nonPos), 0, 2, ej($1), ej($2) );
 		Type *t1 = $1->type; int l = $2->numChild;
 		// assume new scope already opened.
 		for (int i = 0; i < l; i++) {
@@ -1231,7 +1231,7 @@ specifier_qualifier_list
 			}
 		}
 	}
-	| type_specifier                          { $$ = op( nd(SPEC_QUAL_LIST, "spec-qual", { 0, 0 }), 0, 1, ej($1) ); // completed
+	| type_specifier                          { $$ = op( nd(SPEC_QUAL_LIST, "spec-qual", nonPos), 0, 1, ej($1) ); // completed
 		Type *b;
 		switch ($1->tok) {
 			case      VOID : b = new Base(VOID_B); break;
@@ -1271,7 +1271,7 @@ specifier_qualifier_list
 			}
 		}
 	}
-	| type_qualifier			              { $$ = op( nd(SPEC_QUAL_LIST, "spec-qual", { 0, 0 }), 0, 1, ej($1) );
+	| type_qualifier			              { $$ = op( nd(SPEC_QUAL_LIST, "spec-qual", nonPos), 0, 1, ej($1) );
 		Base *b = new Base();
 		switch ($1->tok) { case CONST : b->isConst = true; break; case VOLATILE : b->isVoltl = true; }
 		$$->type = b;
@@ -1279,7 +1279,7 @@ specifier_qualifier_list
 	;
 
 struct_declarator_list
-	: struct_declarator                            { $$ = op( nd(INIT_DECL_LIST, "var-list", { 0, 0 }), 0, 1, ej($1) ); }
+	: struct_declarator                            { $$ = op( nd(INIT_DECL_LIST, "var-list", nonPos), 0, 1, ej($1) ); }
 	| struct_declarator_list ',' struct_declarator { $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
@@ -1287,7 +1287,7 @@ struct_declarator_list
 struct_declarator
 	: declarator              { $$ = $1; } // nothing to do
 	| ':' constant_expression { $$ = $2; } // TODO : handle later - when time permits
-	| declarator ':' constant_expression { $$ = op( nd(STRUCT_DECL, "declarator", { 0, 0 }), 0, 2, ej($1), ej($3) ); } // TODO : handle later - when time permits
+	| declarator ':' constant_expression { $$ = op( nd(STRUCT_DECL, "declarator", nonPos), 0, 2, ej($1), ej($3) ); } // TODO : handle later - when time permits
 	;
 
 enum_specifier
@@ -1307,7 +1307,7 @@ enum_specifier
 	;
 
 enumerator_list
-	: enumerator						{ $$ = op( nd(ENUM_LIST, "enum-list", { 0, 0 }), 0, 1, ej($1) ); }
+	: enumerator						{ $$ = op( nd(ENUM_LIST, "enum-list", nonPos), 0, 1, ej($1) ); }
 	| enumerator_list ',' enumerator	{ $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
@@ -1322,7 +1322,7 @@ type_qualifier
 	;
 
 declarator
-	: pointer direct_declarator	{ $$ = op( nd(DECLARATOR, "var", { 0, 0 }), 0, 2, ej($1), ej($2) ); // copy pointers to direct_declarator
+	: pointer direct_declarator	{ $$ = op( nd(DECLARATOR, "var", nonPos), 0, 2, ej($1), ej($2) ); // copy pointers to direct_declarator
 		Type *t2 = $2->type, *tt = tail(t2);
 		if (!t2) $$->type = $1->type;
 		else {
@@ -1369,7 +1369,7 @@ direct_declarator
 		} else { repErr(bra, "function returns an array", _FORE_RED_); $$->type = t1; t1->isErr = true; }
 		brackPut = false;
 	}
-	| direct_declarator '(' parameter_type_list ')'	{ loc_t bra = $2->pos; /* $$ = $1; */ $$ = op( nd(FUNC_PTR, "() [func-ptr]", { 0, 0 }), 0, 2, ej($1), ej($3) );
+	| direct_declarator '(' parameter_type_list ')'	{ loc_t bra = $2->pos; /* $$ = $1; */ $$ = op( nd(FUNC_PTR, "() [func-ptr]", nonPos), 0, 2, ej($1), ej($3) );
 		int l = $3->numChild; bool pureVoid = false, argErr = false; vector<class Type *> v;
 		for (int i = 0; i < l; i++) {
 			node_t *ch = $3->ch(i); Type *cht = ch->type; v.push_back(cht);
@@ -1394,7 +1394,7 @@ direct_declarator
 		}
 		brackPut = false;
 	}
-	| direct_declarator '(' identifier_list ')'	    { loc_t bra = $2->pos; $$ = $1; /* $$ = op( nd(FUNC_PTR, "() [func-ptr]", { 0, 0 }), 0, 2, ej($1), ej($3) ); */
+	| direct_declarator '(' identifier_list ')'	    { loc_t bra = $2->pos; $$ = $1; /* $$ = op( nd(FUNC_PTR, "() [func-ptr]", nonPos), 0, 2, ej($1), ej($3) ); */
 		int l = $3->numChild; bool pureVoid = false, argErr = false; vector<class Type *> v;
 		for (int i = 0; i < l; i++) {
 			node_t *ch = $3->ch(i);
@@ -1459,7 +1459,7 @@ pointer
 	;
 
 type_qualifier_list
-	: type_qualifier						{ $$ = op( nd(TYPE_QUAL_LIST, "type-quals", { 0, 0 }), 0, 1, ej($1) );
+	: type_qualifier						{ $$ = op( nd(TYPE_QUAL_LIST, "type-quals", nonPos), 0, 1, ej($1) );
 		Base *b = new Base();
 		switch ($1->tok) { case CONST : b->isConst = true; break; case VOLATILE : b->isVoltl = true; }
 		$$->type = b;
@@ -1481,12 +1481,12 @@ parameter_type_list
 	;
 
 parameter_list
-	: parameter_declaration						{ $$ = op( nd(PARAM_TYPE_LIST, "param-types", { 0, 0 }), 0, 1, ej($1) ); }
+	: parameter_declaration						{ $$ = op( nd(PARAM_TYPE_LIST, "param-types", nonPos), 0, 1, ej($1) ); }
 	| parameter_list ',' parameter_declaration	{ $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
 parameter_declaration
-	: declaration_specifiers declarator            { $$ = op( nd(PARAM_DECL+2000, "param-decl", { 0, 0 }), 0, 2, ej($1), ej($2) );
+	: declaration_specifiers declarator            { $$ = op( nd(PARAM_DECL+2000, "param-decl", nonPos), 0, 2, ej($1), ej($2) );
 		Type *t1 = $1->type, *t2 = $2->type, *tt = tail(t2);
         if (t1->strg != NONE_S) { repErr($1->pos, "storage class specifier given in parameter", _FORE_RED_); t1->isErr = true; }
         /* node_t *cnode = $2; // "concerned node" - get directly
@@ -1506,7 +1506,7 @@ parameter_declaration
 			}
 		}
 	}
-	| declaration_specifiers abstract_declarator   { $$ = op( nd(PARAM_DECL, "param-decl", { 0, 0 }), 0, 2, ej($1), ej($2) );
+	| declaration_specifiers abstract_declarator   { $$ = op( nd(PARAM_DECL, "param-decl", nonPos), 0, 2, ej($1), ej($2) );
 		Type *t1 = $1->type, *t2 = $2->type, *tt = tail(t2);
         if (t1->strg != NONE_S) { repErr($1->pos, "storage class specifier given in parameter", _FORE_RED_); t1->isErr = true; }
         if ((t1->grp() == BASE_G) && (((Base*)t1)->base == VOID_B)) { // t2's tail must not be array or NULL
@@ -1538,12 +1538,12 @@ parameter_declaration
 	;
 
 identifier_list
-	: IDENTIFIER                       { $$ = op( nd(ID_LIST, "identifiers", { 0, 0 }), 0, 1, ej($1) ); }
+	: IDENTIFIER                       { $$ = op( nd(ID_LIST, "identifiers", nonPos), 0, 1, ej($1) ); }
 	| identifier_list ',' IDENTIFIER   { $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
 type_name
-	: specifier_qualifier_list                        { $$ = op( nd(TYPE_NAME, "type-name", { 0, 0 }), 0, 1, ej($1) ); $$->type = $1->type; }
+	: specifier_qualifier_list                        { $$ = op( nd(TYPE_NAME, "type-name", nonPos), 0, 1, ej($1) ); $$->type = $1->type; }
 	| specifier_qualifier_list abstract_declarator    { $$ = op( $1, 0, 1, ej($2) );
 		Type *t1 = $1->type, *t2 = $2->type, *tt = tail(t2);
         if (t1->strg != NONE_S) { repErr($1->pos, "storage class specifier given in parameter", _FORE_RED_); t1->isErr = true; }
@@ -1566,7 +1566,7 @@ type_name
 abstract_declarator
 	: pointer                              { $$ = $1; }
 	| direct_abstract_declarator           { $$ = $1; }
-	| pointer direct_abstract_declarator   { $$ = op( nd(ABSTRACT_DECLARATOR, "abst-decl", { 0, 0 }), 0, 2, ej($1), ej($2) );
+	| pointer direct_abstract_declarator   { $$ = op( nd(ABSTRACT_DECLARATOR, "abst-decl", nonPos), 0, 2, ej($1), ej($2) );
 		Type *t2 = $2->type, *tt = tail(t2);
 		if (!t2) $$->type = $1->type;
 		else {
@@ -1689,7 +1689,7 @@ initializer
 	;
 
 initializer_list
-	: initializer						{ $$ = op( nd(INIT_LIST, "array", { 0, 0 }), 0, 1, ej($1) ); }
+	: initializer						{ $$ = op( nd(INIT_LIST, "array", nonPos), 0, 1, ej($1) ); }
 	| initializer_list ',' initializer	{ $$ = op( $1, 0, 1, ej($3) ); }
 	;
 
@@ -1752,7 +1752,7 @@ compound_statement
 	| '{' statement_list '}'                  { $$ = ($2) ? ($2) : ($1); SymRoot->closeScope(); }
 	| '{' declaration_list '}'                { $$ = ($2) ? ($2) : ($1); SymRoot->closeScope(); }
 	| '{' declaration_list statement_list '}' {
-		if (($2) && ($3)) { $$ = op( nd(GEN_BLOCK, "block", { 0, 0 }), 0, 2, ej($2), ej($3) ); }
+		if (($2) && ($3)) { $$ = op( nd(GEN_BLOCK, "block", nonPos), 0, 2, ej($2), ej($3) ); }
 		else if ($2) { $$ = $2; } // only useful decl. list.
 		else if ($3) { $$ = $3; } // only useful stmt. list.
 		else { $$ = ( $1); } // empty block
@@ -1762,17 +1762,17 @@ compound_statement
 
 // useless iff NULL
 declaration_list
-	: declaration { $$ = ($1) ? op( nd(DECL_LIST, "declarations", { 0, 0 }), 0, 1, ej($1) ) : NULL; }
+	: declaration { $$ = ($1) ? op( nd(DECL_LIST, "declarations", nonPos), 0, 1, ej($1) ) : NULL; }
 	| declaration_list declaration	{
 		if ($1 && $2) { $$ = op( $1, 0, 1, ej($2) ); } // both useful - simply append
 		else if ($1) { $$ = $1; } // new child not useful
-		else if ($2) { $$ = op( nd(DECL_LIST, "declarations", { 0, 0 }), 0, 1, ej($2) ); } // first useful child
+		else if ($2) { $$ = op( nd(DECL_LIST, "declarations", nonPos), 0, 1, ej($2) ); } // first useful child
 		else { $$ = NULL; }
 	}
 	;
 
 statement_list
-	: statement                { $$ = op( nd(STMT_LIST, "stmt-list", { 0, 0 }), 0, 1, ej($1) ); 
+	: statement                { $$ = op( nd(STMT_LIST, "stmt-list", nonPos), 0, 1, ej($1) ); 
 															 $$->nextlist = $1->nextlist;
 															 $$->contlist = $1->contlist;
 															 $$->breaklist = $1->breaklist;
@@ -1984,11 +1984,11 @@ jump_statement
 	;
 
 translation_unit
-	: external_declaration	{ AstRoot = ($$ = ($1) ? op( Nd(-1, fileName, file_name_attr, { 0, 0 }), 0, 1, ej($1) ) : NULL); } // Bad lincoln
+	: external_declaration	{ AstRoot = ($$ = ($1) ? op( Nd(-1, fileName, file_name_attr, nonPos), 0, 1, ej($1) ) : NULL); } // Bad lincoln
 	| translation_unit external_declaration	{
 		if ($1 && $2) { $$ = op( $1, 0, 1, ej($2) ); }
 		else if ($1) { $$ = $1; } // new child useless
-		else if ($2) { $$ = op( Nd(-1, fileName, file_name_attr, { 0, 0 }), 0, 1, ej($2) ); } // Bad lincoln
+		else if ($2) { $$ = op( Nd(-1, fileName, file_name_attr, nonPos), 0, 1, ej($2) ); } // Bad lincoln
 		else { $$ = NULL; }
 		AstRoot = $$;
 	}
@@ -2002,8 +2002,8 @@ external_declaration
 function_definition
 	: declaration_specifiers declarator declaration_list compound_statement {
 		$$ = ($3)
-		? op( nd(FUNC_DEF, "function_definition", { 0, 0 }), 0, 3, ej($2), ej($3), ej($4) )
-		: op( nd(FUNC_DEF, "function_definition", { 0, 0 }), 0, 2, ej($2), ej($4) );
+		? op( nd(FUNC_DEF, "function_definition", nonPos), 0, 3, ej($2), ej($3), ej($4) )
+		: op( nd(FUNC_DEF, "function_definition", nonPos), 0, 2, ej($2), ej($4) );
 	}
 	| declaration_specifiers declarator { // will not work for STATIC functions defined later
 		// t1 - must not take some values, take care of STATIC_S too.
@@ -2076,7 +2076,7 @@ function_definition
 				}
 			}
 		}
-	} compound_statement { $$ = op( nd(FUNC_DEF, "function_definition", { 0, 0 }), 0, 2, ej($2), ej($4));
+	} compound_statement { $$ = op( nd(FUNC_DEF, "function_definition", nonPos), 0, 2, ej($2), ej($4));
 		node_t *cnode = $2; while (cnode->tok != IDENTIFIER) cnode = cnode->ch((cnode->tok == DECLARATOR) ? 1 : 0);
 		sym* funcSym = SymRoot->gLookup(cnode->label);
 		Type *retType = NULL;
@@ -2110,8 +2110,8 @@ function_definition
 	}
 	| declarator declaration_list compound_statement {
 		$$ = ($2)
-		? op( nd(FUNC_DEF, "function_definition", { 0, 0 }), 0, 3, ej($1), ej($2), ej($3) )
-		: op( nd(FUNC_DEF, "function_definition", { 0, 0 }), 0, 2, ej($1), ej($3) );
+		? op( nd(FUNC_DEF, "function_definition", nonPos), 0, 3, ej($1), ej($2), ej($3) )
+		: op( nd(FUNC_DEF, "function_definition", nonPos), 0, 2, ej($1), ej($3) );
 	}
 	| declarator {
 		string funcName;
@@ -2158,7 +2158,7 @@ function_definition
 				}
 			}
 		}
-	} compound_statement { $$ = op( nd(FUNC_DEF, "function_definition", { 0, 0 }), 0, 2, ej($1), ej($3) );
+	} compound_statement { $$ = op( nd(FUNC_DEF, "function_definition", nonPos), 0, 2, ej($1), ej($3) );
 		node_t *cnode = $1; while (cnode->tok != IDENTIFIER) cnode = cnode->ch((cnode->tok == DECLARATOR) ? 1 : 0);
 		sym* funcSym = SymRoot->gLookup(cnode->label);
 		Type *retType = NULL;

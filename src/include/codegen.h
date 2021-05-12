@@ -121,8 +121,6 @@ int getNxtLeader(std::vector<irquad_t> &, int);
 
 std::string getSymName(std::string); // get symbol name for struct, array, etc
 
-void libDumpASM(std::ofstream &, int);
-
 void resetCodegen();
 
 std::string loadArrAddr(std::ofstream &, const sym*, 

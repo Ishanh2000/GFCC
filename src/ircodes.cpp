@@ -80,7 +80,7 @@ string newTmp() {
 
 string newTmp(class Type *t) {
     string tmpName = "0t_" + to_string(totalTmp++);
-    SymRoot->pushSym(tmpName, t, { 0, 0 });
+    SymRoot->pushSym(tmpName, t, nonPos);
     return tmpName;
 }
 

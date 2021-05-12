@@ -80,6 +80,7 @@ typedef unsigned long long ull_t;
 typedef struct _loc_t { // location type
 	unsigned int line;
 	unsigned int column;
+	unsigned int lib;
 } loc_t;
 
 typedef struct _token_t {
@@ -137,6 +138,8 @@ extern node_t* AstRoot;
 extern std::vector<unsigned int> offsets; // line i starts at offsets[i-1]
 
 extern std::vector<struct _token_t> tokDump;
+
+extern loc_t nonPos; // constant default position
 
 #ifdef COMPLETE
 extern const char type_spec_attr[];

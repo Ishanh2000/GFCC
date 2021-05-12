@@ -11,6 +11,7 @@
 #include <typo.h>
 #include <ircodes.h>
 #include <codegen.h>
+#include <libdump.h>
 
 using namespace std;
 
@@ -18,7 +19,7 @@ using namespace std;
 // THEIR NAMES. SINCE THEY ARE SHARE ACROSS MULTIPLE FILES.
 
 int column = 1; // internally used by parser - DO NOT TOUCH!!!
-loc_t gpos = { 1, 1 }; // global position in current file
+loc_t gpos = { 1, 1, 0x0 }; // global position in current file
 
 FILE *temp_out = NULL; // if this is NULL, use stdout
 int tab_len = TAB_LEN;
@@ -29,6 +30,7 @@ char * fileName = NULL;
 vector<unsigned int> offsets = { 0 }; // line i starts at offsets[i-1], line 1 starts at offsets[0] = 0
 vector<struct _token_t> tokDump;
 ifstream in_file;
+loc_t nonPos = { 0, 0, 0x0 };
 
 // CLA: <exec-name> [some options] in_1 in_2 ... in_N
 // CLA: <exec-name> [some options] in_1 in_2 ... in_N -o[=tok,ast,sym,3ac,asm] { dot_i csv_i 3ac_i asm_i } x N

@@ -46,7 +46,7 @@ class sym { // SYMBOL
     int nxtuse = -1;
 
     sym(std::string, class Type*, loc_t, bool = false);
-    sym(std::string, class Type*, loc_t, int);
+    // sym(std::string, class Type*, loc_t);
     void dump(std::ofstream &); // dump all info into (opened writable) file
 };
 
@@ -107,8 +107,6 @@ extern std::string csvHeaders;
 extern symRoot *SymRoot;
 
 bool isFuncScope(class symtab *);
-
-void libDumpSym(int);
 
 void resetSymtab(); // reset appropriate global variables
 
