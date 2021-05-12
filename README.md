@@ -2,9 +2,9 @@
 
 ## About:
 <!-- ![GFCC Logo](./logo_t.png) -->
-<center>
+<p align="center">
   <img src="./logo_t.png" width="400" margin="200">
-</center>
+</p>
 
 CS335A (Compiler Design) Project, Semester 6, 2020-21-II (Jan - Apr 2021).
 Official name of compiler will be "gfcc".
