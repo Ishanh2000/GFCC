@@ -32,6 +32,7 @@
 #define LIB_MATH        (0x1)
 #define LIB_TYPO        (0x2)
 #define LIB_STD         (0x4)
+#define LIB_BASIC      (0xff) // mainly NULL ptr
 // #define LIB_FILE        (0x8)
 // #define LIB_TIME       (0x10)
 

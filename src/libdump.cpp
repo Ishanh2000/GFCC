@@ -18,18 +18,38 @@
 #include <typo.h>
 #include <ircodes.h>
 #include <codegen.h>
+#include <libdump.h>
 
 using namespace std;
 
-void libDumpSym(int lib_reqs) {
-  if (lib_reqs & LIB_MATH) { // insert symbols into SymRoot
+string float2Dec(string s) { // IEEE 754 conversion
+  union { float f; int d; } var;
+  var.f = stof(s);
+  return to_string(var.d);
+}
+
+void libDumpSym(int lib_reqs) { // insert libraries symbols into SymRoot
+  // psuh some basic symbols (like NULL)
+  // NULL = (void*) 0 [ constant and volatile pointer ]
+  SymRoot->pushSym(new sym("NULL", new Ptr(new Base(VOID_B), true, true), { 0, 0, LIB_BASIC }));
+  StrDump.push_back(str_t("0", ".word", "NULL"));
+  
+  // now appropriate libraries
+  if (lib_reqs & LIB_MATH) {
+    // global symbols : non-functions
     Base* b = new Base(FLOAT_B); b->isConst = true;    
     SymRoot->pushSym(new sym("G5_M_PI",        clone(b), { 3, 13, LIB_MATH }));
+    StrDump.push_back(str_t(float2Dec("3.141592653589793115997963468544185162"), ".word", "G5_M_PI"));
     SymRoot->pushSym(new sym("G5_M_E",         clone(b), { 4, 13, LIB_MATH }));
+    StrDump.push_back(str_t(float2Dec("2.718281828459045090795598298427648842"), ".word", "G5_M_E"));
     SymRoot->pushSym(new sym("__G5_M_PREC__",  clone(b), { 5, 13, LIB_MATH }));
+    StrDump.push_back(str_t(float2Dec("0.000001"), ".word", "__GFCC_M_PREC__"));
     SymRoot->pushSym(new sym("__G5_M_LOG2__",  clone(b), { 6, 13, LIB_MATH }));
+    StrDump.push_back(str_t(float2Dec("0.693147180559945286226763982995180413"), ".word", "__GFCC_M_LOG2__"));
     SymRoot->pushSym(new sym("__G5_M_LOG10__", clone(b), { 7, 13, LIB_MATH }));
+    StrDump.push_back(str_t(float2Dec("2.302585092994045901093613792909309268"), ".word", "__GFCC_M_LOG10__"));
 
+    // global symbols : non-functions
     Func* i2i = new Func(new Base(INT_B)); i2i->newParam(new Base(INT_B)); // int ()(int)
     vector<string> i2iNames = { "g5_abs", "g5_fact", "g5_fib" };
     int i2i_l = i2iNames.size();
