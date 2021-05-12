@@ -17,10 +17,12 @@
 // }
 float z = 2.0;
 int g = 450;
+// float z = 90;
+// int g = 450;
 
 int main() {
-  int a;
-  float b = 90;
+  // int a;
+  // float b = 90;
   // g5_printf("\033[33mHelloWorld\n"); // color (HEHE) :)
   // g5_scanf("%d", &a);
   // g5_printf("abs(%d) = %d\n", a, g5_abs(a));
@@ -28,7 +30,8 @@ int main() {
   // g5_printf("fact(%d) = %d\n", a, g5_fact(a));
   // g5_scanf("%d", &a);
   // g5_printf("fact(%d) = %d\n", a, g5_fib(a));
-  g5_printf("z = %f\n", z);
+  // char a = 'a'; short f = 3;
+  // g5_printf("%c %d\n",a,f);
   // g5_printf("z = %f\n", z);
   // g5_printf("b = %f\n", b);
   // g5_scanf("%f", &b);
@@ -54,6 +57,11 @@ int main() {
   //   for(j =0 ;j<l; j++){
   //     g5_printf("Value of a[%d][%d]: %d  %f\n", i, j, a[i][j], 2.1e10);
   //   }
+  float p = 100.0, q = 10.1;
+  int b = 1;
+  char dd = 'a'; short f = 3;
+  dd ++; f++; dd++;
+  g5_printf("%c %d\n",dd,f);
   // float p = 100.0, q = 10.1;
   // int b = 1;
   
