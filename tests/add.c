@@ -8,9 +8,9 @@
 
 // }
 
-float foo(float b)  {
-  return 1.5;
-}
+// float foo(float b)  {
+//   return 1.5;
+// }
 
 int main() {
   // char a[4][5][6][7];
@@ -31,7 +31,9 @@ int main() {
   //   }
   float p = 100.0, q = 10.1;
   int b = 1;
-  
+  char dd = 'a'; short f = 3;
+  dd ++; f++; dd++;
+  g5_printf("%c %d\n",dd,f);
   // p = p + q;
   // p = p + b;
   // p = p + 2;
@@ -39,8 +41,8 @@ int main() {
   // // p = p;
   // b = p;
   // p = b;
-  b = foo(b);
-  g5_printf("%f %d\n", p,b);
+  // b = foo(b);
+  // g5_printf("%f %d\n", p,b);
   // float a = 1.3, b, c = 9;
   // int aa[3];
   // aa[2] = aa[1] + aa[0];

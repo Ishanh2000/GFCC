@@ -611,6 +611,7 @@ void genASM(ofstream & f, irquad_t & quad) {
     }
     else {
       int size = lastdelta.src1Sym->size;
+      size = ((size+3)/4)*4;
       string paramAddr = loadArrAddr(f, lastdelta.src1Sym, lastdelta.src1ArrSymb,
                                       lastdelta.src1ArrOff, lastdelta.src1Type, "1");
       if(paramAddr != "") { // a[0]
