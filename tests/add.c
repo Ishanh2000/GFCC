@@ -8,11 +8,32 @@
 
 // }
 
-float foo(float b)  {
-  return 1.5;
-}
+// float foo(float b)  {
+//   return 1.5;
+// }
+
+// int g5_printf() {
+  
+// }
 
 int main() {
+  int a;
+  // float b;
+  g5_printf("\033[33mHelloWorld\n"); // color (HEHE) :)
+  g5_scanf("%d", &a);
+  g5_printf("abs(%d) = %d\n", a, g5_abs(a));
+  g5_scanf("%d", &a);
+  g5_printf("fact(%d) = %d\n", a, g5_fact(a));
+  g5_scanf("%d", &a);
+  g5_printf("fact(%d) = %d\n", a, g5_fib(a));
+  
+  // g5_scanf("%f", &b);
+  // g5_printf("fabs(%f) = %f\n", b, b);
+
+  // g5_printf("%d\n", 30);
+
+  
+
   // char a[4][5][6][7];
   // a[0][1][2][5+8]++;
   // char a = g5_getc();
@@ -29,8 +50,8 @@ int main() {
   //   for(j =0 ;j<l; j++){
   //     g5_printf("Value of a[%d][%d]: %d  %f\n", i, j, a[i][j], 2.1e10);
   //   }
-  float p = 100.0, q = 10.1;
-  int b = 1;
+  // float p = 100.0, q = 10.1;
+  // int b = 1;
   
   // p = p + q;
   // p = p + b;
@@ -39,8 +60,8 @@ int main() {
   // // p = p;
   // b = p;
   // p = b;
-  b = foo(b);
-  g5_printf("%f %d\n", p,b);
+  // b = foo(b);
+  // g5_printf("%f %d\n", p,b);
   // float a = 1.3, b, c = 9;
   // int aa[3];
   // aa[2] = aa[1] + aa[0];

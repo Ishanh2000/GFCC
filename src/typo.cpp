@@ -8,8 +8,10 @@
 
 #include <iostream>
 #include <fstream>
+#include <limits>
 #include <iomanip> // setw (set width) manipulation
 #include <stdarg.h>
+
 #include <parser.tab.h>
 #include <gfcc_lexer.h>
 #include <typo.h>
@@ -22,12 +24,12 @@ msg::msg() { }
 msg::msg(int _type) : msg_type(_type) { }
 
 msg::~msg() {
-    switch (msg_type) {
-        case SUCC: cout << _C_BOLD_ << _FORE_GREEN_ << this->str() << _C_NONE_ << endl; break; // can use prefix "SUCCESS: "
-        case WARN: cout << _C_BOLD_ << _FORE_YELLOW_ << "WARNING: " << this->str() << _C_NONE_ << endl; break;
-        case ERR : cout << _C_BOLD_ << _FORE_RED_ << "ERROR: " << this->str() << _C_NONE_ << endl; break;
-        default  : cout << this->str() << endl;
-    }
+	switch (msg_type) {
+		case SUCC: cout << _C_BOLD_ << _FORE_GREEN_ << this->str() << _C_NONE_ << endl; break; // can use prefix "SUCCESS: "
+		case WARN: cout << _C_BOLD_ << _FORE_YELLOW_ << "WARNING: " << this->str() << _C_NONE_ << endl; break;
+		case ERR : cout << _C_BOLD_ << _FORE_RED_ << "ERROR: " << this->str() << _C_NONE_ << endl; break;
+		default  : cout << this->str() << endl;
+	}
 }
 
 int yyerror(const char *s) {
@@ -51,32 +53,36 @@ void repErr(loc_t &_pos, string str, const char* _color) { // very similar to yy
 	if (string(_color) == _FORE_RED_) semanticErr = true;
 	// cout << fflush << endl;
 
-	if (!(_pos.lib)) { // source file
-		cout << _C_BOLD_ << "GFCC : " << fileName << ':' << _pos.line << ':' << _pos.column << ": [approx. positions indicated] ";
-		cout << _color << setw(_pos.column) << str << _C_NONE_ << endl;
-
-		// Here, print from offsets[line-1] till '\n'
-		in_file.seekg(offsets[_pos.line - 1]);
-		string lineToPrint; getline(in_file, lineToPrint);
-		cout << lineToPrint << endl;
-		
-		// Now, place the '^'.
-		cout << _C_BOLD_ << _color << setw(_pos.column) << '^' << _C_NONE_ << endl;
-
+	string _fName(fileName); // source file (default)
+	if (_pos.lib) { // library file
+		_fName = "./src/lib/g5_";
+		switch (_pos.lib) {
+			case LIB_MATH : _fName += "math"; break;
+			case LIB_TYPO : _fName += "typo"; break;
+			case LIB_STD  : _fName +=  "std"; break;
+		}
+		_fName += ".h";
 	}
-	//  else { // library - locate from 
-	// 	string _fName = "./src/lib/g5_";
-	// 	switch (_pos.lib) {
-	// 		case LIB_MATH : _fName += "math"; break;
-	// 		case LIB_TYPO : _fName += "typo"; break;
-	// 		case LIB_STD  : _fName +=  "std"; break;
-	// 	}
-	// 	_fName += ".h";
-	// 	ifstream libDecl(_fName); // TODO: must gracefully handle errors.
-	// 	// now go to 
 
+	cout << _C_BOLD_ << "GFCC : " << _fName << ':' << _pos.line << ':' << _pos.column << ": [approx. positions indicated] ";
+	cout << _color << setw(_pos.column) << str << _C_NONE_ << endl;
 
-	// }
+	string lineToPrint;
+	if (_pos.lib) { // library file : Manually seek to line (_pos.line) in library file
+		ifstream libFile(_fName); // TODO: must gracefully handle errors.
+		libFile.seekg(ios::beg);
+		int line = _pos.line;
+		for (int i = 0; i < line - 1; i++) libFile.ignore(numeric_limits<streamsize>::max(), '\n');
+		getline(libFile, lineToPrint);
+
+	} else { // source file : Here, print from offsets[line-1] till '\n'
+		in_file.seekg(offsets[_pos.line - 1]);
+		getline(in_file, lineToPrint);
+	}
+	cout << lineToPrint << endl;
+
+	// Now, place the '^'.
+	cout << _C_BOLD_ << _color << setw(_pos.column) << '^' << _C_NONE_ << endl;
 }
 
 void dotNode(ofstream &f, node_t* node) {

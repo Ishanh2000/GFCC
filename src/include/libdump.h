@@ -9,7 +9,10 @@
 #ifndef __GFCC_LIBDUMP__
 #define __GFCC_LIBDUMP__
 
+#include <iostream>
 #include <fstream>
+
+std::string float2Dec(std::string); // IEEE 754 conversion
 
 void libDumpSym(int);
 
