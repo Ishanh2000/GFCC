@@ -128,4 +128,7 @@ std::string loadArrAddr(std::ofstream &, const sym*,
                         std::vector<std::string>, 
                         int, std::string);
 
+
+void memCopy(std::ofstream &, reg_t src, reg_t dst, int size);
+
 #endif

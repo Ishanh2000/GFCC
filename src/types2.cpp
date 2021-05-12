@@ -423,7 +423,22 @@ bool impCast(class Type *from, class Type *to) { // implicit type-casting
     Func *ff = (Func *)from, *ft = (Func *)to;
     
     if( gt == FUNC_G ) return false;
-    
+    if (gt == BASE_G && gf == BASE_G && bt->base == bf->base) {
+        if(bt->base == STRUCT_B || bt->base == UNION_B) {
+            if(bt->subDef->name != bf->subDef->name) {
+                // if structs are of different name
+                return false;
+            }
+            auto &st1 = bt->subDef->syms, &st2 = bf->subDef->syms;
+            int l1 = st1.size(), l2 = st2.size();
+            if(l1!=l2) return false;
+            for(int i = 0; i <l1; i++) {
+                if( st1[i]->name != st2[i]->name || 
+                    !tMatch(st1[i]->type, st2[i]->type)) return false;
+            }
+            return true;
+        }
+    }
     if( gt == BASE_G && ( bt->base == VOID_B || bt->base == STRUCT_B || bt->base == UNION_B ) ) return false;
     if( gf == BASE_G && ( bf->base == VOID_B || bf->base == STRUCT_B || bf->base == UNION_B ) ) return false;
     
@@ -452,7 +467,6 @@ bool impCast(class Type *from, class Type *to) { // implicit type-casting
             // FUNC to ARR -ok directly
             // FUNC to PTR -ok directly
             // FUNC to FUNC -ok directly
-            cout << "$$$$$$$$$$$$here$$$$$$$4" << endl;
             return true;
             // if (gt != PTR_G) return false;
         }
@@ -510,6 +524,13 @@ bool isShort(class Type* t) {
     return false;
 }
 
+bool isArr(class Type* t) {
+    if(t && !t->isErr && t->grp() == ARR_G){
+        return true;
+    }
+    return false;
+}
+
 short unsigned int getSize(class Type *t) { // implmentation like "sizeof"
     if (!t) return 1;
     Base *b = (Base *) t;
@@ -521,7 +542,7 @@ short unsigned int getSize(class Type *t) { // implmentation like "sizeof"
         case BASE_G : switch (b->base) {
             case SHORT_B: return 2;
             case INT_B : case FLOAT_B : case ENUM_B : return 4;
-            case LONG_B : case DOUBLE_B : return 8;
+            case LONG_B : case DOUBLE_B : return 4; // TODO: make 8
             case LONG_LONG_B : case LONG_DOUBLE_B : return 8;
             case STRUCT_B :
                 li = &(b->subDef->syms); l = li->size();
@@ -531,7 +552,7 @@ short unsigned int getSize(class Type *t) { // implmentation like "sizeof"
                     if(size %4 != 0) size = size - size%4 + 4;
                     s->offset = cmpSize;
                     cmpSize += size;
-                    cout << s->name << "  " << s->size << " "<< s->offset << endl;
+                    // cout << s->name << "  " << s->size << " "<< s->offset << endl;
                 }
                 return cmpSize;
             case UNION_B :

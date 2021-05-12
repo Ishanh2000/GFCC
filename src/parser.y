@@ -141,7 +141,8 @@ postfix_expression
 		$$->type->lvalue = true;
 
 		string e2 = $3->eval;
-		if (e2.find("[") != string::npos || e2.find(".") != string::npos || e2.find("->") != string::npos) { // means e2 itself is accessed type (array/struct)
+		if (e2.find("[") != string::npos || e2.find(".") != string::npos 
+				|| e2.find("->") != string::npos || e2.find("*") != string::npos) { // means e2 itself is accessed type (array/struct)
 			string _tmp = newTmp(clone(t2));
 			emit(_tmp, t2, eps, e2, t2); // no need to check assignment type because t2/_tmp are not reals.
 			e2 = _tmp;
@@ -289,12 +290,12 @@ postfix_expression
 		$$->type->lvalue = true;
 
 		string e1 = $1->eval;
-		if (e1.find("[") != string::npos || e1.find(".") != string::npos || e1.find("->") != string::npos) {
+		/* if (e1.find("[") != string::npos || e1.find(".") != string::npos || e1.find("->") != string::npos) {
 			// means e1 itself is accessed type (array/struct)
 			string _tmp = newTmp(clone(_t1));
 			emit(_tmp, _t1, eps, e1, t1); // no need to check assignment type because t2/_tmp are not reals.
 			e1 = _tmp;
-		}
+		} */
 		$$->eval = e1 + "." + $3->label; // handle at assembly code generation
 	}
 	| postfix_expression PTR_OP IDENTIFIER					{ $$ = op( $2, 0, 2, ej($1), ej($3) ); // search for definition by name of "struct|union _abc"
@@ -321,12 +322,12 @@ postfix_expression
 		}
 		$$->type->lvalue = true;
 		string e1 = $1->eval;
-		if (e1.find("[") != string::npos || e1.find(".") != string::npos || e1.find("->") != string::npos) {
+		/* if (e1.find("[") != string::npos || e1.find(".") != string::npos || e1.find("->") != string::npos) {
 			// means e1 itself is accessed type (array/struct)
 			string _tmp = newTmp(clone(_t1));
 			emit(_tmp, _t1, eps, e1, t1); // no need to check assignment type because t2/_tmp are not reals.
 			e1 = _tmp;
-		}
+		} */
 		$$->eval = e1 + "->" + $3->label; // handle at assembly code generation
 	}
 	| postfix_expression INC_OP								{ $$ = op( $2, 0, 1, ej($1) ); // not allowed on function, array, void, struct, union
@@ -534,8 +535,9 @@ unary_expression
 						repErr($1->pos, "cannot dereference a value that is not an array, a pointer or a function", _FORE_RED_); t->isErr = true; $$->type = t;
 				}
 				$$->type->lvalue = true;
-				emit($$->eval = newTmp(clone($$->type)), $$->type, "*", $2->eval, t); // t_1 = * t_0
-				if (isReal($$->type)) IRDump.back().eq = "real=";
+				/* emit($$->eval = newTmp(clone($$->type)), $$->type, "*", $2->eval, t); // t_1 = * t_0 */
+				/* if (isReal($$->type)) IRDump.back().eq = "real="; */
+				$$->eval = "*" + $2->eval;
 				break;
 
 			case '&' :
@@ -1959,7 +1961,7 @@ jump_statement
 		symtab* curr = SymRoot->currScope;
 		while (!isFuncScope(curr)) { if (!curr) break; curr = curr->parent; }
 		bool realLHS, realRHS = isReal($2->type);
-		Type *retType = NULL;
+		Type *retType = NULL, *exprType = $2->type;
 		if (curr) {
 			sym* funcSym = curr->parent->srchSym(curr->name.substr(5));
 			if (funcSym && (funcSym->type) && (funcSym->type->grp() == FUNC_G))
@@ -1977,9 +1979,10 @@ jump_statement
 		{
 			string _tmp = newTmp(clone(retType));
 			emit(_tmp, retType, realRHS ? "real2int" : "int2real", _ev, $2->type);
+			exprType = clone(retType);
 			_ev = _tmp;
 		}
-		emit(eps, NULL, "return", _ev, retType);
+		emit(eps, NULL, "return", _ev, exprType);
 	}
 	;
 
