@@ -53,6 +53,13 @@ void repErr(loc_t &_pos, string str, const char* _color) { // very similar to yy
 	if (string(_color) == _FORE_RED_) semanticErr = true;
 	// cout << fflush << endl;
 
+	if (_pos.lib == LIB_BASIC) {
+		cout << _C_BOLD_ << _FORE_CYAN_;
+		// all definitions for very basic symbols
+		cout << "\"NULL\" is defined as ((void *)0)" << endl;
+		cout << _C_NONE_;
+	}
+
 	string _fName(fileName); // source file (default)
 	if (_pos.lib) { // library file
 		_fName = "./src/lib/g5_";

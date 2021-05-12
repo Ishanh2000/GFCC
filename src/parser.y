@@ -15,6 +15,7 @@
 #include <typo.h>
 #include <ops.h>
 #include <ircodes.h>
+#include <libdump.h>
 
 using namespace std;
 
@@ -915,7 +916,11 @@ declaration
 						emit(cnode->label, t1, opr, initNode->eval, initNode->type);
 						if (realLHS && realRHS) IRDump.back().eq = "real=";
 						if(SymRoot->currScope->parent == NULL){ // global scope
-							StrDump.push_back(str_t(initNode->eval, ".word", cnode->label));
+							StrDump.push_back(str_t(
+								realLHS ? float2Dec(initNode->eval) : initNode->eval,
+								".word", cnode->label
+							));
+
 						}
 					}
 					

@@ -28,8 +28,14 @@ string float2Dec(string s) { // IEEE 754 conversion
   return to_string(var.d);
 }
 
-void libDumpSym(int lib_reqs) {
-  if (lib_reqs & LIB_MATH) { // insert symbols into SymRoot
+void libDumpSym(int lib_reqs) { // insert libraries symbols into SymRoot
+  // psuh some basic symbols (like NULL)
+  // NULL = (void*) 0 [ constant and volatile pointer ]
+  SymRoot->pushSym(new sym("NULL", new Ptr(new Base(VOID_B), true, true), { 0, 0, LIB_BASIC }));
+  StrDump.push_back(str_t("0", ".word", "NULL"));
+  
+  // now appropriate libraries
+  if (lib_reqs & LIB_MATH) {
     // global symbols : non-functions
     Base* b = new Base(FLOAT_B); b->isConst = true;    
     SymRoot->pushSym(new sym("G5_M_PI",        clone(b), { 3, 13, LIB_MATH }));

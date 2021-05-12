@@ -15,18 +15,22 @@
 // int g5_printf() {
   
 // }
+float z = 90;
+int g = 450;
 
 int main() {
   int a;
-  // float b;
-  g5_printf("\033[33mHelloWorld\n"); // color (HEHE) :)
-  g5_scanf("%d", &a);
-  g5_printf("abs(%d) = %d\n", a, g5_abs(a));
-  g5_scanf("%d", &a);
-  g5_printf("fact(%d) = %d\n", a, g5_fact(a));
-  g5_scanf("%d", &a);
-  g5_printf("fact(%d) = %d\n", a, g5_fib(a));
-  
+  float b = 90;
+  // g5_printf("\033[33mHelloWorld\n"); // color (HEHE) :)
+  // g5_scanf("%d", &a);
+  // g5_printf("abs(%d) = %d\n", a, g5_abs(a));
+  // g5_scanf("%d", &a);
+  // g5_printf("fact(%d) = %d\n", a, g5_fact(a));
+  // g5_scanf("%d", &a);
+  // g5_printf("fact(%d) = %d\n", a, g5_fib(a));
+  g5_printf("z = %f\n", z);
+  // g5_printf("z = %f\n", z);
+  // g5_printf("b = %f\n", b);
   // g5_scanf("%f", &b);
   // g5_printf("fabs(%f) = %f\n", b, b);
 
