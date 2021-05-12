@@ -138,7 +138,11 @@ bool expCast(class Type *, class Type *); // explicit type-casing
 
 int *eval(struct _node_t *); // evaluate bounds for arrays
 
-bool isReal(class Type *);
+bool isReal(class Type *); // check is type is float/double
+
+bool isChar(class Type *); // check if type is char
+
+bool isShort(class Type *); // check is type is short
 
 short unsigned int getSize(class Type *); // implmentation like "sizeof"
 

@@ -32,13 +32,13 @@ string reg2str[] = {
 
   "$f0", "$f1", "$f2", "$f3",                                // Function-returned values
   "$f4", "$f5", "$f6", "$f7", "$f8", "$f9", "$f10", "$f11",  // Temporary values
-  "$f12", "$f13", "$f14", "$f15",                            // Arguments passed into a function
   "$f16", "$f17", "$f18", "$f19",                            // More Temporary values
+  "$f12", "$f13", "$f14", "$f15",                            // Arguments passed into a function
   "$f20", "$f21", "$f31",                                    // Saved values
 };
 
 
-sym* regDscr[32];
+sym* regDscr[55];
 _nxtUse nxtUse;
 string currFunc = "";
 unsigned int paramOffset = 40;
@@ -79,20 +79,55 @@ deltaNxtUse _nxtUse::step() {
   return delta;
 }
 
+inst_t getInst(class Type * t)
+{
+  inst_t I;
+  I.load_instr = "lw"; I.store_instr = "sw";
+  I.load_const = "li"; I.move_instr = "move";
+  if( isReal(t) )
+  {
+    I.load_instr = "l.s"; I.store_instr = "s.s";
+    I.load_const = "li.s"; I.move_instr = "mov.s";
+  }
+  else if( isChar(t) )
+  {
+    I.load_instr = "lb"; I.store_instr = "sb";
+    I.load_const = "li"; I.move_instr = "move";
+  }
+  else if( isShort(t) )
+  {
+    I.load_instr = "lh"; I.store_instr = "sh";
+    I.load_const = "li"; I.move_instr = "move";
+  }
+  return I;
+}
+
+tmp_regs getTmpRegs(class Type * t)
+{
+  tmp_regs R;
+  R.retreg1 = v0; R.retreg2 = v1; R.exreg = a3;
+  if( isReal(t) )
+  {
+    R.retreg1 = f0; R.retreg2 = f2; R.exreg = f14;
+  }
+  return R;
+}
 
 void regFlush(std::ofstream & f, reg_t reg, bool store = true) {
   if(regDscr[reg]) {
     // TODO: sw/sb/... for non 4 byte
     // TODO: offset from $gp
     // always do in case of global
+    inst_t I = getInst(regDscr[reg]->type);
+    
     bool isArr = regDscr[reg]->type->grp() == ARR_G;
     if (store && !isArr) {
       if(regDscr[reg]->parent == SymRoot->root) {
         if(!isFuncType(regDscr[reg]->type)) 
-          f << '\t' << "sw " << reg2str[reg] + ", global_" + regDscr[reg]->name;
+          f << '\t' << I.store_instr << " " << reg2str[reg] + ", global_" + regDscr[reg]->name;
       }
       else {
-        f << '\t' << "sw " << reg2str[reg] + ", -"<< regDscr[reg]->offset <<"($fp)";
+        f << '\t' << I.store_instr << " " << reg2str[reg] + ", -"<< regDscr[reg]->offset <<"($fp)";
       }
       f << " # flush register to stack (" + regDscr[reg]->name + ")"<< endl;
     }
@@ -107,6 +142,7 @@ void regMap(std::ofstream & f, reg_t reg, sym* symb, bool load = true) {
   // TODO: sw/sb/... for non 4 byte
   // TODO: offset from $gp
   /* array which is not an argument to the function */
+  inst_t I = getInst(symb->type);
   bool isArr = symb->type->grp() == ARR_G && !symb->isArg;
   if(isArr) {
     f << '\t' << "subu " << reg2str[reg] + ", $fp, " + to_string(symb->offset);
@@ -117,11 +153,11 @@ void regMap(std::ofstream & f, reg_t reg, sym* symb, bool load = true) {
       if(isFuncType(symb->type))
         f << '\t' << "la " << reg2str[reg] +  ", " + symb->name;
       else
-        f << '\t' << "lw " << reg2str[reg] +  ", global_" + symb->name;
+        f << '\t' << I.load_instr << " " << reg2str[reg] +  ", global_" + symb->name;
     }
       
     else 
-      f << '\t' << "lw " << reg2str[reg] + ", -"<< symb->offset <<"($fp)";
+      f << '\t' << I.load_instr << " " << reg2str[reg] + ", -"<< symb->offset <<"($fp)";
     f << " # load into register (" + symb->name + ")"<< endl;
   }
   // add addrDscr entry
@@ -131,9 +167,16 @@ void regMap(std::ofstream & f, reg_t reg, sym* symb, bool load = true) {
 }
 
 
-void resetRegMaps(ofstream &f, bool store = true) {
-  for(int reg = t0; reg <= t9; reg++){
-    regFlush(f, (reg_t) reg, store);
+void resetRegMaps(ofstream &f, bool t_regs, bool f_regs, bool store = true) {
+  if( t_regs ) {
+    for(int reg = t0; reg <= t9; reg++){
+      regFlush(f, (reg_t) reg, store);
+    }
+  }
+  if( f_regs ) {
+    for(int reg = f4; reg <= f19; reg++){
+      regFlush(f, (reg_t) reg, store);
+    }
   }
 }
 
@@ -164,9 +207,13 @@ oprRegs getReg(std::ofstream & f, const irquad_t &q) {
   sym *src1 = lastdelta.src1Sym, *src2 = lastdelta.src2Sym;
   sym *dst = lastdelta.dstSym;
   oprRegs ret;
-
+  
+  tmp_regs src1regs = getTmpRegs(q.t_src1);
+  tmp_regs src2regs = getTmpRegs(q.t_src2);
+  tmp_regs dstregs = getTmpRegs(q.t_dst);
+  
   /* return value */
-  if (q.src1 == "$retval") {ret.src1Reg = v0;}
+  if (q.src1 == "$retval") {ret.src1Reg = src1regs.retreg1;}
   /* constant */
   else if(!src1) ret.src1Reg = zero;
   else {
@@ -176,19 +223,25 @@ oprRegs getReg(std::ofstream & f, const irquad_t &q) {
     else {
       /* find a free reg */
       int cand = t0;
-      while (cand <= t9) {
+      int end = t9;
+      int inc = 1;
+      if( isReal(q.t_src1) )
+      {
+        cand = f4; end = f18; inc = 2;
+      }
+      while (cand <= end) {
         if(!regDscr[cand]) {
           regMap(f, (reg_t) cand, src1);
           ret.src1Reg = (reg_t)cand;
           break;
         }
-        cand++;
+        cand += inc;
       }
       /* no reg is free */
-      if(cand > t9) {
-        regFlush(f, t9);
-        regMap(f, t9, src1);
-        ret.src1Reg = t9;
+      if(cand > end) {
+        regFlush(f, (reg_t)end);
+        regMap(f, (reg_t)end, src1);
+        ret.src1Reg = (reg_t)end;
       }
     }
   } // end get reg for src1
@@ -202,8 +255,14 @@ oprRegs getReg(std::ofstream & f, const irquad_t &q) {
     else {
       /* find a free reg */
       int cand = t0;
+      int end = t9;
+      int inc = 1;
+      if( isReal(q.t_src2) )
+      {
+        cand = f4; end = f18; inc = 2;
+      }
       reg_t cand1 = zero;
-      while (cand <= t9) {
+      while (cand <= end) {
         if(!regDscr[cand]) {
           regMap(f, (reg_t)cand, src2);
           ret.src2Reg = (reg_t)cand;
@@ -211,12 +270,12 @@ oprRegs getReg(std::ofstream & f, const irquad_t &q) {
         }
         if(cand1 == zero && cand != ret.src1Reg)
           cand1 = (reg_t)cand;
-        cand++;
+        cand += inc;
       }
       /* no reg is free */
-      if(cand > t9) {
-        regFlush(f, cand1);
-        regMap(f, cand1, src2);
+      if(cand > end) {
+        regFlush(f, (reg_t)cand1);
+        regMap(f, (reg_t)cand1, src2);
         ret.src2Reg = cand1;
       }
     }
@@ -226,7 +285,8 @@ oprRegs getReg(std::ofstream & f, const irquad_t &q) {
   else {
     /* check if one of src1/src2 register can be directly used */
     // ! don't do it if dest is of the type "a[1][2]..."
-    if (lastdelta.dstType == 0 && ret.src1Reg!=zero && src1 && src1->nxtuse == -1 && !src1->alive) {
+    if (lastdelta.dstType == 0 && ret.src1Reg!=zero && src1 && src1->nxtuse == -1 && !src1->alive && 0) {
+      
       // soft flush (no need to store for dst) any existing register mapped to dst
       regFlush(f, dst->reg, false);
       // // soft flush (we don't need src1 value further) src1Reg 
@@ -256,8 +316,15 @@ oprRegs getReg(std::ofstream & f, const irquad_t &q) {
     else {
       /* find a free reg */
       int cand = t0;
+      int end = t9;
+      int inc = 1;
+      if( isReal(q.t_dst) )
+      {
+        // f << "haha" << endl;
+        cand = f4; end = f18; inc = 2;
+      }
       reg_t cand1 = zero;
-      while (cand <= t9) {
+      while (cand <= end) {
         if(!regDscr[cand]) {
           regMap(f, (reg_t)cand, dst, false);
           ret.dstReg = (reg_t)cand;
@@ -265,12 +332,12 @@ oprRegs getReg(std::ofstream & f, const irquad_t &q) {
         }
         if(cand1 == zero && cand != ret.src1Reg && cand != ret.src2Reg)
           cand1 = (reg_t)cand;
-        cand++;
+        cand += inc;
       }
       /* no reg is free */
-      if(cand > t9) {
-        regFlush(f, cand1);
-        regMap(f, cand1, dst, false);
+      if(cand > end) {
+        regFlush(f, (reg_t)cand1);
+        regMap(f, (reg_t)cand1, dst, false);
         ret.dstReg = cand1;
       }
     }
@@ -309,11 +376,11 @@ void dumpASM(ofstream &f, vector<irquad_t> & IR) {
     
     // if label exist to this statement
     if(Labels.find(currleader) != Labels.end()) {
-      resetRegMaps(f);
+      resetRegMaps(f,true,true);
       f << "LABEL_" + to_string(currleader)+ ":"<< endl;
     }
     else if(IR[currleader].opr == "label") {
-      resetRegMaps(f);
+      resetRegMaps(f,true,true);
       f << IR[currleader].src1+ ":"<< endl;
     }
 
@@ -338,6 +405,8 @@ void genASM(ofstream & f, irquad_t & quad) {
   if (quad.src2 != eps && (
       quad.opr == "+" || quad.opr == "-" ||
       quad.opr == "*" || quad.opr == "/" ||
+      quad.opr == "real+" || quad.opr == "real-" ||
+      quad.opr == "real*" || quad.opr == "real/" ||
       quad.opr == ">" || quad.opr == "<" ||
       quad.opr == ">=" || quad.opr == "<=" ||
       quad.opr == "==" || quad.opr == "&&" || 
@@ -347,6 +416,37 @@ void genASM(ofstream & f, irquad_t & quad) {
       )) binOpr(f, quad);
 
   else if (quad.opr == eps) assn(f, quad);
+
+  else if (quad.opr == "int2real")
+  {
+    oprRegs Reg = getReg(f,quad);
+    if( Reg.src1Reg == zero )
+    {
+      f << '\t' << "li $a3, " << quad.src1 << endl;
+      Reg.src1Reg = a3;
+    }
+    f << '\t' << "mtc1 " << reg2str[Reg.src1Reg] << ", " << reg2str[Reg.dstReg] << endl;
+    f << '\t' << "cvt.s.w " << reg2str[Reg.dstReg] << ", " << reg2str[Reg.dstReg] << endl; 
+  }
+
+  else if (quad.opr == "real2int")
+  {
+    oprRegs Reg = getReg(f,quad);
+    cout << isReal(quad.t_dst) << ':' << Reg.dstReg << endl;
+    if( Reg.src1Reg == zero )
+    {
+      f << '\t' << "li.s $f14, " << quad.src1 << endl;
+      Reg.src1Reg = f14;
+    }
+    else
+    {
+      f << '\t' << "mov.s $f14, " << reg2str[Reg.src1Reg] << endl;
+      Reg.src1Reg = f14;
+    }
+    f << '\t' << "cvt.w.s " << reg2str[Reg.src1Reg] << ", " << reg2str[Reg.src1Reg] << endl;
+    f << '\t' << "mfc1 " << reg2str[Reg.dstReg] << ", " << reg2str[Reg.src1Reg] << endl;
+     
+  }
 
   else if (quad.opr == "&") {
     oprRegs regs = getReg(f, quad);
@@ -368,7 +468,7 @@ void genASM(ofstream & f, irquad_t & quad) {
   }
   
   else if (quad.opr == "goto") {
-    resetRegMaps(f);
+    resetRegMaps(f,true,false);
     string src1 = quad.src1;
     cout << src1 <<endl;
     if(!src1.empty() &&  src1[0] == 'U'); // TODO: use better check
@@ -379,7 +479,7 @@ void genASM(ofstream & f, irquad_t & quad) {
 
   else if (quad.opr == "ifgoto") {
     oprRegs regs = getReg(f, quad);
-    resetRegMaps(f);
+    resetRegMaps(f,true,false);
     string src2Addr = loadArrAddr(f, lastdelta.src2Sym, lastdelta.src2ArrSymb,
                                 lastdelta.src2ArrOff, lastdelta.src2Type, "1");
     if (src2Addr != "") {
@@ -425,17 +525,23 @@ void genASM(ofstream & f, irquad_t & quad) {
   
   else if(quad.opr == "param") {
     
+    inst_t Isrc1 = getInst(quad.t_src1);
+    tmp_regs Rsrc1 = getTmpRegs(quad.t_src1);
+      
     oprRegs regs = getReg(f, quad);
     if (regs.src1Reg == zero) {
       /* constant param */
       // TODO: infer size from const or add a compulsory "temp = const" intr in 3ac
       paramOffset += 4;
       // TODO: make type-based load, store functions
-      string loadInst = "li";
+      string loadInst = Isrc1.load_instr;
       if(quad.src1.substr(0,7) == "string_")
+      {
+        Rsrc1.exreg = a3;
         loadInst = "la";
-      f << '\t' <<  loadInst+ " " << reg2str[a0] + ", " + quad.src1 << endl;
-      f << '\t' << "sw " << reg2str[a0] + ", -" + to_string(paramOffset)+"("+ reg2str[sp] + ")";
+      }
+      f << '\t' <<  loadInst+ " " << reg2str[Rsrc1.exreg] + ", " + quad.src1 << endl;
+      f << '\t' << Isrc1.store_instr << " " << reg2str[Rsrc1.exreg] + ", -" + to_string(paramOffset)+"("+ reg2str[sp] + ")";
       f << " # load parameter to func" << endl;
     }
     else {
@@ -445,15 +551,15 @@ void genASM(ofstream & f, irquad_t & quad) {
       if(paramAddr != "") {
         size = getSize(((Arr *)lastdelta.src1Sym->type)->item);
         paramOffset += size;
-        f << '\t' << "lw $a3 , " + paramAddr << endl;
-        f << '\t' << "sw " << "$a3, -" + to_string(paramOffset)+"("+ reg2str[sp] + ")";
+        f << '\t' << Isrc1.load_instr << " " << reg2str[Rsrc1.exreg] << " , " + paramAddr << endl;
+        f << '\t' << Isrc1.store_instr << " " << reg2str[Rsrc1.exreg] << ", -" + to_string(paramOffset)+"("+ reg2str[sp] + ")";
         f << " # load parameter to func" << endl;
       }
       else {
         if(lastdelta.src1Sym->type->grp() == ARR_G)
         size = 4; // store only pointer to the array in stack
         paramOffset += size;
-        f << '\t' << "sw " << reg2str[regs.src1Reg] + ", -" + to_string(paramOffset)+"("+ reg2str[sp] + ")";
+        f << '\t' << Isrc1.store_instr << " " << reg2str[regs.src1Reg] + ", -" + to_string(paramOffset)+"("+ reg2str[sp] + ")";
         f << " # load parameter to func" << endl;
       }
     }
@@ -462,27 +568,29 @@ void genASM(ofstream & f, irquad_t & quad) {
   else if(quad.opr == "call") {
     // reset param offset
     paramOffset = 40;
-    resetRegMaps(f);
+    resetRegMaps(f,true, false);
     f << '\t' << "jal " << quad.src1 << " # call " + quad.src1 << endl;
   }
 
   else if (quad.opr == "return") {
     // resetRegMaps(f);
     // TODO
+    inst_t Isrc1 = getInst(quad.t_src1);
+    tmp_regs Rsrc1 = getTmpRegs(quad.t_src1);
     oprRegs regs = getReg(f, quad);
     if (regs.src1Reg == zero) {
-      f << '\t' << "li " << reg2str[v0] + ", " + quad.src1;
+      f << '\t' << Isrc1.load_const << " " << reg2str[Rsrc1.retreg1] + ", " + quad.src1;
       f << " # load return value" << endl;
     }
     else {
       string src1Addr = loadArrAddr(f, lastdelta.src1Sym, lastdelta.src1ArrSymb,
                                       lastdelta.src1ArrOff, lastdelta.src1Type, "1");
       if(src1Addr!= ""){
-        f << '\t' << "lw $a3 , " + src1Addr << endl;
-        f << '\t' << "move " + reg2str[v0] + ", $a3" << endl;
+        f << '\t' << Isrc1.load_instr << " " << reg2str[Rsrc1.exreg] << " , " + src1Addr << endl;
+        f << '\t' << Isrc1.move_instr << " " + reg2str[Rsrc1.retreg1] + ", " << reg2str[Rsrc1.exreg] << " " << endl;
       }
       else{
-        f << '\t' << "move " << reg2str[v0] + ", " + reg2str[regs.src1Reg];
+        f << '\t' << Isrc1.move_instr << " " << reg2str[Rsrc1.retreg1] + ", " + reg2str[regs.src1Reg];
         f << " # load return value" << endl;
       }
     }  
@@ -494,7 +602,7 @@ void genASM(ofstream & f, irquad_t & quad) {
 
 
 void funcStart(std::ofstream & f, const irquad_t & quad) {
-  resetRegMaps(f);
+  resetRegMaps(f,true,false);
   currFunc = quad.src1;
   f << "\t.globl " + currFunc << endl;
   auto symtabs = SymRoot->currScope->subScopes; // currscope == root
@@ -545,7 +653,7 @@ void funcStart(std::ofstream & f, const irquad_t & quad) {
 
 void funcEnd(std::ofstream & f, const irquad_t & quad) {
   // soft flush every register
-  resetRegMaps(f, false);
+  resetRegMaps(f, true,false, false);
   // close scope
   if(SymRoot->currScope->parent)
   {
@@ -576,15 +684,23 @@ void funcEnd(std::ofstream & f, const irquad_t & quad) {
 }
 
 
-void binOpr(std::ofstream & f, const irquad_t & q) {
+void binOpr(std::ofstream & f, irquad_t & q) {
   string opr = q.opr;
   deltaNxtUse lastdelta = nxtUse.lastdelta;
   sym *src1 = lastdelta.src1Sym, *src2 = lastdelta.src2Sym;
   sym *dst = lastdelta.dstSym;
-  
+  string instr;
+  if( isReal(q.t_dst) )
+  {
+    if   (opr == "real+") instr     = "add.s";
+    else if (opr == "real-") instr  = "sub.s";
+    else if (opr == "real*") instr  = "mul.s";
+    else if (opr == "real/") instr  = "div.s";
+  }
   // TODO: unsigned, float, ...
   // if(opr == "+" || opr == "-" || opr == "*" || opr == "/" ) {
-    string instr;
+  else
+  {
     if   (opr == "+") instr     = "addu";
     else if (opr == "-") instr  = "subu";
     else if (opr == "*") instr  = "mul";
@@ -601,7 +717,15 @@ void binOpr(std::ofstream & f, const irquad_t & q) {
     else if (opr == "<<") instr = "sll";
     else if (opr == ">>") instr = "sra";
     else if (opr == "^") instr = "xor";
-
+  }
+    
+    inst_t Isrc1 = getInst(q.t_src1);
+    inst_t Isrc2 = getInst(q.t_src2);
+    inst_t Idst = getInst(q.t_dst);
+    tmp_regs Rsrc1 = getTmpRegs(q.t_src1);
+    tmp_regs Rsrc2 = getTmpRegs(q.t_src2);
+    tmp_regs Rdst = getTmpRegs(q.t_dst);    
+    
     // dst = src1 + src2  
     oprRegs regs = getReg(f, q);
     string addrDst = loadArrAddr(f,lastdelta.dstSym, 
@@ -614,38 +738,46 @@ void binOpr(std::ofstream & f, const irquad_t & q) {
                                    lastdelta.src2ArrSymb, 
                                    lastdelta.src2ArrOff, lastdelta.src2Type, "2");
     if(addrSrc1 != "") {
-      f << '\t' << "lw $a3 , " + addrSrc1 << endl;
-      regs.src1Reg = a3;
+      f << '\t' << Isrc1.load_instr << " " << reg2str[Rsrc1.exreg] << " , " + addrSrc1 << endl;
+      regs.src1Reg = Rsrc1.exreg;
     }
     if(addrSrc2 != "") {
-      f << '\t' << "lw $v1 , " + addrSrc2 << endl;
-      regs.src2Reg = v1;
+      f << '\t' << Isrc2.load_instr <<" " << reg2str[Rsrc2.retreg2] << " , " + addrSrc2 << endl;
+      regs.src2Reg = Rsrc2.retreg2;
     }
 
+    if ( isReal(q.t_dst) && regs.src2Reg == zero )
+    {
+      f << '\t' << Idst.load_const << " " << reg2str[Rdst.exreg] << ", " << q.src2 << endl;
+      q.src2 = reg2str[Rdst.exreg];
+    }
     string src2_str = (regs.src2Reg == zero) ? q.src2 : reg2str[regs.src2Reg];
-
+    if( opr != eps && opr[0] == 'r' )
+    {
+      opr = opr.substr(4);
+    }
 
     if (addrDst != "") {
       // src1 is constant
       if (regs.src1Reg == zero) {
-        f << '\t' << "li " << "$a3, " + q.src1 << " # load constant"<< endl;
-        f << '\t' << instr + " " << "$a3, $a3, " + src2_str;
+        f << '\t' << Isrc1.load_const << " " << reg2str[Rsrc1.exreg] << ", " + q.src1 << " # load constant"<< endl;
+        f << '\t' << instr + " " << reg2str[Rsrc1.exreg] << ", " << reg2str[Rsrc1.exreg] << ", " + src2_str;
         f << " # " + q.dst + " = " + q.src1 + " " + opr + " " + q.src2 << endl;
       }
       else {
-        f << '\t' << instr + " " << "$a3, " + reg2str[regs.src1Reg] + ", " + src2_str;
+        f << '\t' << instr + " " << reg2str[Rsrc1.exreg] << ", " + reg2str[regs.src1Reg] + ", " + src2_str;
         f << " # " + q.dst + " = " + q.src1 + " " + opr + " " + q.src2 << endl;
       }
       /* eg. sw $a4, ($a0) ||  lw $a4, 100($t0) */
-      f << '\t' << "sw "
-        <<  "$a3, " + addrDst
+      f << '\t' << Isrc1.store_instr << " "
+        << reg2str[Rsrc1.exreg] << ", " + addrDst
         << " # " + q.dst + "[][]...[]" << endl;
     }
     
     else{
       // src1 is constant
       if (regs.src1Reg == zero) {
-        f << '\t' << "li " << reg2str[regs.dstReg] + ", " + q.src1 << " # load constant"<< endl;
+        f << '\t' << Isrc1.load_const << " " << reg2str[regs.dstReg] + ", " + q.src1 << " # load constant"<< endl;
         f << '\t' << instr + " " << reg2str[regs.dstReg] + ", " + reg2str[regs.dstReg] + ", " + src2_str;
         f << " # " + q.dst + " = " + q.src1 + " " + opr + " " + q.src2 << endl;
         return;
@@ -661,6 +793,15 @@ void assn(ofstream & f, const irquad_t &q) {
   if(SymRoot->currScope == SymRoot->root) return;
   deltaNxtUse lastdelta = nxtUse.lastdelta;
   oprRegs regs = getReg(f, q);
+  
+  inst_t Isrc1 = getInst(q.t_src1);
+  inst_t Isrc2 = getInst(q.t_src2);
+  inst_t Idst = getInst(q.t_dst);
+  tmp_regs Rsrc1 = getTmpRegs(q.t_src1);
+  tmp_regs Rsrc2 = getTmpRegs(q.t_src2);
+  tmp_regs Rdst = getTmpRegs(q.t_dst);    
+    
+  
   /* just remapping resgisters */
   string addrDst = loadArrAddr(f,lastdelta.dstSym, 
                                 lastdelta.dstArrSymb, 
@@ -678,14 +819,14 @@ void assn(ofstream & f, const irquad_t &q) {
     if(addrDst != ""){ // dst is an array
       // TODO: non-constant offset -- lastdelta.dstArrSymb
 
-      f << '\t' << "li $a3, " + q.src1 << endl;
+      f << '\t' << Isrc1.load_const << " " << reg2str[Rsrc1.exreg] << ", " + q.src1 << endl;
 
-      f << '\t' << "sw "
-        <<  "$a3, " + addrDst
+      f << '\t' << Isrc1.store_instr << " "
+        << reg2str[Rsrc1.exreg] << ", " + addrDst
         << " # " + q.dst + "[][]...[]" << endl;
     }
     else {
-      f << '\t' << "li " << reg2str[regs.dstReg] + ", " + q.src1;
+      f << '\t' << Isrc1.load_const << " " << reg2str[regs.dstReg] + ", " + q.src1;
       f << " # " + q.dst <<endl;
     }
   }
@@ -694,26 +835,26 @@ void assn(ofstream & f, const irquad_t &q) {
   else {
     if(addrDst != "" && addrSrc1 != ""){ // both array
       /* eg. lw $a4, ($a0) ||  lw $a4, 100($t0) */
-      f << '\t' << "lw $a3 , " + addrSrc1 << endl;
+      f << '\t' << Isrc1.load_instr << " " << reg2str[Rsrc1.exreg] << " , " + addrSrc1 << endl;
 
       /* eg. sw $a4, ($a0) ||  lw $a4, 100($t0) */
-      f << '\t' << "sw "
+      f << '\t' << Isrc1.store_instr << " "
         <<  "$a3, " + addrDst
         << " # " + q.dst + "[][]...[]" << endl;
     }
     else if(addrDst != "" && addrSrc1 == ""){ // dst array
       /* eg. sw $a4, ($a0) ||  lw $a4, 100($t0) */
-      f << '\t' << "sw "
+      f << '\t' << Isrc1.store_instr << " "
         <<  reg2str[regs.src1Reg] + ", " + addrDst
         << " # " + q.dst + "[][]...[]" << endl;
     }
     else if(addrDst == "" && addrSrc1 != ""){ // src1 array
       /* eg. lw $a4, ($a0) ||  lw $a4, 100($t0) */
-      f << '\t' << "lw $a3 , " + addrSrc1 << endl;
-      f << '\t' << "move " << reg2str[regs.dstReg] + ", " + "$a3" << endl;
+      f << '\t' << Isrc1.load_instr << " " << reg2str[Rsrc1.exreg] << " , " + addrSrc1 << endl;
+      f << '\t' << Isrc1.move_instr << " " << reg2str[regs.dstReg] + ", " + reg2str[Rsrc1.exreg] << endl;
     }
     else if(addrDst == "" && addrSrc1 == ""){ // both non-array
-      f << '\t' << "move " << reg2str[regs.dstReg] + ", " + reg2str[regs.src1Reg] ;
+      f << '\t' << Isrc1.move_instr << " " << reg2str[regs.dstReg] + ", " + reg2str[regs.src1Reg] ;
       f << " # move " + q.dst + " = " + q.src1 << endl;
     }
   }

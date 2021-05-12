@@ -176,7 +176,7 @@ postfix_expression
 			emit(eps, NULL, "call", $1->eval, t, "0", NULL); // call <func / func_ptr>, 0
 			Type* _t = $$->type;
 			if ((!_t) || (_t->grp() != BASE_G) || (((Base*)_t)->base != VOID_B)) {
-				emit($$->eval = newTmp(clone(_t)), _t, eps, "$retval", NULL); // call <func / func_ptr>, 0
+				emit($$->eval = newTmp(clone(_t)), _t, eps, "$retval", _t); // call <func / func_ptr>, 0
 				if (isReal(_t)) IRDump.back().eq = "real=";
 			}
 		}
@@ -228,6 +228,14 @@ postfix_expression
 							bool _good = true;
 							for (int i = 0; i < numProto; i++) {
 								Type *proto = f->params[i], *given = $3->ch(i)->type;
+								bool realProto = isReal(proto), realGiven = isReal(given);
+								if( realProto != realGiven )
+								{
+									string _tmp = newTmp(clone(proto));
+									emit(_tmp, proto, realGiven ? "real2int" : "int2real", $3->ch(i)->eval, given);
+									$3->ch(i)->eval = _tmp;
+									$3->ch(i)->type = proto;
+								}
 								/* if (!impCast(given, proto)) { // check given against proto
 									repErr($3->ch(i)->pos, string("expected argument of type \"") + str(proto) + "\", but got type \"" + str(given) + "\"", _FORE_RED_);
 									_good = false;
@@ -251,7 +259,7 @@ postfix_expression
 			emit(eps, NULL, "call", $1->eval, t, to_string(l), NULL); // call <func / func_ptr>, l
 			Type *_t = $$->type;
 			if ((!_t) || (_t->grp() != BASE_G) || (((Base*)_t)->base != VOID_B)) {
-				emit($$->eval = newTmp(clone(_t)), _t, eps, "$retval", NULL); // call <func / func_ptr>, 0
+				emit($$->eval = newTmp(clone(_t)), _t, eps, "$retval", _t); // call <func / func_ptr>, 0
 				if (isReal(_t)) IRDump.back().eq = "real=";
 			}
 		}
@@ -902,7 +910,7 @@ declaration
 						string opr = eps; // 4 cases: R to I, I to I, I to R, R to R
 						bool realLHS = isReal(ut), realRHS = isReal(initNode->type);
 						if (realLHS != realRHS) opr = realLHS ? "int2real" : "real2int";
-						emit(cnode->label, initNode->type, opr, initNode->eval, initNode->type);
+						emit(cnode->label, t1, opr, initNode->eval, initNode->type);
 						if (realLHS && realRHS) IRDump.back().eq = "real=";
 						if(SymRoot->currScope->parent == NULL){ // global scope
 							StrDump.push_back(str_t(initNode->eval, ".word", cnode->label));
@@ -1950,17 +1958,28 @@ jump_statement
 	| RETURN expression ';'	{ $$ = op( $1, 0, 1, ej($2) );
 		symtab* curr = SymRoot->currScope;
 		while (!isFuncScope(curr)) { if (!curr) break; curr = curr->parent; }
+		bool realLHS, realRHS = isReal($2->type);
+		Type *retType = NULL;
 		if (curr) {
 			sym* funcSym = curr->parent->srchSym(curr->name.substr(5));
-			Type *retType = NULL;
 			if (funcSym && (funcSym->type) && (funcSym->type->grp() == FUNC_G))
+			{
 				retType = ((Func*)(funcSym->type))->retType;
+				realLHS = isReal(retType);
+			}
 			if (retType && !(impCast($2->type, retType))) { // check implicit typecasting from $2->type to retType
 				repErr($2->pos, "cannot impicitly typecast from \"" + str($2->type) + "\" to \"" + str(retType) + "\"", _FORE_RED_);
 				repErr(funcSym->pos, "previous declaration available here", _FORE_CYAN_);
 			}
 		}
-		emit(eps, NULL, "return", $2->eval, $2->type);
+		string _ev = $2->eval; 
+		if( realLHS != realRHS )
+		{
+			string _tmp = newTmp(clone(retType));
+			emit(_tmp, retType, realRHS ? "real2int" : "int2real", _ev, $2->type);
+			_ev = _tmp;
+		}
+		emit(eps, NULL, "return", _ev, retType);
 	}
 	;
 

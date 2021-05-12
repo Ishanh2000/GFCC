@@ -492,6 +492,24 @@ bool isReal(class Type* t) {
     return false;
 }
 
+bool isChar(class Type* t) {
+    if(t && !t->isErr && t->grp() == BASE_G){
+        Base* b = (Base*) t;
+        if(b->base == CHAR_B)
+            return true;
+    }
+    return false;
+}
+
+bool isShort(class Type* t) {
+    if(t && !t->isErr && t->grp() == BASE_G){
+        Base* b = (Base*) t;
+        if(b->base == SHORT_B)
+            return true;
+    }
+    return false;
+}
+
 short unsigned int getSize(class Type *t) { // implmentation like "sizeof"
     if (!t) return 1;
     Base *b = (Base *) t;

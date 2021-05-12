@@ -50,7 +50,7 @@ unsigned int nextIdx() {
 }
 
 void emit(string dst, class Type * t_dst, string opr, string src1, class Type * t_src1, string src2, class Type * t_src2) { // emit into global (incremental) code stream
-    irquad_t q = _irquad_t(opr, dst, t_dst, src1, t_src1, src2, t_src2);
+    irquad_t q = _irquad_t(opr, dst, clone(t_dst), src1, clone(t_src1), src2, clone(t_src2));
     q.label = nextQuadLabel;
     IRDump.push_back(q);
     if((opr == "goto" || opr == "ifgoto") && src1 != "---") {

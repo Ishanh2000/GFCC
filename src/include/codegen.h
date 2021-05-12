@@ -15,8 +15,8 @@ enum reg_t {
 
   f0, f1, f2, f3,                         // Function-returned values
   f4, f5, f6, f7, f8, f9, f10, f11,       // Temporary values
-  f12, f13, f14, f15,                     // Arguments passed into a function
   f16, f17, f18, f19,                     // More Temporary values
+  f12, f13, f14, f15,                     // Arguments passed into a function
   f20, f21, f31,                          // Saved values
 };
 
@@ -78,17 +78,34 @@ struct oprRegs {
   reg_t src2Reg;
 };
 
+struct inst_t {
+  std::string load_instr;
+  std::string store_instr;
+  std::string load_const;
+  std::string move_instr;
+};
+
+struct tmp_regs {
+  reg_t retreg1;
+  reg_t retreg2;
+  reg_t exreg;
+};
+
 void regFlush(std::ofstream &, reg_t, bool);
 
 void regMap(std::ofstream &, reg_t, sym*, bool);
 
-void resetRegMaps(std::ofstream &, bool);
+void resetRegMaps(std::ofstream &, bool, bool, bool);
 
 void dumpASM(std::ofstream &, std::vector<irquad_t> &); // convert IR code to ASM (mainly MIPS, for "spim" simulator)
 
 reg_t getSymReg(const std::string &);
 
+inst_t getInst(class Type *);
+
 oprRegs getReg(std::ofstream &, const irquad_t &q);
+
+tmp_regs getTmpRegs(class Type *);
 
 void genASM(std::ofstream &, irquad_t &);
 
@@ -96,7 +113,7 @@ void funcStart(std::ofstream &, const irquad_t &); // preliminaries at beginning
 
 void funcEnd(std::ofstream &, const irquad_t &); // preliminaries at end of function
 
-void binOpr(std::ofstream &, const irquad_t &); // handle binary operators
+void binOpr(std::ofstream &, irquad_t &); // handle binary operators
 
 void assn(std::ofstream &, const irquad_t &);
 
