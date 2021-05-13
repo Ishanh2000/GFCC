@@ -1,11 +1,7 @@
 // AUM SHREEGANESHAAYA NAMAH|| /* DIETY INVOCATION */
-
+// strcpy, strncpy, strcat, strrev
 int g5_strlen(const char *);
-
-
-
-
-
-
-// atoi, time, random, malloc, calloc, realloc, sbrk, etc.
-// maybe fopen, fread, fwrite, fclose, etc.
+int g5_strcmp(const char *, const char *);
+int g5_strupr(const char *); // returns number of chars changed
+int g5_strlwr(const char *); // returns number of chars changed
+int g5_strcat(const char *, const char *); // returns number of appends

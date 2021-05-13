@@ -1,4 +1,5 @@
 #include <g5_typo.h>
+#include <g5_string.h>
 
 // int main() {
 // 	struct { int **p; char s; } f;
@@ -16,10 +17,3 @@
 // 	// (*h.z).p = 90;
 // 	return 0;
 // }
-
-int main() {
-	// char a[] = "Hello";
-	g5_printf("Hello\n");
-
-	return 0;
-}

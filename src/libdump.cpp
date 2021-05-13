@@ -117,6 +117,26 @@ void libDumpString() {
     Func* fn = new Func(new Base(INT_B)); fn->newParam(new Ptr(b));
     SymRoot->pushSym(new sym("g5_strlen", fn, { 3, 5, LIB_STRING }));
   }
+  { // int g5_strcmp(const char *, const char *);
+    Base *b = new Base(CHAR_B); b->isConst = true;
+    Func* fn = new Func(new Base(INT_B)); fn->newParam(new Ptr(b)); fn->newParam(new Ptr(clone(b)));
+    SymRoot->pushSym(new sym("g5_strcmp", fn, { 4, 5, LIB_STRING }));
+  }
+  { // int g5_strupr(const char *);
+    Base *b = new Base(CHAR_B); b->isConst = true;
+    Func* fn = new Func(new Base(INT_B)); fn->newParam(new Ptr(b));
+    SymRoot->pushSym(new sym("g5_strupr", fn, { 5, 5, LIB_STRING }));
+  }
+  { // int g5_strlwr(const char *);
+    Base *b = new Base(CHAR_B); b->isConst = true;
+    Func* fn = new Func(new Base(INT_B)); fn->newParam(new Ptr(b));
+    SymRoot->pushSym(new sym("g5_strlwr", fn, { 6, 5, LIB_STRING }));
+  }
+  { // int g5_strcat(const char *, const char *);
+    Base *b = new Base(CHAR_B); b->isConst = true;
+    Func* fn = new Func(new Base(INT_B)); fn->newParam(new Ptr(b)); fn->newParam(new Ptr(clone(b)));
+    SymRoot->pushSym(new sym("g5_strcat", fn, { 7, 5, LIB_STRING }));
+  }
 }
 
 void libDumpSym(int lib_reqs) { // insert libraries symbols into SymRoot
