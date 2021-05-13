@@ -46,6 +46,8 @@ struct pfxOpr {
   std::string name; // for array
   /* "[]", ".", ">" */
   std::string type;
+  /* if [] is for pointer */
+  bool isPtr = false;
 };
 
 struct deltaOpd {

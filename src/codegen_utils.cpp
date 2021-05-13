@@ -44,6 +44,8 @@ string loadArrAddr(ofstream & f, deltaOpd & Opd, string pos) {
           if (pfx.name != "0")
           f << '\t' << "addu " + addrReg + ", " + addrReg + ", " << pfx.name
             << " # offset calc" << endl;
+          if(!first && pfx.isPtr)
+  				  f << '\t' << "lw " << addrReg << ", " << "("+addrReg+")" << endl;
         }
         else {
           if(pfx.symb->reg != zero)
@@ -57,6 +59,8 @@ string loadArrAddr(ofstream & f, deltaOpd & Opd, string pos) {
             << " # width calc" << endl;
           f << '\t' << "addu " + addrReg + ", " + addrReg + ", $a3"
             << " # offset calc" << endl;
+          if(!first && pfx.isPtr)
+  				  f << '\t' << "lw " << addrReg << ", " << "("+addrReg+")" << endl;
         }
       }
       if(first) first = false;
@@ -170,6 +174,7 @@ void parseStruct(string & q, deltaOpd & Opd) {
             dimWidth = 1;
             counter = 0;
             st_type = ptrChildType(st_type);
+            p.isPtr = true;
           }
         }
         
