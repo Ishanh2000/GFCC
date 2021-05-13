@@ -192,26 +192,6 @@ void resetRegMaps(ofstream &f, bool store = true) {
 }
 
 
-// int currReg = s0;
-// reg_t getSymReg(const std::string & symName) {
-//   sym* symb = SymRoot->gLookup(symName);
-//   if(!symb) {
-//     // constants
-//     // array, struct too!!
-//     cout << "Not found "<< symName <<endl;
-//     return zero;
-//   }
-
-//   if(symb->reg != zero)
-//     return symb->reg;
-//   else {
-//     symb->reg = (reg_t) currReg++; // ! adhoc
-//     regDscr[symb->reg] = symb;
-//     return symb->reg;
-//   }
-// }
-
-
 oprRegs getReg(std::ofstream & f, const irquad_t &q) {
   // has sym* of symbols of current operation
   deltaNxtUse lastdelta = nxtUse.lastdelta;
@@ -412,6 +392,9 @@ void genASM(ofstream & f, irquad_t & quad) {
   
   deltaNxtUse lastdelta = nxtUse.step();
   
+  // ! Dangerous
+  if(lastdelta.dst.Type != 0 || lastdelta.src1.Type != 0 || lastdelta.src2.Type != 0)
+    resetRegMaps(f, true);
 
   if (quad.src2 != eps && (
       quad.opr == "+" || quad.opr == "-" ||

@@ -14,6 +14,7 @@ string loadArrAddr(ofstream & f, deltaOpd & Opd, string pos) {
     // cout << "string loadArrAddr: Called for non-array" << endl;
     return "";
   }
+  // flush all registers in stack
 
   string addrReg = "$a" + pos;          // store address here if non-constant offset or "->"
 	string symReg = reg2str[Opd.Sym->reg];   // base address of the base symbol
@@ -21,66 +22,7 @@ string loadArrAddr(ofstream & f, deltaOpd & Opd, string pos) {
 	int constOffset = 0;
   f << "\t #### <Load address> ###" << endl;
   
-  if (Opd.Type == 1) {
-    vector<int> dimSize;
-    Arr *a = (Arr *) Opd.Sym->type;
-    for(auto dim: a->dims) {
-      int * sizePtr = eval(dim);
-      if(!sizePtr) {
-        cout << "string loadArrAddr: eval(dim) failed for a dimension" << endl;
-        dimSize.push_back(INT16_MAX);
-      }
-      else dimSize.push_back(*sizePtr);
-    }
-    
-    /* for array part */
-    if(dimSize.size() > Opd.ArrOff.size())
-      cout << "string loadArrAddr: some problem in semantic analysis" << endl;
-    
-    int dimWidth = getSize(a->item);
-    for(int i = dimSize.size()-1; i>=0; i--) {
-      if(!Opd.ArrSymb[i]) {
-        /* constant  operand*/
-        constOffset += stoi(Opd.ArrOff[i]) * dimWidth;
-      }
-      else {
-        /* variable offset */
-        /* eg. lw $a3, -44($fp) */
-        f << '\t' << "lw $a3, -" + to_string(Opd.ArrSymb[i]->offset) + "($fp)"
-          << " # load " + Opd.ArrSymb[i]->name << endl;
-        /* eg. mul $a3, $a3, dimWidth */
-        if (dimWidth != 1)
-          f << '\t' << "mul $a3, $a3, " + to_string(dimWidth)
-            << " # multiply with dimWidth" << endl;
-        
-        if(allConst){
-          allConst = false;
-          // base + currOffset
-          /* eg. addu $a0, $t0, $a3 */
-          f << '\t' << "addu " + addrReg + ", " + symReg +", $a3"
-            << " # offset calc" << endl;
-        }
-        else 
-          // offsetTillNow + currOffset
-          /* eg. addu $a0, $a0, $a3 */
-          f << '\t' << "addu " + addrReg + ", " + addrReg + ", $a3" 
-            << " # offset calc" << endl;
-      }
-      dimWidth *= dimSize[i];
-    }
-    /* eg. "10($t0)" */
-    if(allConst) return to_string(constOffset) + "("+symReg+")";
-    /* eg. "$a0" */
-    else {
-      if (constOffset)
-      /* addu $a0, $a0, constOffset */
-      f << '\t' << "addu " + addrReg + ", " + addrReg + ", " + to_string(constOffset) 
-            << " # add const offset" << endl;
-      return "("+addrReg+")";
-    }
-  }
-  
-  else if(Opd.Type == 2) { // struct: ".", "->"
+  if(Opd.Type == 2) { // struct: ".", "->"
 		f << '\t' << "move "<< addrReg + ", " << symReg << endl;
 		for(auto pfx: Opd.PfxOprs) {
 			// cout << pfx.name << endl;
@@ -95,15 +37,20 @@ string loadArrAddr(ofstream & f, deltaOpd & Opd, string pos) {
 				  f << '\t' << "addu " + addrReg + ", " + addrReg + ", " << to_string(pfx.symb->offset) 
             << " # offset calc" << endl;
 			}
-      else if (pfx.type == "[]") {
+      else if (pfx.type == "[]") { // "[]"
         if(pfx.symb == NULL) {
           if (pfx.name != "0")
           f << '\t' << "addu " + addrReg + ", " + addrReg + ", " << pfx.name
             << " # offset calc" << endl;
         }
         else {
-          f << '\t' << "lw $a3, -" + to_string(pfx.symb->offset) + "($fp)"
-            << " # load " + pfx.symb->name << endl;
+          if(pfx.symb->reg != zero)
+            f << '\t' << "move $a3, " + reg2str[pfx.symb->reg]
+              << " # load " + pfx.symb->name << endl;
+          else 
+            f << '\t' << "lw $a3, -" + to_string(pfx.symb->offset) + "($fp)"
+              << " # load " + pfx.symb->name << endl;
+          
           f << '\t' << "mul $a3, $a3, " + pfx.name
             << " # width calc" << endl;
           f << '\t' << "addu " + addrReg + ", " + addrReg + ", $a3"
@@ -111,9 +58,9 @@ string loadArrAddr(ofstream & f, deltaOpd & Opd, string pos) {
         }
       }
 		}
-		return "("+addrReg+")";
   }
-
+  
+	return "("+addrReg+")";
   /* for pointer part */
   // TODO: pointer
   return "aa";
