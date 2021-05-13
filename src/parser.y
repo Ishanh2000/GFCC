@@ -1832,8 +1832,11 @@ selection_statement
 			backpatch($$->nextlist, nextIdx());
 		}
 
-	| M1 statement ELSE 
+	| M1 statement 
+	ELSE 
 		{
+			$1->nextlist.push_back(nextIdx());
+			emit(eps, NULL, "goto", "---", NULL);
 			backpatch($1->falselist, nextIdx());
 		}
 	statement 

@@ -1,3 +1,4 @@
+#include <g5_typo.h>
 // void func1(const char *g) {
 //   g++;
 //   return;
@@ -8,15 +9,15 @@
 
 // }
 
-char foo(char a[])  {
-  return a[3];
-}
+// char foo(char a[])  {
+//   return a[3];
+// }
 
 // int g5_printf() {
   
 // }
-float z = 2.0;
-int g = 450;
+// float z = 2.0;
+// int g = 450;
 // float z = 90;
 // int g = 450;
 
@@ -65,12 +66,22 @@ int main() {
   // a[0] = foo(a);
   // float p = 100.5;
   // p = p + 1;
-  short a = 3, b = 6;
-  a = a / b;
-  g5_printf("%d %d\n",a,b);
+  // short a = 3, b = 6;
+  // a = a / b;
+  // g5_printf("%d %d\n",a,b);
   // float p = 100.0, q = 10.1;
   // int b = 1;
-  
+  int a = 10;
+  if( a == 10 )
+  {
+    g5_printf("haha\n");
+    // a++;
+  }
+  else
+  {
+    g5_printf("hihi\n");
+    // a--;
+  }
   // p = p + q;
   // p = p + b;
   // p = p + 2;
