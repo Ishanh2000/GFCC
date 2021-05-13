@@ -24,4 +24,5 @@ int main()
     g5_printf("a : %d, c : %c, p : %f\n",a,c,p);
     b = f2(a,c,p);
     g5_printf("b : %d, c : %c, p : %f\n",b,c,p);
+    return 0;
 }

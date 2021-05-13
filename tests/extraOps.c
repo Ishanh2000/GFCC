@@ -10,7 +10,7 @@ int main() {
 	int a = 10,b = 3;
 	float x = 1.0, y = 2.0;
 	x != y;
-	a = -(-(-x));
-	g5_printf("%d\n", !(a != b));
+	// a = -(-(-x));
+	g5_printf("%d\n", !(a == b));
 	return 0;
 }

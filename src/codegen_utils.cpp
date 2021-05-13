@@ -98,7 +98,7 @@ void parseStruct(string & q, deltaOpd & Opd) {
     if(st_sym)
 			st_type = st_sym->type;
     else {
-      cout << "can't find " + q + " in symtab" << endl;
+      // cout << "can't find " + q + " in symtab" << endl;
     }
   }
 
@@ -106,16 +106,16 @@ void parseStruct(string & q, deltaOpd & Opd) {
 	int currPos = Find_first_of(q, tokens);
 	if(currPos >= 0) {
 		Opd.Type = 2;
-		cout <<"Struct parse " << q << endl;
+		// cout <<"Struct parse " << q << endl;
 		string tmp = q.substr(0, currPos);
 		if(q[currPos] == '>')tmp.pop_back();
-		cout << "Base: " + tmp << endl;
+		// cout << "Base: " + tmp << endl;
 		/* search in sym table */
 		st_sym = SymRoot->gLookup(tmp);
 		if(st_sym)
 			st_type = st_sym->type;
 		else {
-			cout << "can't find " + tmp + " in symtab" << endl;
+			// cout << "can't find " + tmp + " in symtab" << endl;
 			return;
 		}
 
@@ -163,7 +163,6 @@ void parseStruct(string & q, deltaOpd & Opd) {
             Arr* a = (Arr *) st_type;
             st_type =  a->item;
             dimSize = getDimSize(a);
-            cout << "#########" << endl;
             dimWidth = getWidth(dimSize);
             dimCount = dimSize.size();
             counter = 1;
@@ -196,7 +195,7 @@ void parseStruct(string & q, deltaOpd & Opd) {
       }
 
 			Opd.PfxOprs.push_back(p);
-			cout << p.type + "  " + p.name + " " << counter << endl; //!
+			// cout << p.type + "  " + p.name + " " << counter << endl; //!
 			currPos = nxtPos;
 			nxtPos = Find_first_of(q, tokens, currPos + 1);
 		}
@@ -275,7 +274,7 @@ int getWidth(vector<int> dimSize) {
   for(int i = 1; i < dimSize.size(); i++) {
     width *= dimSize[i];
   }
-  cout << "width " << width << endl;
+  // cout << "width " << width << endl;
   return width;
 }
 

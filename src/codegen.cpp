@@ -740,9 +740,6 @@ void funcStart(std::ofstream & f, const irquad_t & quad) {
   // change scope
   SymRoot->currScope = funTab;
   // initialise reg for all symbols to "zero"
-  // cout << "C:" << quad.src1 << endl;
-  // cout << "A:" << funTab << endl;
-  // cout << "B:" << funTab->name << endl;
   for (sym* symb: funTab->syms) {
     /* sanity checks */
     if (symb->reg != zero) 
