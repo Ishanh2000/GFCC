@@ -53,10 +53,10 @@ struct deltaOpd {
   sym* Sym = NULL;
   int NxtUse = -1;
   bool Alive = true;
-  std::vector<sym*> ArrSymb;
-  std::vector<std::string> ArrOff;
+  // no. of * prepended in the symbol
+  int derefCnt = 0;
   std::vector<pfxOpr> PfxOprs;
-  /* 0: simple, 1: array, 2: struct */
+  /* 0: simple, 1: 2: struct/array */
   int Type = 0;
   /* filled in case of struct, array, etc */
   class Type* FinalType = NULL;

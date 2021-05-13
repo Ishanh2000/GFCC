@@ -21,7 +21,8 @@ string loadArrAddr(ofstream & f, deltaOpd & Opd, string pos) {
 	bool allConst = true;
 	int constOffset = 0;
   f << "\t #### <Load address> ###" << endl;
-  
+  bool first = true;
+
   if(Opd.Type == 2) { // struct: ".", "->"
 		f << '\t' << "move "<< addrReg + ", " << symReg << endl;
 		for(auto pfx: Opd.PfxOprs) {
@@ -32,7 +33,8 @@ string loadArrAddr(ofstream & f, deltaOpd & Opd, string pos) {
             << " # offset calc" << endl;
 			}
 			else if(pfx.type == ">") {
-				f << '\t' << "lw " << addrReg << ", " << "("+addrReg+")" << endl;
+        if(!first) // first pointer is by default loaded
+				  f << '\t' << "lw " << addrReg << ", " << "("+addrReg+")" << endl;
         if (pfx.symb->offset != 0)
 				  f << '\t' << "addu " + addrReg + ", " + addrReg + ", " << to_string(pfx.symb->offset) 
             << " # offset calc" << endl;
@@ -57,8 +59,16 @@ string loadArrAddr(ofstream & f, deltaOpd & Opd, string pos) {
             << " # offset calc" << endl;
         }
       }
+      if(first) first = false;
 		}
-  }
+
+    if(Opd.derefCnt > 0) {
+      for(int i = 0; i< Opd.derefCnt -1 ; i++)
+        f << '\t' << "lw " << addrReg << ", " << "("+addrReg+")" 
+          << " # dereference pointer" << endl;
+    }
+    
+  }  // Opd.Type == 2
   
 	return "("+addrReg+")";
   /* for pointer part */
@@ -69,6 +79,25 @@ string loadArrAddr(ofstream & f, deltaOpd & Opd, string pos) {
 
 
 void parseStruct(string & q, deltaOpd & Opd) {
+  sym* st_sym = NULL;
+  Type * st_type = NULL;
+  // count '*'
+  for(int i = 0; i < q.size(); i++) {
+    if(q[i] == '*') {
+      Opd.derefCnt++;
+    }
+  }
+  if(Opd.derefCnt > 0) {
+    Opd.Type = 2;
+    q = q.substr(Opd.derefCnt);
+    st_sym = SymRoot->gLookup(q);
+    if(st_sym)
+			st_type = st_sym->type;
+    else {
+      cout << "can't find " + q + " in symtab" << endl;
+    }
+  }
+
 	vector <string> tokens = {".", ">", "["};
 	int currPos = Find_first_of(q, tokens);
 	if(currPos >= 0) {
@@ -78,8 +107,7 @@ void parseStruct(string & q, deltaOpd & Opd) {
 		if(q[currPos] == '>')tmp.pop_back();
 		cout << "Base: " + tmp << endl;
 		/* search in sym table */
-		sym* st_sym = SymRoot->gLookup(tmp);
-		Type* st_type;
+		st_sym = SymRoot->gLookup(tmp);
 		if(st_sym)
 			st_type = st_sym->type;
 		else {
@@ -167,32 +195,15 @@ void parseStruct(string & q, deltaOpd & Opd) {
 			currPos = nxtPos;
 			nxtPos = Find_first_of(q, tokens, currPos + 1);
 		}
-		// if(currPos != q.size()) {
-		// 	pfxOpr p;
-		// 	p.type = q[currPos]; // ".", ">"
-		// 	p.name = q.substr(currPos+1);
-		// 	if(q[nxtPos] == '>') p.name.pop_back();
-
-		// 	if(p.type == ">") { // pointer to struct
-		// 		if(!isPtr(st_type)) cout << "-> for non-pointer" << endl;
-		// 		st_type = ((Ptr *) st_type)->pt;
-		// 	}
-    //   else if(p.type == "[") {
-    //     p.type = "[]";
-    //     int brkClosePos = q.find_first_of("]", currPos+1);
-    //     if(brkClosePos == -1) cout << "parseStruct:: Error: can't find ']'" << endl;
-    //     nxtPos = brkClosePos;
-    //   }
-		// 	if(!isStruct(st_type)) cout << p.name + " is not an struct" << endl;
-		// 	st_sym = findStructChild(st_type, p.name);
-		// 	st_type = st_sym->type;
-		// 	p.symb = st_sym;
-		// 	Opd.PfxOprs.push_back(p);
-		// 	cout << p.type + "  " + p.name << endl; //!
-		// }
 		q = tmp;
 		Opd.FinalType = st_type;
-	}
+	} // currPos >= 0
+  if(Opd.derefCnt > 0) {
+    if(!st_type) cout << "Can't deref Pointer" << endl;
+    for(int i = 0; i<Opd.derefCnt; i++) 
+      st_type = ptrChildType(st_type);
+		Opd.FinalType = st_type;
+  }
 }
 
 

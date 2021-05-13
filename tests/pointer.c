@@ -1,8 +1,17 @@
+struct st {int a; char b;};
 int main() {
-	int *p, a = 1, b = 100;
-	p = &b;
-	g5_printf("%d\n", p[0]);
-	a = p[0] + a;
-	g5_printf("%d %d %d\n", a, p[0], b);
+	struct st *aa, *bb, cc;
+	// int **p, *q, a = 1, b = 100;
+	// q = &b;
+	// p = &q;
+	// g5_printf("%d\n", **p);
+	// **p = **p + a;
+	// g5_printf("%d %d %d\n", a, **p, b);
+
+	aa = &cc;
+	bb = &cc;
+	aa->a = 1;
+	aa->b = 2;
+	g5_printf("%d %d\n", aa->a, aa->b);
 	return 0;
 }
