@@ -1,15 +1,26 @@
+struct sub {struct {int aa; char bb;} a; int b;};
 struct pair {
     int x;
-    struct {struct {int aa; char bb;} a; int b;} y;
+    struct sub *y;
     short z;
     int p;
 };
 
+
+
 int main() {
     struct pair a;
     struct pair b;
-    a.y.a.aa = 1;
-    g5_printf("%d\n", a.y.a.aa);
+    struct sub a_sub;
+    struct sub b_sub;
+    a.y = &a_sub;
+    b.y = &b_sub;
+    b.y->a.aa = 0;
+    g5_printf("%d\n", b.y->a.aa);
+    a.y->a.aa = 1;
+    b.y->a = a.y->a;
+    // b.y.a = a.y.a;
+    g5_printf("%d\n", b.y->a.aa);
     // a.y->a.aa = a.y->a.aa + b->y->a.aa;
     // b->y->a.aa = a.y->a.aa;
     // b = a;
