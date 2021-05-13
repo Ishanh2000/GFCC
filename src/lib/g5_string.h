@@ -1,5 +1,5 @@
 // AUM SHREEGANESHAAYA NAMAH|| /* DIETY INVOCATION */
-// strrev, strdup, strtok
+// strdup, strtok - left to do
 int g5_strlen(const char *);
 int g5_strcmp(const char *, const char *);
 int g5_strupr(const char *); // returns number of chars changed
