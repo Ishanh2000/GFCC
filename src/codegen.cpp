@@ -523,10 +523,10 @@ void genASM(ofstream & f, irquad_t & quad) {
   else if (quad.opr == "goto") {
     resetRegMaps(f);
     string src1 = quad.src1;
+    if( src1 == "---" ) return;
     cout << src1 <<endl;
     if(!src1.empty() &&  src1[0] == 'U'); // TODO: use better check
     else src1 = ("LABEL_" + src1);
-
     f << "\t" <<"b " + src1 << endl;
   }
 
