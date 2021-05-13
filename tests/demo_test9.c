@@ -10,19 +10,19 @@ int main() {
 
   
 	{ // testing malloc
-    g5_printf("x = \"%p\"\n", x = g5_malloc(20));
-    g5_printf("x = \"%p\"\n", x = g5_malloc(20));
-    // *x = 23;
-	  // g5_printf("x = %p, x[2] = \"%d\"\n", x, x[0]);
+    g5_printf("x = \"%p\"\n", x = g5_malloc(5 * sizeof(int)));
+    g5_printf("x = \"%p\"\n", x = g5_malloc(5 * sizeof(int)));
+    x[2] = 23; *x = -943;
+	  g5_printf("x = %p, x[2] = %d, *x = %d\n", x, x[2], *x);
     g5_printf("x = \"%p\"\n", x = (int*)g5_malloc(-20));
     g5_printf("x = \"%p\"\n", x = (int*)g5_malloc(0));
   }
     
 	{ // testing calloc
     g5_printf("x = \"%p\"\n", x = g5_calloc(1, 100));
-    g5_printf("x = \"%p\"\n", x = g5_calloc(5, 4));
+    g5_printf("x = \"%p\"\n", x = g5_calloc(5, 5 * sizeof(int)));
     g5_printf("x = \"%p\"\n", x = (int*)g5_calloc(-1, -20));
-    g5_printf("x = \"%p\"\n", x = (int*)g5_calloc(0, 20));
+    g5_printf("x = \"%p\"\n", x = (int*)g5_calloc(0, 5 * sizeof(int)));
   }
   
   
