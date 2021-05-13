@@ -161,7 +161,8 @@ void regMap(std::ofstream & f, reg_t reg, sym* symb, bool load = true) {
     f << " # load argument array addr into register (" + symb->name + ")"<< endl;
     }
   }
-  else if (isPtr(symb->type) || load) {
+  else if (isPtr(symb->type) || load) { // always load pointer :/ (can be lvalue)
+      cout << "regMap:::: " + symb->name + " " << (symb->parent == SymRoot->root) << endl;
     if(symb->parent == SymRoot->root) {
       if(isFuncType(symb->type))
         f << '\t' << "la " << reg2str[reg] +  ", " + symb->name;

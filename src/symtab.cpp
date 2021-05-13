@@ -135,6 +135,7 @@ bool symtab::pushSym(sym* newSym) {
   if (dbg) cout << "Pushing " << newSym->name << endl;
   syms.push_back(newSym);
   map_syms[newSym->name] = newSym;
+  newSym->parent = this;
   return true;
 }
 
