@@ -39,43 +39,63 @@ extern class sym* regDscr[];
 extern bool semanticErr;
 
 struct pfxOpr {
+  /* contains info about 1 postfix opr: "[", "->", "." */
   sym* symb;
   std::string type;
   std::string name; // for array
 };
 
-struct deltaNxtUse {
-  sym* dstSym = NULL;
-  int dstNxtUse = -1;
-  bool dstAlive = true;
-  std::vector<sym*> dstArrSymb;
-  std::vector<std::string> dstArrOff;
-  std::vector<pfxOpr> dstPfxOprs;
+struct deltaOpd {
+  /* contains one delta + other useful info about a symbol */
+  sym* Sym = NULL;
+  int NxtUse = -1;
+  bool Alive = true;
+  std::vector<sym*> ArrSymb;
+  std::vector<std::string> ArrOff;
+  std::vector<pfxOpr> PfxOprs;
   /* 0: simple, 1: array, 2: struct */
-  int dstType = 0;
+  int Type = 0;
   /* filled in case of struct, array, etc */
-  Type * dstFinalType = NULL;
+  class Type* FinalType = NULL;
+};
 
-  sym* src1Sym = NULL;
-  int src1NxtUse = -1;
-  bool src1Alive = true;
-  std::vector<sym*> src1ArrSymb;
-  std::vector<std::string> src1ArrOff;
-  std::vector<pfxOpr> src1PfxOprs;
-  int src1Type = 0;
-  Type * src1FinalType = NULL;
+struct deltaNxtUse {
+  /* contains one delta + other useful info about dst, src1, src2 */
+  // sym* dstSym = NULL;
+  // int dstNxtUse = -1;
+  // bool dstAlive = true;
+  // std::vector<sym*> dstArrSymb;
+  // std::vector<std::string> dstArrOff;
+  // std::vector<pfxOpr> dstPfxOprs;
+  // /* 0: simple, 1: array, 2: struct */
+  // int dstType = 0;
+  // /* filled in case of struct, array, etc */
+  // Type * dstFinalType = NULL;
+  deltaOpd dst;
+  deltaOpd src1;
+  deltaOpd src2;
 
-  sym* src2Sym = NULL;
-  int src2NxtUse = -1;
-  bool src2Alive = true;
-  std::vector<sym*> src2ArrSymb;
-  std::vector<std::string> src2ArrOff;
-  std::vector<pfxOpr> src2PfxOprs;
-  int src2Type = 0;
-  Type * src2FinalType = NULL;
+  // sym* src1Sym = NULL;
+  // int src1NxtUse = -1;
+  // bool src1Alive = true;
+  // std::vector<sym*> src1ArrSymb;
+  // std::vector<std::string> src1ArrOff;
+  // std::vector<pfxOpr> src1PfxOprs;
+  // int src1Type = 0;
+  // Type * src1FinalType = NULL;
+
+  // sym* src2Sym = NULL;
+  // int src2NxtUse = -1;
+  // bool src2Alive = true;
+  // std::vector<sym*> src2ArrSymb;
+  // std::vector<std::string> src2ArrOff;
+  // std::vector<pfxOpr> src2PfxOprs;
+  // int src2Type = 0;
+  // Type * src2FinalType = NULL;
 };
 
 class _nxtUse {
+  /* Contains all the deltas of main block */
   public:
     // last changes popped - has sym*s of current line
     deltaNxtUse lastdelta;
@@ -108,7 +128,7 @@ void regFlush(std::ofstream &, reg_t, bool);
 
 void regMap(std::ofstream &, reg_t, sym*, bool);
 
-void resetRegMaps(std::ofstream &, bool, bool, bool);
+void resetRegMaps(std::ofstream &, bool);
 
 void dumpASM(std::ofstream &, std::vector<irquad_t> &); // convert IR code to ASM (mainly MIPS, for "spim" simulator)
 
@@ -136,16 +156,13 @@ std::string getSymName(std::string); // get symbol name for struct, array, etc
 
 void resetCodegen();
 
-void parseStruct(std::string &q, int &type, std::vector<pfxOpr> &PfxOprs, Type * &finalType);
+void parseStruct(std::string &q, deltaOpd & Opd);
 
 std::size_t Find_first_of(std::string s, std::vector<std::string> tokens, std::size_t pos = 0U);
 
 sym* findStructChild(Type* st_type, std::string chName);
 
-std::string loadArrAddr(std::ofstream &, const sym*, 
-                        std::vector<sym*>, 
-                        std::vector<std::string>, 
-                        int, std::string, std::vector<pfxOpr> PfxOprs);
+std::string loadArrAddr(std::ofstream &, deltaOpd & Opd, std::string pos);
 
 
 void memCopy(std::ofstream &, reg_t src, reg_t dst, int size);

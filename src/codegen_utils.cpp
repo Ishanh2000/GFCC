@@ -4,29 +4,27 @@
 #include <symtab.h>
 using namespace std;
 
-string loadArrAddr(ofstream & f, const sym* symb,
-                        vector<sym*> offsetSymb, 
-                        vector<string> offset, int type, string pos, vector<pfxOpr> PfxOprs) {
+string loadArrAddr(ofstream & f, deltaOpd & Opd, string pos) {
   /*
     * pos:  0 for dst (use $a0, $a3)
     *       1 for src1 (use $a1, $a3)
     *       2 for src2 (use $a2, $a3)
   */
 
-  if(!symb || type == 0 ) {
+  if(!Opd.Sym || Opd.Type == 0 ) {
     // cout << "string loadArrAddr: Called for non-array" << endl;
     return "";
   }
 
   string addrReg = "$a" + pos;          // store address here if non-constant offset or "->"
-	string symReg = reg2str[symb->reg];   // base address of the base symbol
+	string symReg = reg2str[Opd.Sym->reg];   // base address of the base symbol
 	bool allConst = true;
 	int constOffset = 0;
   f << "\t #### <Load address> ###" << endl;
   
-  if (type == 1) {
+  if (Opd.Type == 1) {
     vector<int> dimSize;
-    Arr *a = (Arr *) symb->type;
+    Arr *a = (Arr *) Opd.Sym->type;
     for(auto dim: a->dims) {
       int * sizePtr = eval(dim);
       if(!sizePtr) {
@@ -37,20 +35,20 @@ string loadArrAddr(ofstream & f, const sym* symb,
     }
     
     /* for array part */
-    if(dimSize.size() > offset.size())
+    if(dimSize.size() > Opd.ArrOff.size())
       cout << "string loadArrAddr: some problem in semantic analysis" << endl;
     
     int dimWidth = getSize(a->item);
     for(int i = dimSize.size()-1; i>=0; i--) {
-      if(!offsetSymb[i]) {
+      if(!Opd.ArrSymb[i]) {
         /* constant  operand*/
-        constOffset += stoi(offset[i]) * dimWidth;
+        constOffset += stoi(Opd.ArrOff[i]) * dimWidth;
       }
       else {
         /* variable offset */
         /* eg. lw $a3, -44($fp) */
-        f << '\t' << "lw $a3, -" + to_string(offsetSymb[i]->offset) + "($fp)"
-          << " # load " + offsetSymb[i]->name << endl;
+        f << '\t' << "lw $a3, -" + to_string(Opd.ArrSymb[i]->offset) + "($fp)"
+          << " # load " + Opd.ArrSymb[i]->name << endl;
         /* eg. mul $a3, $a3, dimWidth */
         if (dimWidth != 1)
           f << '\t' << "mul $a3, $a3, " + to_string(dimWidth)
@@ -83,17 +81,19 @@ string loadArrAddr(ofstream & f, const sym* symb,
     }
   }
   
-  else if(type == 2) { // struct: ".", "->"
+  else if(Opd.Type == 2) { // struct: ".", "->"
 		f << '\t' << "move "<< addrReg + ", " << symReg << endl;
-		for(auto pfx: PfxOprs) {
+		for(auto pfx: Opd.PfxOprs) {
 			// cout << pfx.name << endl;
 			if(pfx.type == ".") {
-				f << '\t' << "addu " + addrReg + ", " + addrReg + ", " << to_string(pfx.symb->offset) 
+        if (pfx.symb->offset != 0)
+         f << '\t' << "addu " + addrReg + ", " + addrReg + ", " << to_string(pfx.symb->offset) 
             << " # offset calc" << endl;
 			}
 			else if(pfx.type == ">") {
 				f << '\t' << "lw " << addrReg << ", " << "("+addrReg+")" << endl;
-				f << '\t' << "addu " + addrReg + ", " + addrReg + ", " << to_string(pfx.symb->offset) 
+        if (pfx.symb->offset != 0)
+				  f << '\t' << "addu " + addrReg + ", " + addrReg + ", " << to_string(pfx.symb->offset) 
             << " # offset calc" << endl;
 			}
 		}
@@ -107,11 +107,11 @@ string loadArrAddr(ofstream & f, const sym* symb,
 
 
 
-void parseStruct(string & q, int &type, vector<pfxOpr> &PfxOprs, Type * &finalType) {
+void parseStruct(string & q, deltaOpd & Opd) {
 	vector <string> tokens = {".", ">"};
 	int nxtPos = Find_first_of(q, tokens);
 	if(nxtPos >= 0) {
-		type = 2;
+		Opd.Type = 2;
 		cout <<"Struct parse " << q << endl;
 		string tmp = q.substr(0, nxtPos);
 		if(q[nxtPos] == '>')tmp.pop_back();
@@ -131,7 +131,7 @@ void parseStruct(string & q, int &type, vector<pfxOpr> &PfxOprs, Type * &finalTy
 		p.name = tmp;
 		p.symb = st_sym;
 		p.type = "---";
-		PfxOprs.push_back(p);
+		Opd.PfxOprs.push_back(p);
 
 		int nnxtPos = Find_first_of(q, tokens, nxtPos+1);
 		while(nnxtPos >= 0){
@@ -148,7 +148,7 @@ void parseStruct(string & q, int &type, vector<pfxOpr> &PfxOprs, Type * &finalTy
 			st_sym = findStructChild(st_type, p.name);
 			st_type = st_sym->type;
 			p.symb = st_sym;
-			PfxOprs.push_back(p);
+			Opd.PfxOprs.push_back(p);
 			cout << p.type + "  " + p.name << endl; //!
 
 			nxtPos = nnxtPos;
@@ -168,19 +168,24 @@ void parseStruct(string & q, int &type, vector<pfxOpr> &PfxOprs, Type * &finalTy
 			st_sym = findStructChild(st_type, p.name);
 			st_type = st_sym->type;
 			p.symb = st_sym;
-			PfxOprs.push_back(p);
+			Opd.PfxOprs.push_back(p);
 			cout << p.type + "  " + p.name << endl; //!
 		}
 		q = tmp;
-		finalType = st_type;
+		Opd.FinalType = st_type;
 	}
 }
 
 
 void memCopy(std::ofstream &f, reg_t src, reg_t dst, int size) {
+  if(size < 1) return;
+
   string srcReg = reg2str[src], dstReg = reg2str[dst], freeReg = "$a3";
   string loadInstr[] = {"lw", "ls", "lb"};
   string storeInstr[] = {"sw", "ss", "lb"};
+  
+  f << '\t' << "### <memcopy> size = " + to_string(size)
+    << " from " + reg2str[src] + " to " + reg2str[dst] + " ###"<< endl;
   int chnkSize = 4, instr = 0, remSize = size;
   while(remSize > 0) {
     if(remSize < chnkSize) {
@@ -188,12 +193,13 @@ void memCopy(std::ofstream &f, reg_t src, reg_t dst, int size) {
       instr++;
       continue;
     }
+
     /* eg. lw $a3, 20($a0) */
     f << '\t' << loadInstr[instr] + " " + freeReg + ", "
-      << to_string(size-remSize) + "("  << srcReg + ")";
+      << to_string(size-remSize) + "("  << srcReg + ")" << endl;
     /* eg. sw $a3, 20($a1) */
     f << '\t' << storeInstr[instr] + " " + freeReg + ", "
-      << to_string(size-remSize) + "("  << srcReg + ")";
+      << to_string(size-remSize) + "("  << dstReg + ")" << endl;
     remSize -= chnkSize;
   }
 }
