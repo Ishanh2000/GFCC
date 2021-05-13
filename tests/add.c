@@ -8,9 +8,9 @@
 
 // }
 
-// float foo(float b)  {
-//   return 1.5;
-// }
+char foo(char a[])  {
+  return a[3];
+}
 
 // int g5_printf() {
   
@@ -57,11 +57,17 @@ int main() {
   //   for(j =0 ;j<l; j++){
   //     g5_printf("Value of a[%d][%d]: %d  %f\n", i, j, a[i][j], 2.1e10);
   //   }
-  float p = 100.0, q = 10.1;
-  int b = 1;
-  char dd = 'a'; short f = 3;
-  dd ++; f++; dd++;
-  g5_printf("%c %d\n",dd,f);
+  // float p = 100.0, q = 10.1;
+  // int b = 1;
+  // char dd = 'a'; short f = 3;
+  // dd ++; f++; dd++;
+  // char a[5] = {'a','b','c','f','\0'};
+  // a[0] = foo(a);
+  // float p = 100.5;
+  // p = p + 1;
+  short a = 3, b = 6;
+  a = a / b;
+  g5_printf("%d %d\n",a,b);
   // float p = 100.0, q = 10.1;
   // int b = 1;
   

@@ -40,9 +40,12 @@ extern bool semanticErr;
 
 struct pfxOpr {
   /* contains info about 1 postfix opr: "[", "->", "." */
-  sym* symb;
-  std::string type;
+  /* sym* if identifier in [], from subdef for struct */
+  sym* symb = NULL;
+  /* symbol name */
   std::string name; // for array
+  /* "[]", ".", ">" */
+  std::string type;
 };
 
 struct deltaOpd {
@@ -50,10 +53,10 @@ struct deltaOpd {
   sym* Sym = NULL;
   int NxtUse = -1;
   bool Alive = true;
-  std::vector<sym*> ArrSymb;
-  std::vector<std::string> ArrOff;
+  // no. of * prepended in the symbol
+  int derefCnt = 0;
   std::vector<pfxOpr> PfxOprs;
-  /* 0: simple, 1: array, 2: struct */
+  /* 0: simple, 1: 2: struct/array */
   int Type = 0;
   /* filled in case of struct, array, etc */
   class Type* FinalType = NULL;
@@ -61,37 +64,9 @@ struct deltaOpd {
 
 struct deltaNxtUse {
   /* contains one delta + other useful info about dst, src1, src2 */
-  // sym* dstSym = NULL;
-  // int dstNxtUse = -1;
-  // bool dstAlive = true;
-  // std::vector<sym*> dstArrSymb;
-  // std::vector<std::string> dstArrOff;
-  // std::vector<pfxOpr> dstPfxOprs;
-  // /* 0: simple, 1: array, 2: struct */
-  // int dstType = 0;
-  // /* filled in case of struct, array, etc */
-  // Type * dstFinalType = NULL;
   deltaOpd dst;
   deltaOpd src1;
   deltaOpd src2;
-
-  // sym* src1Sym = NULL;
-  // int src1NxtUse = -1;
-  // bool src1Alive = true;
-  // std::vector<sym*> src1ArrSymb;
-  // std::vector<std::string> src1ArrOff;
-  // std::vector<pfxOpr> src1PfxOprs;
-  // int src1Type = 0;
-  // Type * src1FinalType = NULL;
-
-  // sym* src2Sym = NULL;
-  // int src2NxtUse = -1;
-  // bool src2Alive = true;
-  // std::vector<sym*> src2ArrSymb;
-  // std::vector<std::string> src2ArrOff;
-  // std::vector<pfxOpr> src2PfxOprs;
-  // int src2Type = 0;
-  // Type * src2FinalType = NULL;
 };
 
 class _nxtUse {
@@ -162,8 +137,13 @@ std::size_t Find_first_of(std::string s, std::vector<std::string> tokens, std::s
 
 sym* findStructChild(Type* st_type, std::string chName);
 
-std::string loadArrAddr(std::ofstream &, deltaOpd & Opd, std::string pos);
+Type* ptrChildType(Type * t);
 
+std::vector<int> getDimSize(Arr* a);
+
+int getWidth(std::vector<int> dimSize);
+
+std::string loadArrAddr(std::ofstream &, deltaOpd & Opd, std::string pos);
 
 void memCopy(std::ofstream &, reg_t src, reg_t dst, int size);
 

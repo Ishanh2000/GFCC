@@ -64,8 +64,6 @@ using namespace std;
 %type <node> M2
 /* for switch case */
 %type <node> M3
-/* for switch case fall through */
-%type <node> M4
 /* get  next instr line no. */
 %type <nxtIstr> M
 
@@ -1740,6 +1738,8 @@ labeled_statement
 			if (!(bs == CHAR_B || bs == INT_B || bs == LONG_B || bs == LONG_LONG_B || bs == ENUM_B))
 				repErr($1->pos, "invalid expression type for case label", _FORE_RED_);
 		}
+		$$->nxtCase.push_back(nextIdx()); 
+		emit(eps, NULL, "goto","---", NULL);
 		$$->Stmtbegin = $2;
 		backpatch($1->truelist,$2);
 		$3->nextlist = merge($3->nextlist,$1->falselist);
@@ -1750,9 +1750,10 @@ labeled_statement
 		backpatch($$->nextlist,nextIdx());
 
 	}
-	| DEFAULT ':' statement                   { $$ = op( $1 , 0, 1, ej($3) ); 
-		$$->nextlist = $3->nextlist;
-		$$->breaklist = $3->breaklist;
+	| DEFAULT ':' M statement                   { $$ = op( $1 , 0, 1, ej($4) ); 
+		$$->nextlist = $4->nextlist;
+		$$->breaklist = $4->breaklist;
+		$$->Stmtbegin = $3;
 	}
 	;
 
@@ -1785,11 +1786,6 @@ declaration_list
 		else { $$ = NULL; }
 	}
 	;
-M4 : %empty { 
-		$$ = new node_t;
-		$$->nxtCase.push_back(nextIdx()); 
-		emit(eps, NULL, "goto","---", NULL);
-		} 
 statement_list
 	: statement                { $$ = op( nd(STMT_LIST, "stmt-list", nonPos), 0, 1, ej($1) ); 
 															 $$->nextlist = $1->nextlist;
@@ -1799,17 +1795,19 @@ statement_list
 															 $$->Stmtbegin = $1->Stmtbegin;
 															 $$->nxtCase = $1->nxtCase;
 															}
-	| statement_list M4 M statement {
-			$$ = op( $1, 0, 1, ej($4) ); 
-			$$->nextlist = $4->nextlist;
-			$$->breaklist = merge($1->breaklist, $4->breaklist);
-			$$->contlist = merge($1->contlist, $4->contlist);
-			$$->caselist = merge($1->caselist, $4->caselist);
-			backpatch($1->nextlist, $3);
-			if( $4->Stmtbegin != -1 )
+	| statement_list M statement {
+			$$ = op( $1, 0, 1, ej($3) ); 
+			$$->nextlist = $3->nextlist;
+			$$->breaklist = merge($1->breaklist, $3->breaklist);
+			$$->contlist = merge($1->contlist, $3->contlist);
+			$$->caselist = merge($1->caselist, $3->caselist);
+			backpatch($1->nextlist, $2);
+			$$->nxtCase = $1->nxtCase;
+			if( $3->Stmtbegin != -1 )
 			{
-				backpatch($2->nxtCase, $4->Stmtbegin);
+				backpatch($$->nxtCase, $3->Stmtbegin);
 			}
+			$$->nxtCase = $3->nxtCase;
 		}
 	;
 

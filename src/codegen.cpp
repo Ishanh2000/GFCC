@@ -161,7 +161,7 @@ void regMap(std::ofstream & f, reg_t reg, sym* symb, bool load = true) {
     f << " # load argument array addr into register (" + symb->name + ")"<< endl;
     }
   }
-  else if (load) {
+  else if (isPtr(symb->type) || load) {
     if(symb->parent == SymRoot->root) {
       if(isFuncType(symb->type))
         f << '\t' << "la " << reg2str[reg] +  ", " + symb->name;
@@ -190,26 +190,6 @@ void resetRegMaps(ofstream &f, bool store = true) {
     regFlush(f, (reg_t) reg, store);
   }
 }
-
-
-// int currReg = s0;
-// reg_t getSymReg(const std::string & symName) {
-//   sym* symb = SymRoot->gLookup(symName);
-//   if(!symb) {
-//     // constants
-//     // array, struct too!!
-//     cout << "Not found "<< symName <<endl;
-//     return zero;
-//   }
-
-//   if(symb->reg != zero)
-//     return symb->reg;
-//   else {
-//     symb->reg = (reg_t) currReg++; // ! adhoc
-//     regDscr[symb->reg] = symb;
-//     return symb->reg;
-//   }
-// }
 
 
 oprRegs getReg(std::ofstream & f, const irquad_t &q) {
@@ -412,6 +392,9 @@ void genASM(ofstream & f, irquad_t & quad) {
   
   deltaNxtUse lastdelta = nxtUse.step();
   
+  // ! Dangerous
+  if(lastdelta.dst.Type != 0 || lastdelta.src1.Type != 0 || lastdelta.src2.Type != 0)
+    resetRegMaps(f, true);
 
   if (quad.src2 != eps && (
       quad.opr == "+" || quad.opr == "-" ||
@@ -521,9 +504,9 @@ void genASM(ofstream & f, irquad_t & quad) {
   }
   
   else if (quad.opr == "goto") {
-    resetRegMaps(f);
     string src1 = quad.src1;
     if( src1 == "---" ) return;
+    resetRegMaps(f);
     cout << src1 <<endl;
     if(!src1.empty() &&  src1[0] == 'U'); // TODO: use better check
     else src1 = ("LABEL_" + src1);
@@ -938,7 +921,7 @@ int getNxtLeader(vector<irquad_t> & IR, int leader) {
   int nxtLeader = lenIR;
   // find next leader
   for(auto idx = leader; idx < lenIR; idx++) {
-    if(IR[idx].opr == "goto" || IR[idx].opr == "ifgoto" ||
+    if((IR[idx].opr == "goto" && IR[idx].src1 != "---") || IR[idx].opr == "ifgoto" ||
        IR[idx].opr == "call" || IR[idx].opr == "return" ||
        IR[idx].opr == "newScope" || IR[idx].opr == "closeScope" ||
        IR[idx].opr == "function end" || IR[idx].opr == "func" ||
@@ -961,52 +944,52 @@ int getNxtLeader(vector<irquad_t> & IR, int leader) {
   for (int idx = nxtLeader - 1; idx >= leader; idx--) {
     deltaNxtUse delta;
 
-    int boxStart, boxEnd;
+    // int boxStart, boxEnd;
 
-    boxStart = IR[idx].dst.find_first_of('[');
-    boxEnd = IR[idx].dst.find_first_of(']');
+    // boxStart = IR[idx].dst.find_first_of('[');
+    // boxEnd = IR[idx].dst.find_first_of(']');
 
-    if(boxStart >= 0 && boxEnd >= 0) {
-      delta.dst.Type = 1;
-      string tmp = IR[idx].dst.substr(0, boxStart);
-      while(boxStart >= 0 && boxEnd >= 0){
-        delta.dst.ArrOff.push_back(IR[idx].dst.substr(boxStart+1, boxEnd-boxStart-1));
-        delta.dst.ArrSymb.push_back(SymRoot->gLookup(delta.dst.ArrOff.back()));
-        boxStart = IR[idx].dst.find_first_of('[', boxEnd+1);
-        boxEnd = IR[idx].dst.find_first_of(']', boxEnd+1);
-      }
-      IR[idx].dst = tmp;
-    }
+    // if(boxStart >= 0 && boxEnd >= 0) {
+    //   delta.dst.Type = 1;
+    //   string tmp = IR[idx].dst.substr(0, boxStart);
+    //   while(boxStart >= 0 && boxEnd >= 0){
+    //     delta.dst.ArrOff.push_back(IR[idx].dst.substr(boxStart+1, boxEnd-boxStart-1));
+    //     delta.dst.ArrSymb.push_back(SymRoot->gLookup(delta.dst.ArrOff.back()));
+    //     boxStart = IR[idx].dst.find_first_of('[', boxEnd+1);
+    //     boxEnd = IR[idx].dst.find_first_of(']', boxEnd+1);
+    //   }
+    //   IR[idx].dst = tmp;
+    // }
 
-    boxStart = IR[idx].src1.find_first_of('[');
-    boxEnd = IR[idx].src1.find_first_of(']');
+    // boxStart = IR[idx].src1.find_first_of('[');
+    // boxEnd = IR[idx].src1.find_first_of(']');
 
-    if(boxStart >= 0 && boxEnd >= 0) {
-      delta.src1.Type = 1;
-      string tmp = IR[idx].src1.substr(0, boxStart);
-      while(boxStart >= 0 && boxEnd >= 0){
-        delta.src1.ArrOff.push_back(IR[idx].src1.substr(boxStart+1, boxEnd-boxStart-1));
-        delta.src1.ArrSymb.push_back(SymRoot->gLookup(delta.src1.ArrOff.back()));
-        boxStart = IR[idx].src1.find_first_of('[', boxEnd+1);
-        boxEnd = IR[idx].src1.find_first_of(']', boxEnd+1);
-      }
-      IR[idx].src1 = tmp;
-    }
+    // if(boxStart >= 0 && boxEnd >= 0) {
+    //   delta.src1.Type = 1;
+    //   string tmp = IR[idx].src1.substr(0, boxStart);
+    //   while(boxStart >= 0 && boxEnd >= 0){
+    //     delta.src1.ArrOff.push_back(IR[idx].src1.substr(boxStart+1, boxEnd-boxStart-1));
+    //     delta.src1.ArrSymb.push_back(SymRoot->gLookup(delta.src1.ArrOff.back()));
+    //     boxStart = IR[idx].src1.find_first_of('[', boxEnd+1);
+    //     boxEnd = IR[idx].src1.find_first_of(']', boxEnd+1);
+    //   }
+    //   IR[idx].src1 = tmp;
+    // }
 
-    boxStart = IR[idx].src2.find_first_of('[');
-    boxEnd = IR[idx].src2.find_first_of(']');
+    // boxStart = IR[idx].src2.find_first_of('[');
+    // boxEnd = IR[idx].src2.find_first_of(']');
 
-    if(boxStart >= 0 && boxEnd >= 0) {
-      delta.src2.Type = 1;
-      string tmp = IR[idx].src2.substr(0, boxStart);
-      while(boxStart >= 0 && boxEnd >= 0){
-        delta.src2.ArrOff.push_back(IR[idx].src2.substr(boxStart+1, boxEnd-boxStart-1));
-        delta.src2.ArrSymb.push_back(SymRoot->gLookup(delta.src2.ArrOff.back()));
-        boxStart = IR[idx].src2.find_first_of('[', boxEnd+1);
-        boxEnd = IR[idx].src2.find_first_of(']', boxEnd+1);
-      }
-      IR[idx].src2 = tmp;
-    }
+    // if(boxStart >= 0 && boxEnd >= 0) {
+    //   delta.src2.Type = 1;
+    //   string tmp = IR[idx].src2.substr(0, boxStart);
+    //   while(boxStart >= 0 && boxEnd >= 0){
+    //     delta.src2.ArrOff.push_back(IR[idx].src2.substr(boxStart+1, boxEnd-boxStart-1));
+    //     delta.src2.ArrSymb.push_back(SymRoot->gLookup(delta.src2.ArrOff.back()));
+    //     boxStart = IR[idx].src2.find_first_of('[', boxEnd+1);
+    //     boxEnd = IR[idx].src2.find_first_of(']', boxEnd+1);
+    //   }
+    //   IR[idx].src2 = tmp;
+    // }
     /* For struct parsing */
     parseStruct(IR[idx].dst, delta.dst);
     parseStruct(IR[idx].src1, delta.src1);
