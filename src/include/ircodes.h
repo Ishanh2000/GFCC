@@ -45,6 +45,12 @@ extern unsigned int totalTmp;
 
 extern bool show_eq; // to show different types of '=' (deprecated).
 
+extern unsigned int _w_contents;
+
+extern unsigned int _w_encoding;
+
+extern unsigned int _w_glbName;
+
 unsigned int nextIdx();
 
 void emit(std::string, class Type *, std::string, std::string, class Type *, std::string, class Type *); // emit into global (incremental) code stream

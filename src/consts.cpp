@@ -30,27 +30,48 @@ const char func_call_attr[] = "shape=box";
 const char label_attr[] = "style=filled,fillcolor=magenta"; // labeled statemets like "abc : func();", "case 34 : func();", "default : func()".
 
 char lexer_help[] = "\
-Usage: <exec-name> [options] files... [--output|-o] output-files...\n\
+\033[1;34mUSAGE:\033[0m <exec-name> [options] files... [--output|-o] output-files...\n\
 \n\
-Examples:\n\
-  ./bin/gfcc ./tests/*.c\n\
-  ./bin/gfcc ./tests/*.c -o out_1.dot out_1.csv out_1.3ac out_1.asm ... out_N.dot out_N.csv out_N.3ac out_N.asm\n\
+\033[1;34mEXAMPLES:\033[0m\n\
+  \033[32m./bin/gfcc\033[0m \033[33m-h\033[0m # help\n\
+  \033[32m./bin/gfcc\033[0m \033[33m-v\033[0m # version\n\
 \n\
-Options:\n\
-  --help	-h : Help. Must be first option. Other options are not checked.\n\
+  \033[90m# Creates {.tok.csv/.dot/.sym.csv/.3ac/.asm} files for all test case files\033[0m\n\
+  \033[32m./bin/gfcc\033[0m ./tests/*.c\n\
 \n\
-  --version	-v : Version and release date. Maybe author names/licenses. Must be first option. Other options not checked.\n\
+  \033[90m# specify output files\033[0m\n\
+  \033[32m./bin/gfcc\033[0m ./tests/*.c \033[33m-o\033[0m out_1.tok.csv out_1.dot out_1.sym.csv out_1.3ac out_1.asm ... out_N.tok.csv out_N.dot out_N.sym.csv out_N.3ac out_N.asm\n\
 \n\
-  --output	-o : Names of output files in the same order as inputs are specified.\n\
+  \033[90m# change tab length\033[0m\n\
+  \033[32m./bin/gfcc\033[0m \033[33m-t 6\033[0m ./tests/*.c \033[33m-o\033[0m out_1.tok.csv out_1.dot out_1.sym.csv out_1.3ac out_1.asm ... out_N.tok.csv out_N.dot out_N.sym.csv out_N.3ac out_N.asm\n\
 \n\
-Notes:\n\
-  1) Specify an option only once. Otherwise they may be treated invalid.\n\
+  \033[90m# specify required output files only\033[0m\n\
+  \033[32m./bin/gfcc\033[0m \033[33m-r=tok,asm,sym\033[0m ./tests/*.c \033[33m-o\033[0m out_1.tok.csv out_1.sym.csv out_1.asm ... out_N.tok.csv out_N.sym.csv out_N.asm\n\
+\n\
+  \033[90m# specify libraries\033[0m\n\
+  \033[32m./bin/gfcc\033[0m \033[33m-l=typo,math,std,string\033[0m ./tests/*.c\n\
+\n\
+\033[1;34mOPTIONS:\033[0m\n\
+  \033[32m-h|--help   \033[0m : Help. Must be first option. Other options are not checked.\n\
+\n\
+  \033[32m-v|--version\033[0m : Version and release date. Maybe author names/licenses. Must be first option. Other options not checked.\n\
+\n\
+  \033[32m-o|--output \033[0m : Names of output files in the same order as inputs are specified.\n\
+\n\
+  \033[32m-l|--lib    \033[0m : {math,typo,std,string} Comma separated libraries (must spceify on command line, not input file).\n\
+                 \"typo\" and \"std\" are related to usual \"stdio.h\" and \"stdlib.h\" libraries respectively.\n\
+\n\
+  \033[32m-r|--require\033[0m : {tok,ast,sym,3ac,asm} Comma separated specifications for only required output files.\n\
+  Output files, if specified must follow the precedence order {tok ast sym 3ac asm} for each input file.\n\
+\n\
+\033[1;34mNOTES:\033[0m\n\
+  1) Try specifying an option only once. Otherwise they *may* be treated invalid.\n\
   2) Specify output files AFTER input files.\n\
   3) The number of output files must correctly correspond to the number of input files.\n\
   4) If erreneous options (and their values) are given, desired output may not be achieved.\n\
-  5) All files won't be jeopardized due failure in opening a few files.\n\
-  6) \e[1;33m[IMPORTANT]\e[0m This compiler uses tab length = 4. So, the location of errors and warnings may differ\n\
+  5) All files won't be jeopardized due to failure in opening a few files.\n\
+  6) \e[1;33m[IMPORTANT]\e[0m This compiler uses default tab length = 4. So, the location of errors and warnings *may* differ\n\
      from the location shown on your editor. Use [-t <tab_len>] option for changing the tab length.\n\
-  7) \e[1;33m[IMPORTANT]\e[0m This compiler is not exhaustive. Almost all operations are supported but highly complex inputs\n\
-     (or even incorrect programs sometimes) may result in segmentation fault or unexpected errors.\n\
+  7) \e[1;33m[IMPORTANT]\e[0m This compiler is not exhaustive. We have tried supporting almost all operations, but highly complex inputs\n\
+     (or even incorrect programs sometimes) may result in segmentation fault, unexpected errors or garbage outputs.\n\
 ";

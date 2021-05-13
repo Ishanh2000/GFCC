@@ -32,9 +32,10 @@
 #define LIB_MATH        (0x1)
 #define LIB_TYPO        (0x2)
 #define LIB_STD         (0x4)
+#define LIB_STRING      (0x8)
 #define LIB_BASIC      (0xff) // mainly NULL ptr
-// #define LIB_FILE        (0x8)
-// #define LIB_TIME       (0x10)
+// #define LIB_FILE        ??
+// #define LIB_TIME        ??
 
 
 #define UNINIT				(-10)
@@ -88,6 +89,8 @@ typedef struct _token_t {
 	struct _loc_t pos;
 	int tok;
 	std::string lexeme;
+	bool bad = false;
+	_token_t (struct _loc_t, int, std::string); // constructor
 } token_t;
 
 typedef struct _node_t {
@@ -206,6 +209,8 @@ void purgeAST(node_t *); // free unrequired data structures
 bool accept(node_t *node);
 
 void resetLexer(); // reset global variables
+
+void pushTok(struct _loc_t, int, std::string);
 
 void dumpTok(std::ofstream &, std::vector<struct _token_t> &); // to dump tokens (like Milestone 1)
 

@@ -48,30 +48,32 @@ void libDumpSym(int lib_reqs) { // insert libraries symbols into SymRoot
     StrDump.push_back(str_t(float2Dec("0.693147180559945286226763982995180413"), ".word", "__GFCC_M_LOG2__"));
     SymRoot->pushSym(new sym("__G5_M_LOG10__", clone(b), { 7, 13, LIB_MATH }));
     StrDump.push_back(str_t(float2Dec("2.302585092994045901093613792909309268"), ".word", "__GFCC_M_LOG10__"));
+    SymRoot->pushSym(new sym("__G5_M_INFTY__", clone(b), { 8, 13, LIB_MATH }));
+    StrDump.push_back(str_t("0x7FFFFFFF", ".word", "__GFCC_M_INFTY__"));
 
     // global symbols : non-functions
     Func* i2i = new Func(new Base(INT_B)); i2i->newParam(new Base(INT_B)); // int ()(int)
     vector<string> i2iNames = { "g5_abs", "g5_fact", "g5_fib" };
     int i2i_l = i2iNames.size();
     for (int i = 0; i < i2i_l; i++) {
-      loc_t tmp; tmp.line = 8 + i; tmp.column = 5; tmp.lib = LIB_MATH;
+      loc_t tmp; tmp.line = 10 + i; tmp.column = 5; tmp.lib = LIB_MATH;
       SymRoot->pushSym(new sym(i2iNames[i], clone(i2i), tmp));
     }
     
     { // float g5_intpow(float, int);
       Func* fn = new Func(new Base(FLOAT_B)); fn->newParam(new Base(FLOAT_B)); fn->newParam(new Base(INT_B));
-      SymRoot->pushSym(new sym("g5_intpow", fn, { 11, 7, LIB_MATH }));
+      SymRoot->pushSym(new sym("g5_intpow", fn, { 13, 7, LIB_MATH }));
     }
 
     Func* f2f = new Func(new Base(FLOAT_B)); f2f->newParam(new Base(FLOAT_B)); // float ()(float)
     vector<string> f2fNames = {
-      "g5_fabs", "g5_sqrt", "g5_exp", "g5_sin", "g5_cos", "g5_tan",
-      "g5_arcsin", "g5_arccos", "g5_arctan", "g5_sinh", "g5_cosh", "g5_tanh",
-      "g5_log", "g5_log2", "g5_log10", "g5_arcsinh", "g5_arccosh", "g5_arctanh"
+      "g5_fabs", "g5_sqrt", "g5_exp", // "g5_sin", "g5_cos", "g5_tan",
+      // "g5_arcsin", "g5_arccos", "g5_arctan", "g5_sinh", "g5_cosh", "g5_tanh",
+      // "g5_log", "g5_log2", "g5_log10", "g5_arcsinh", "g5_arccosh", "g5_arctanh"
     };
     int f2f_l = f2fNames.size();
     for (int i = 0; i < f2f_l; i++) {
-      loc_t tmp; tmp.line = 12 + i; tmp.column = 7; tmp.lib = LIB_MATH;
+      loc_t tmp; tmp.line = 14 + i; tmp.column = 7; tmp.lib = LIB_MATH;
       SymRoot->pushSym(new sym(f2fNames[i], clone(f2f), tmp));
     }
   }
@@ -104,13 +106,20 @@ void libDumpSym(int lib_reqs) { // insert libraries symbols into SymRoot
       SymRoot->pushSym(new sym("g5_exit", fn, { 3, 5, LIB_STD }));
     }
   }
+
+  if (lib_reqs & LIB_STRING) {
+    { // int g5_strlen(const char *);
+      Base *b = new Base(CHAR_B); b->isConst = true;
+      Func* fn = new Func(new Base(INT_B)); fn->newParam(new Ptr(b));
+      SymRoot->pushSym(new sym("g5_strlen", fn, { 3, 5, LIB_STRING }));
+    }
+  }
 }
 
 void libDumpASM(ofstream &f, int lib_reqs) {
   if (lib_reqs & LIB_MATH) {
     f << "## GFCC MATHS LIBRARY" << endl << endl;
     f << ifstream("./src/lib/g5_math.asm").rdbuf() << endl << endl;
-    // then do apropriate appending stuff
   }
   
   if (lib_reqs & LIB_TYPO) {
@@ -121,6 +130,11 @@ void libDumpASM(ofstream &f, int lib_reqs) {
   if (lib_reqs & LIB_STD) {
     f << "## GFCC STANDARD LIBRARY" << endl;
     f << ifstream("./src/lib/g5_std.asm").rdbuf() << endl << endl;
+  }
+
+  if (lib_reqs & LIB_STRING) {
+    f << "## GFCC STRING LIBRARY" << endl;
+    f << ifstream("./src/lib/g5_string.asm").rdbuf() << endl << endl;
   }
 }
 

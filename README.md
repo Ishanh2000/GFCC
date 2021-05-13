@@ -13,7 +13,7 @@ Source (S): C.
 
 Implemetation (I): C++.
 
-Target (T): MIPS (might change, if backend can be better implemented on another target).
+Target (T): MIPS (R2000, run on SPIM 8.0)
 
 ## Usage:
 Building Project:
@@ -28,14 +28,26 @@ Cleaning Project;
 ```
 Running parser:
 ```bash
-  ./bin/gfcc ./tests/*.c # Creates {.dot/.csv/.3ac/.asm} files for all test case files
   ./bin/gfcc -h # help
   ./bin/gfcc -v # version
-  ./bin/gfcc ./tests/*.c -o out_1.dot out_1.csv out_1.3ac out_1.asm ... out_N.dot out_N.csv out_N.3ac out_N.asm
-  ./bin/gfcc ./tests/*.c -t 78 -o out_1.dot out_1.csv out_1.3ac out_1.asm ... out_N.dot out_N.csv out_N.3ac out_N.asm
+  
+  # Creates {.tok.csv/.dot/.sym.csv/.3ac/.asm} files for all test case files
+  ./bin/gfcc ./tests/*.c
+  
+  # specify output files
+  ./bin/gfcc ./tests/*.c -o out_1.tok.csv out_1.dot out_1.sym.csv out_1.3ac out_1.asm ... out_N.tok.csv out_N.dot out_N.sym.csv out_N.3ac out_N.asm
+
+  # change tab length
+  ./bin/gfcc -t 6 ./tests/*.c -o out_1.tok.csv out_1.dot out_1.sym.csv out_1.3ac out_1.asm ... out_N.tok.csv out_N.dot out_N.sym.csv out_N.3ac out_N.asm
+
+  # specify only required output files (one or more of {tok,ast,sym,3ac,asm})
+  ./bin/gfcc -r=tok,asm,sym ./tests/*.c -o out_1.tok.csv out_1.sym.csv out_1.asm ... out_N.tok.csv out_N.sym.csv out_N.asm
+
+  # specify libraries
+  ./bin/gfcc -l=typo,math,std,string ./tests/*.c
 ```
 
-Use help flag for more details.
+All the flags will work even if output files are not specified Default output file names will be generated. Use help flag for more details.
 
 ### Documentation: https://www.overleaf.com/read/qjpzyjmycknt (may not be updated)
 
@@ -51,7 +63,7 @@ Use help flag for more details.
  - bison v3.0.4 or above
  - cmake v3.10.2 or above
  - gcc v7.5 or above
-
+ - spim v8.0
 
 ## Misc
   To install cmake-3.18.5 which is used in development (NOTE: Also tested on cmake-3.10.2):

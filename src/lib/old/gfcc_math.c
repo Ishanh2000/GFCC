@@ -44,9 +44,9 @@ long long gfcc_fib(int x) { // 5 -3 2 -1 1 0 1 1 2 3 5 // ok
 // }
 
 double gfcc_intpow(double x, int N) { // ok
-  if (N == 0) return 1;
-  if (N < 0) { x = 1 / x; N = -N; }
-  double ret = 1;
+  if (N == 0) return 1.0;
+  if (N < 0) { x = 1.0 / x; N = -N; }
+  double ret = 1.0;
   while (N) { ret *= x; N--; }
   return ret;
 }
@@ -62,7 +62,7 @@ double gfcc_sqrt(double x) { // Newton's Method // ok
 
 double gfcc_exp(double x) { // use Taylor's expansion // ok
   if (x < 0.0) return (1.0 / gfcc_exp(-x));
-  if (x > 500) return 1.0e+308;
+  if (x > 500.0) return 1.0e+308;
   double ret = 0.0, term_N = 1.0;
   int N = 0;
   while (term_N > __GFCC_M_PREC__) { ret += term_N; term_N *= (x / (++N)); }

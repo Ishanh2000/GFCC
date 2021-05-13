@@ -76,18 +76,19 @@ int main (int argc , char *argv[]) {
 		string s(argv[i]);
 		
 		if (s.substr(0, 10) == "--require=" || s.substr(0, 3) == "-r=") { // now get specifications for output
-			num_r_flag++; s = s.substr((s[2] == '=') ? 3 : 10); out_reqs = out_to_in = 0;
+			if (!num_r_flag) out_reqs = 0x0; // resset out_req speciifcatins since specified for first time.
+			num_r_flag++; s = s.substr((s[2] == '=') ? 3 : 10);
 			int _comma;
 			while (1) {
 				string s_ele = ""; bool brk = false; _comma = s.find_first_of(",");
 				if (_comma < 0) { s_ele = s; brk = true; }
 				else { s_ele = s.substr(0, _comma);	s = s.substr(_comma + 1);	}
 
-				     if (s_ele == "tok") { out_reqs |= OUT_TOK; out_to_in++; }
-				else if (s_ele == "ast") { out_reqs |= OUT_AST; out_to_in++; }
-				else if (s_ele == "sym") { out_reqs |= OUT_SYM; out_to_in++; }
-				else if (s_ele == "3ac") { out_reqs |= OUT_3AC; out_to_in++; }
-				else if (s_ele == "asm") { out_reqs |= OUT_ASM; out_to_in++; }
+				     if (s_ele == "tok") out_reqs |= OUT_TOK;
+				else if (s_ele == "ast") out_reqs |= OUT_AST;
+				else if (s_ele == "sym") out_reqs |= OUT_SYM;
+				else if (s_ele == "3ac") out_reqs |= OUT_3AC;
+				else if (s_ele == "asm") out_reqs |= OUT_ASM;
 				else if (s_ele != "") {
 					msg(WARN) << "Ignoring \"" << s_ele << "\" specified in \"" << argv[i] << "\" flag. Use [--help|-h] flag for more help.";
 				}
@@ -98,16 +99,17 @@ int main (int argc , char *argv[]) {
 		}
 		
 		if (s.substr(0, 6) == "--lib=" || s.substr(0, 3) == "-l=") { // now get specifications for output
-			num_l_flag++; s = s.substr((s[2] == '=') ? 3 : 6); lib_reqs = 0;
+			num_l_flag++; s = s.substr((s[2] == '=') ? 3 : 6);
 			int _comma;
 			while (1) {
 				string s_ele = ""; bool brk = false; _comma = s.find_first_of(",");
 				if (_comma < 0) { s_ele = s; brk = true; }
 				else { s_ele = s.substr(0, _comma);	s = s.substr(_comma + 1);	}
 
-				if (s_ele == "math") { lib_reqs |= LIB_MATH; }
-				else if (s_ele == "typo") { lib_reqs |= LIB_TYPO; }
-				else if (s_ele ==  "std") { lib_reqs |= LIB_STD ; }
+				     if (s_ele ==   "math") { lib_reqs |= LIB_MATH  ; }
+				else if (s_ele ==   "typo") { lib_reqs |= LIB_TYPO  ; }
+				else if (s_ele ==    "std") { lib_reqs |= LIB_STD   ; }
+				else if (s_ele == "string") { lib_reqs |= LIB_STRING; }
 				else if (s_ele != "") {
 					msg(WARN) << "Ignoring \"" << s_ele << "\" specified in \"" << argv[i] << "\" flag. Use [--help|-h] flag for more help.";
 				}
@@ -131,6 +133,13 @@ int main (int argc , char *argv[]) {
 		}
 	}
 
+	out_to_in = 0;
+	     if (out_reqs & OUT_TOK) out_to_in++;
+	else if (out_reqs & OUT_AST) out_to_in++;
+	else if (out_reqs & OUT_SYM) out_to_in++;
+	else if (out_reqs & OUT_3AC) out_to_in++;
+	else if (out_reqs & OUT_ASM) out_to_in++;
+
 	if (!out_to_in) {
 		msg(ERR) << "Please specify one/more of {tok,ast,sym,3ac,asm} after \"=\" in [--require|-r] flag. Example: \"-l=tok,asm\". Use [--help|-h] flag for more help.";
 		return E_NO_OUT_REQS;
@@ -142,9 +151,14 @@ int main (int argc , char *argv[]) {
 	}
 
 	if (num_t_flag) std::cout << _C_BOLD_ << _FORE_YELLOW_ << "Tab length set to " << tab_len << ".\n" << _C_NONE_;
-	if (lib_reqs & LIB_MATH) std::cout << _C_BOLD_ << _FORE_YELLOW_ << "Using GFCC maths library." << endl << _C_NONE_;
-	if (lib_reqs & LIB_TYPO) std::cout << _C_BOLD_ << _FORE_YELLOW_ << "Using GFCC typography library." << endl << _C_NONE_;
-	if (lib_reqs & LIB_STD ) std::cout << _C_BOLD_ << _FORE_YELLOW_ << "Using GFCC standard library." << endl << _C_NONE_;
+	
+	string usedLibs;
+	if (lib_reqs & LIB_TYPO) usedLibs += ", typography (typo)";
+	if (lib_reqs & LIB_MATH) usedLibs += ", maths (math)";
+	if (lib_reqs & LIB_STD ) usedLibs += ", standard (std)";
+	if (lib_reqs & LIB_STRING ) usedLibs += ", string (string)";
+	if (usedLibs.size()) usedLibs = usedLibs.substr(2); // remove prefixed ", "
+	std::cout << _C_BOLD_ << _FORE_YELLOW_ << "Using GFCC library(ies) : " << usedLibs << endl << _C_NONE_;
 
 	start += (2*num_t_flag) + num_r_flag + num_l_flag;
 
@@ -322,16 +336,26 @@ void update_location (char c) {
 	else column++;
 }
 
+_token_t::_token_t (struct _loc_t _pos, int _tok, string _lexeme) : pos(_pos), tok(_tok), lexeme(_lexeme) { } // constructor for struct _token_t
+
+void pushTok(struct _loc_t _pos, int _tok, string _lexeme) {
+	tokDump.push_back(token_t(_pos, _tok, _lexeme));
+}
+
 void dumpTok(std::ofstream &f, std::vector<struct _token_t> &arr) { // to dump tokens (like Milestone 1)
 	f << "*** TOTAL TOKENS = " << arr.size() << " ***" << endl << endl;
-	f << "TOKEN TYPE ID, TOKEN TYPE NAME, LEXEME, LINE, COLUMN" << endl << endl;
-	for (auto _token : arr) {
+	f << "TOKEN_TYPE_ID, TOKEN_TYPE_NAME, LEXEME, LINE, COLUMN, IS_BAD_TOKEN" << endl << endl;
+	int _l = arr.size(), _w = 2 + to_string(_l).size();
+	for (int i = 0; i < _l; i++) {
+		auto _token = arr[i];
 		int tok = _token.tok;
+		// f << setw(_w) << (i + 1) << " : ";
 		f << setw( 8) << tok << ", ";
 		f << setw(18) << ((tok < IDENTIFIER || tok > RETURN) ? _token.lexeme : TOKEN_NAME_ARRAY[tok - IDENTIFIER]) << ", ";
 		f << setw(30) << _token.lexeme << ", ";
 		f << setw( 8) << _token.pos.line << ", ";
-		f << setw( 8) << _token.pos.column << endl;
+		f << setw( 8) << _token.pos.column << ", ";
+		f << setw( 8) << (_token.bad ? "TRUE" : "FALSE") << endl;
 	}
 	f << endl;
 }

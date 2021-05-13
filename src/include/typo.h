@@ -29,6 +29,8 @@ class msg : public std::stringstream {
 
 int yyerror(const char *);
 
+std::string tabExp(std::string &); // carefully replace '\t' by tab_len number of white spaces
+
 // report error
 void repErr(loc_t &, std::string, const char *); // very similar to yyerror
 

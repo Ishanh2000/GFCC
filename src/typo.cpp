@@ -49,30 +49,39 @@ int yyerror(const char *s) {
 	return -1; // check this later on
 }
 
+string tabExp(string &s) { // carefully replace '\t' by tab_len number of white spaces
+	string wst = string(tab_len, ' '); // white space tab
+	string ret; // copy into this
+	for (auto c : s) { if (c == '\t') ret += wst; else ret.push_back(c); }
+	return ret;
+}
+
 void repErr(loc_t &_pos, string str, const char* _color) { // very similar to yyerror
 	if (string(_color) == _FORE_RED_) semanticErr = true;
 	// cout << fflush << endl;
 
 	if (_pos.lib == LIB_BASIC) {
 		cout << _C_BOLD_ << _FORE_CYAN_;
-		// all definitions for very basic symbols
+		// manually print all definitions for very basic symbols (sinc there is no library for basic symbols yet)
 		cout << "\"NULL\" is defined as ((void *)0)" << endl;
 		cout << _C_NONE_;
+		return;
 	}
 
 	string _fName(fileName); // source file (default)
 	if (_pos.lib) { // library file
 		_fName = "./src/lib/g5_";
 		switch (_pos.lib) {
-			case LIB_MATH : _fName += "math"; break;
-			case LIB_TYPO : _fName += "typo"; break;
-			case LIB_STD  : _fName +=  "std"; break;
+			case LIB_MATH   : _fName +=   "math"; break;
+			case LIB_TYPO   : _fName +=   "typo"; break;
+			case LIB_STD    : _fName +=    "std"; break;
+			case LIB_STRING : _fName += "string"; break;
 		}
 		_fName += ".h";
 	}
 
 	cout << _C_BOLD_ << "GFCC : " << _fName << ':' << _pos.line << ':' << _pos.column << ": [approx. positions indicated] ";
-	cout << _color << setw(_pos.column) << str << _C_NONE_ << endl;
+	cout << _color << str << _C_NONE_ << endl;
 
 	string lineToPrint;
 	if (_pos.lib) { // library file : Manually seek to line (_pos.line) in library file
@@ -86,7 +95,7 @@ void repErr(loc_t &_pos, string str, const char* _color) { // very similar to yy
 		in_file.seekg(offsets[_pos.line - 1]);
 		getline(in_file, lineToPrint);
 	}
-	cout << lineToPrint << endl;
+	cout << tabExp(lineToPrint) << endl;
 
 	// Now, place the '^'.
 	cout << _C_BOLD_ << _color << setw(_pos.column) << '^' << _C_NONE_ << endl;

@@ -27,6 +27,9 @@ bool show_eq = false; // to show different types of '=' (deprecated).
 
 unsigned int totLabels = 0;
 unsigned int totalTmp = 0;
+unsigned int _w_contents = 0;
+unsigned int _w_encoding = 0;
+unsigned int _w_glbName = 0;
 
 void resetIRCodes() { // reset all global variables for next file
     IRDump.clear();
@@ -35,6 +38,7 @@ void resetIRCodes() { // reset all global variables for next file
     nextQuadLabel = "";
     totLabels = 0;
     totalTmp = 0;
+    _w_contents = _w_encoding = _w_glbName = 0;
 }
 
 _irquad_t::_irquad_t (string opr, string dst, string src1, string src2) : opr(opr), dst(dst), src1(src1), src2(src2) { }
@@ -43,7 +47,11 @@ _irquad_t::_irquad_t (string opr, string dst, class Type * t_dst, string src1, c
 
 _str_t::_str_t (string _contents) : contents(_contents) { }
 
-_str_t::_str_t (string _contents, string _encoding, string _glbName) : contents(_contents), encoding(_encoding), glbName(_glbName) { }
+_str_t::_str_t (string _contents, string _encoding, string _glbName) : contents(_contents), encoding(_encoding), glbName(_glbName) {
+    if (_contents.size() > _w_contents) _w_contents = _contents.size();
+    if (_encoding.size() > _w_encoding) _w_encoding = _encoding.size();
+    if ( _glbName.size() >  _w_glbName)  _w_glbName =  _glbName.size();    
+}
 
 unsigned int nextIdx() {
     return IRDump.size();
