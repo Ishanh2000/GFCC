@@ -61,7 +61,7 @@ void libDumpTypo() {
 void libDumpMath() {
 	cout << _C_BOLD_ << _FORE_YELLOW_ << "Using GFCC Maths Library (math)." << endl << _C_NONE_;
   // global symbols : non-functions
-  Base* b = new Base(FLOAT_B); b->isConst = true;    
+  Base* b = new Base(FLOAT_B); b->isConst = true;
   SymRoot->pushSym(new sym("G5_M_PI",        clone(b), { 3, 13, LIB_MATH }));
   StrDump.push_back(str_t(float2Dec("3.141592653589793115997963468544185162"), ".word", "G5_M_PI"));
   SymRoot->pushSym(new sym("G5_M_E",         clone(b), { 4, 13, LIB_MATH }));
@@ -129,6 +129,38 @@ void libDumpStd() {
   //   Func* fn = new Func(new Ptr(new Base(VOID_B))); fn->newParam(new Ptr(new Base(VOID_B))); fn->newParam(new Base(INT_B));
   //   SymRoot->pushSym(new sym("g5_realloc", fn, { 8, 5, LIB_STD }));
   // }
+  { // global symbols : non-functions
+    Base* b = new Base(INT_B); b->isConst = true;
+    SymRoot->pushSym(new sym("O_RDONLY", clone(b), {  9, 11, LIB_MATH }));
+    StrDump.push_back(str_t("0", ".word", "O_RDONLY"));
+    SymRoot->pushSym(new sym("O_WRONLY", clone(b), { 10, 11, LIB_MATH }));
+    StrDump.push_back(str_t("1", ".word", "O_WRONLY"));
+    SymRoot->pushSym(new sym("O_RDWR",   clone(b), { 11, 11, LIB_MATH }));
+    StrDump.push_back(str_t("0x2", ".word", "O_RDWR"));
+    SymRoot->pushSym(new sym("O_CREAT",  clone(b), { 12, 11, LIB_MATH }));
+    StrDump.push_back(str_t("0x40", ".word", "O_CREAT"));
+    SymRoot->pushSym(new sym("O_APPEND", clone(b), { 13, 11, LIB_MATH }));
+    StrDump.push_back(str_t("0x400", ".word", "O_APPEND"));
+  }
+  { // int g5_open(const char *, int, int);
+    Base *b = new Base(CHAR_B); b->isConst = true;
+    Func* fn = new Func(new Base(INT_B)); fn->newParam(new Ptr(b)); fn->newParam(new Base(INT_B)); fn->newParam(new Base(INT_B));
+    SymRoot->pushSym(new sym("g5_open", fn, { 15, 5, LIB_STD }));
+  }
+  { // int g5_close(int);
+    Func* fn = new Func(new Base(INT_B)); fn->newParam(new Base(INT_B));
+    SymRoot->pushSym(new sym("g5_close", fn, { 16, 5, LIB_STD }));
+  }
+  { // int g5_read(int, const char*, int);
+    Base *b = new Base(CHAR_B); b->isConst = true;
+    Func* fn = new Func(new Base(INT_B)); fn->newParam(new Base(INT_B)); fn->newParam(new Ptr(b)); fn->newParam(new Base(INT_B));
+    SymRoot->pushSym(new sym("g5_read", fn, { 17, 5, LIB_STD }));
+  }
+  { // int g5_write(int, const char*, int);
+    Base *b = new Base(CHAR_B); b->isConst = true;
+    Func* fn = new Func(new Base(INT_B)); fn->newParam(new Base(INT_B)); fn->newParam(new Ptr(b)); fn->newParam(new Base(INT_B));
+    SymRoot->pushSym(new sym("g5_write", fn, { 18, 5, LIB_STD }));
+  }
 }
 
 void libDumpString() {
