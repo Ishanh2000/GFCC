@@ -108,6 +108,27 @@ void libDumpStd() {
     Func* fn = new Func(new Base(INT_B)); fn->newParam(new Base(INT_B));
     SymRoot->pushSym(new sym("g5_exit", fn, { 3, 5, LIB_STD }));
   }
+  { // int g5_atoi(const char *);
+    Base *b = new Base(CHAR_B); b->isConst = true;
+    Func* fn = new Func(new Ptr(b)); fn->newParam(new Base(INT_B));
+    SymRoot->pushSym(new sym("g5_atoi", fn, { 4, 5, LIB_STD }));
+  }
+  { // void *g5_malloc(int);
+    Func* fn = new Func(new Ptr(new Base(VOID_B))); fn->newParam(new Base(INT_B));
+    SymRoot->pushSym(new sym("g5_malloc", fn, { 5, 5, LIB_STD }));
+  }
+  { // void g5_free(void *);
+    Func* fn = new Func(new Base(VOID_B)); fn->newParam(new Ptr(new Base(VOID_B)));
+    SymRoot->pushSym(new sym("g5_free", fn, { 6, 5, LIB_STD }));
+  }
+  { // void *g5_calloc(int, int);
+    Func* fn = new Func(new Ptr(new Base(VOID_B))); fn->newParam(new Base(INT_B)); fn->newParam(new Base(INT_B));
+    SymRoot->pushSym(new sym("g5_calloc", fn, { 7, 5, LIB_STD }));
+  }
+  // { // void *g5_realloc(void *, int);
+  //   Func* fn = new Func(new Ptr(new Base(VOID_B))); fn->newParam(new Ptr(new Base(VOID_B))); fn->newParam(new Base(INT_B));
+  //   SymRoot->pushSym(new sym("g5_realloc", fn, { 8, 5, LIB_STD }));
+  // }
 }
 
 void libDumpString() {

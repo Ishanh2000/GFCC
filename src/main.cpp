@@ -125,7 +125,7 @@ int main (int argc , char *argv[]) {
 				return E_NO_OUT_REQS;
 			}
 			if (matches(argv[i], "--lib", "-l")) {
-				msg(ERR) << "Please specify one/more of {math,typo,std} after \"=\" after [--lib|-l] flag. Example: \"-l=math,typo\". Use [--help|-h] flag for more help.";
+				msg(ERR) << "Please specify one/more of {math,typo,std,string} after \"=\" after [--lib|-l] flag. Example: \"-l=math,typo\". Use [--help|-h] flag for more help.";
 				return E_NO_LIB_REQS;
 			}
 			msg(ERR) << "Invalid option \"" << argv[i] << "\". Use [--help|-h] flag for more help.";
@@ -146,7 +146,7 @@ int main (int argc , char *argv[]) {
 	}
 
 	if (num_l_flag && !lib_reqs) {
-		msg(ERR) << "Please specify one/more of {math,typo,std} after \"=\" in [--lib|-l] flag. Example: \"-l=math,typo\". Use [--help|-h] flag for more help.";
+		msg(ERR) << "Please specify one/more of {math,typo,std,string} after \"=\" in [--lib|-l] flag. Example: \"-l=math,typo\". Use [--help|-h] flag for more help.";
 		return E_NO_OUT_REQS;
 	}
 
