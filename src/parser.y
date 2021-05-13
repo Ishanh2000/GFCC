@@ -1863,13 +1863,20 @@ selection_statement
 		backpatch($5->caselist, $3->eval);
 		backpatch($5->nextlist, nextIdx());
 		backpatch($5->breaklist, nextIdx());
-		$$->contlist = $5->contlist;		
+		$$->contlist = $5->contlist;
 	}
 	;
 
 M1: IF '(' expression ')'
 	{
-		emit(eps, NULL, "ifgoto", to_string(nextIdx()+2), NULL, $3->eval, $3->type);
+		string ev = $3->eval;
+		if (ev.find(".") == string::npos || ev.find("->") == string::npos
+		|| ev.find("[") == string::npos || ev.find("*") == string::npos) {
+			string _tmp = newTmp(clone($3->type));
+			emit(_tmp, $3->type, eps, ev, $3->type); // _tmp = $3->eval
+			ev = _tmp;
+		}
+		emit(eps, NULL, "ifgoto", to_string(nextIdx()+2), NULL, ev, $3->type);
 		$3->falselist.push_back(nextIdx());
 		emit(eps, NULL, "goto", "---", NULL);
 		backpatch($3->truelist, nextIdx());
