@@ -162,7 +162,6 @@ void regMap(std::ofstream & f, reg_t reg, sym* symb, bool load = true) {
     }
   }
   else if (isPtr(symb->type) || load) { // always load pointer :/ (can be lvalue)
-      cout << "regMap:::: " + symb->name + " " << (symb->parent == SymRoot->root) << endl;
     if(symb->parent == SymRoot->root) {
       if(isFuncType(symb->type))
         f << '\t' << "la " << reg2str[reg] +  ", " + symb->name;
@@ -361,10 +360,10 @@ void dumpASM(ofstream &f, vector<irquad_t> & IR) {
 
   int lenIR = IR.size();
   int currleader = 0;
-  cout<< "Leader at: " << 0 << endl;
+  // cout<< "Leader at: " << 0 << endl;
   while(currleader < lenIR) {
     int nxtleader = getNxtLeader(IR, currleader);
-    cout<< "Leader at: " << nxtleader << endl;
+    // cout<< "Leader at: " << nxtleader << endl;
     
     // if label exist to this statement
     if(Labels.find(currleader) != Labels.end()) {
@@ -396,6 +395,8 @@ void genASM(ofstream & f, irquad_t & quad) {
   // ! Dangerous
   if(lastdelta.dst.Type != 0 || lastdelta.src1.Type != 0 || lastdelta.src2.Type != 0)
     resetRegMaps(f, true);
+  if(quad.opr == "!=")
+    quad.opr = "^";
 
   if (quad.src2 != eps && (
       quad.opr == "+" || quad.opr == "-" ||
@@ -404,6 +405,7 @@ void genASM(ofstream & f, irquad_t & quad) {
       quad.opr == "real*" || quad.opr == "real/" ||
       quad.opr == ">" || quad.opr == "<" ||
       quad.opr == ">=" || quad.opr == "<=" ||
+      quad.opr == "%" ||
       quad.opr == "==" || quad.opr == "&&" || 
       quad.opr == "||" || quad.opr == "&"|| 
       quad.opr == "|"||quad.opr == "<<"||
@@ -499,6 +501,77 @@ void genASM(ofstream & f, irquad_t & quad) {
     }
     f << " # " + quad.dst + " = & " + quad.src1 << endl;
   }
+  
+  // else if (quad.opr == "-") { // logical
+  //   oprRegs regs = getReg(f, quad);
+  
+  //   string instr = "negu";
+  //   if( isReal(quad.t_dst) &&  quad.opr == "real-")
+  //   {
+  //     instr = "neg.s";
+  //   }
+
+  //   inst_t Isrc1 = getInst(quad.t_src1);
+  //   inst_t Idst = getInst(quad.t_dst);
+  //   tmp_regs Rsrc1 = getTmpRegs(quad.t_src1);
+  //   tmp_regs Rdst = getTmpRegs(quad.t_dst);
+
+  //   string addrDst = loadArrAddr(f,lastdelta.dst, "0");
+  //   string addrSrc1 = loadArrAddr(f, lastdelta.src1, "1");
+    
+  //   if ( isReal(quad.t_dst) && regs.src2Reg == zero )
+  //   {
+  //     f << '\t' << Idst.load_const << " " << reg2str[Rdst.exreg] << ", " << q.src2 << endl;
+  //     q.src2 = reg2str[Rdst.exreg];
+  //   }
+
+  //   /* load a constant */
+  //   if(regs.src1Reg == zero) {
+  //     // TODO other types
+  //     if(addrDst != ""){ // dst is an array
+  //       // TODO: non-constant offset -- lastdelta.dstArrSymb
+
+  //       f << '\t' << Isrc1.load_const << " " << reg2str[Rsrc1.exreg] << ", " + quad.src1 << endl;
+        
+  //       f << '\t' << Isrc1.store_instr << " "
+  //         << reg2str[Rsrc1.exreg] << ", " + addrDst
+  //         << " # " + quad.dst + "[][]...[]" << endl;
+  //     }
+  //     else {
+  //       f << '\t' << Isrc1.load_const << " " << reg2str[regs.dstReg] + ", " + quad.src1;
+  //       f << " # " + quad.dst <<endl;
+  //     }
+  //   }
+  //   else{
+  //     if (addrSrc1 != ""){ // src1 complex type
+  //       f << '\t' << Isrc1.load_instr << " " << reg2str[Rsrc1.exreg] << " , " + addrSrc1 << endl;
+  //       regs.src1Reg = Rsrc1.exreg;
+  //     }
+
+  //     if(addrDst != ""){ // dst complex type
+  //       /* eg. sw $a4, ($a0) ||  lw $a4, 100($t0) */
+  //       f << '\t' << Isrc1.store_instr << " "
+  //         <<  reg2str[regs.src1Reg] + ", " + addrDst
+  //         << " # " + q.dst + "[][]...[]" << endl;
+  //     }
+  //     else { // dst simple type
+  //       f << '\t' << Isrc1.move_instr << " " << reg2str[regs.dstReg] + ", " + reg2str[regs.src1Reg] << endl;
+  //     }
+  //   }
+  // }
+
+  // else if (quad.opr == "!") { // logical WRONG
+  //   quad.src2 = "-1";
+  //   quad.opr = "^";
+  //   binOpr(f, quad);
+  // }
+
+  else if (quad.opr == "~") { // logical
+    quad.src2 = "-1";
+    quad.opr = "^";
+    binOpr(f, quad);
+  }
+
 
   else if (quad.opr == "*") {
     // TODO
@@ -508,7 +581,7 @@ void genASM(ofstream & f, irquad_t & quad) {
     string src1 = quad.src1;
     if( src1 == "---" ) return;
     resetRegMaps(f);
-    cout << src1 <<endl;
+    // cout << src1 <<endl;
     if(!src1.empty() &&  src1[0] == 'U'); // TODO: use better check
     else src1 = ("LABEL_" + src1);
     f << "\t" <<"b " + src1 << endl;
@@ -534,7 +607,7 @@ void genASM(ofstream & f, irquad_t & quad) {
     for (auto tab: symtabs) {
       if (tab->name == scopeName ) { scopeTab = tab; break; }
     }
-    cout << "opening scope" + quad.src1 << endl;
+    // cout << "opening scope" + quad.src1 << endl;
     // change scope
     SymRoot->currScope = scopeTab;
     for (sym* symb: scopeTab->syms) {
@@ -553,7 +626,7 @@ void genASM(ofstream & f, irquad_t & quad) {
   else if(quad.opr == "closeScope") {
     // resetRegMaps(f);
     // close scope
-    cout << "closing " + quad.src1<<endl;
+    // cout << "closing " + quad.src1<<endl;
     SymRoot->currScope = SymRoot->currScope->parent;
   }
 
@@ -706,7 +779,7 @@ void funcEnd(std::ofstream & f, const irquad_t & quad) {
   // close scope
   if(SymRoot->currScope->parent)
   {
-    cout << "funcEnd" <<endl;
+    // cout << "funcEnd" <<endl;
     SymRoot->currScope = SymRoot->currScope->parent;
   }
   f << currFunc + "_ret:" << endl;
@@ -766,6 +839,7 @@ void binOpr(std::ofstream & f, irquad_t & q) {
     else if (opr == "<<") instr = "sll";
     else if (opr == ">>") instr = "sra";
     else if (opr == "^") instr = "xor";
+    else if (opr == "%") instr = "remu";
   }
     
     inst_t Isrc1 = getInst(q.t_src1);
@@ -843,13 +917,13 @@ void assn(ofstream & f, const irquad_t &q) {
   inst_t Idst = getInst(q.t_dst);
   tmp_regs Rsrc1 = getTmpRegs(q.t_src1);
   tmp_regs Rsrc2 = getTmpRegs(q.t_src2);
-  tmp_regs Rdst = getTmpRegs(q.t_dst);    
+  tmp_regs Rdst = getTmpRegs(q.t_dst);
     
   
-  /* just remapping resgisters */
   string addrDst = loadArrAddr(f,lastdelta.dst, "0");
   string addrSrc1 = loadArrAddr(f, lastdelta.src1, "1");
 
+  /* just remapping resgisters */
   if (regs.dstReg == regs.src1Reg && lastdelta.dst.Type == 0) {
     /* only for simple type */
     // TODO:: this optimization is disabled in getReg()
@@ -945,53 +1019,7 @@ int getNxtLeader(vector<irquad_t> & IR, int leader) {
   for (int idx = nxtLeader - 1; idx >= leader; idx--) {
     deltaNxtUse delta;
 
-    // int boxStart, boxEnd;
-
-    // boxStart = IR[idx].dst.find_first_of('[');
-    // boxEnd = IR[idx].dst.find_first_of(']');
-
-    // if(boxStart >= 0 && boxEnd >= 0) {
-    //   delta.dst.Type = 1;
-    //   string tmp = IR[idx].dst.substr(0, boxStart);
-    //   while(boxStart >= 0 && boxEnd >= 0){
-    //     delta.dst.ArrOff.push_back(IR[idx].dst.substr(boxStart+1, boxEnd-boxStart-1));
-    //     delta.dst.ArrSymb.push_back(SymRoot->gLookup(delta.dst.ArrOff.back()));
-    //     boxStart = IR[idx].dst.find_first_of('[', boxEnd+1);
-    //     boxEnd = IR[idx].dst.find_first_of(']', boxEnd+1);
-    //   }
-    //   IR[idx].dst = tmp;
-    // }
-
-    // boxStart = IR[idx].src1.find_first_of('[');
-    // boxEnd = IR[idx].src1.find_first_of(']');
-
-    // if(boxStart >= 0 && boxEnd >= 0) {
-    //   delta.src1.Type = 1;
-    //   string tmp = IR[idx].src1.substr(0, boxStart);
-    //   while(boxStart >= 0 && boxEnd >= 0){
-    //     delta.src1.ArrOff.push_back(IR[idx].src1.substr(boxStart+1, boxEnd-boxStart-1));
-    //     delta.src1.ArrSymb.push_back(SymRoot->gLookup(delta.src1.ArrOff.back()));
-    //     boxStart = IR[idx].src1.find_first_of('[', boxEnd+1);
-    //     boxEnd = IR[idx].src1.find_first_of(']', boxEnd+1);
-    //   }
-    //   IR[idx].src1 = tmp;
-    // }
-
-    // boxStart = IR[idx].src2.find_first_of('[');
-    // boxEnd = IR[idx].src2.find_first_of(']');
-
-    // if(boxStart >= 0 && boxEnd >= 0) {
-    //   delta.src2.Type = 1;
-    //   string tmp = IR[idx].src2.substr(0, boxStart);
-    //   while(boxStart >= 0 && boxEnd >= 0){
-    //     delta.src2.ArrOff.push_back(IR[idx].src2.substr(boxStart+1, boxEnd-boxStart-1));
-    //     delta.src2.ArrSymb.push_back(SymRoot->gLookup(delta.src2.ArrOff.back()));
-    //     boxStart = IR[idx].src2.find_first_of('[', boxEnd+1);
-    //     boxEnd = IR[idx].src2.find_first_of(']', boxEnd+1);
-    //   }
-    //   IR[idx].src2 = tmp;
-    // }
-    /* For struct parsing */
+    /* For struct/array parsing */
     parseStruct(IR[idx].dst, delta.dst);
     parseStruct(IR[idx].src1, delta.src1);
     parseStruct(IR[idx].src2, delta.src2);
@@ -1000,8 +1028,6 @@ int getNxtLeader(vector<irquad_t> & IR, int leader) {
     sym* src1Sym = SymRoot->gLookup(IR[idx].src1);
     sym* src2Sym = SymRoot->gLookup(IR[idx].src2);
     
-    if (dbg_print) SymRoot->dump(csv_out2);
-    if (dbg_print) csv_out2 << "\n\n\n##################\n\n\n"<<endl;
     // break;
     if (dstSym) {
       delta.dst.Sym    = dstSym;
@@ -1040,7 +1066,6 @@ int getNxtLeader(vector<irquad_t> & IR, int leader) {
     }
     nxtUse.deltas.push_back(delta);
   } // backward pass in the current main block
-  if (dbg_print) SymRoot->dump(csv_out2);
   return nxtLeader;
 }
 

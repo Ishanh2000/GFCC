@@ -481,7 +481,7 @@ unary_expression
 				if ($1->tok == '+') $$->eval = $2->eval;
 				else if ($2->tok == CONSTANT) $$->eval = "-" + $2->eval;
 				else {
-					emit($$->eval = newTmp(clone(t)), t, isReal(t) ? "real-" : "-", $2->eval, t); // t_1 = - t_0
+					emit($$->eval = newTmp(clone(t)), t, isReal(t) ? "real*" : "*", $2->eval, t, isReal(t) ? "-1.0" : "-1", clone(t)); // t_1 = - t_0
 					if (isReal(t)) IRDump.back().eq = "real=";
 				}
 				break;
@@ -500,7 +500,7 @@ unary_expression
 						_tmp = newTmp(clone(new Base(INT_B)));
 						emit(_tmp, t, "real2int", $2->eval, t);
 					}
-					emit($$->eval = newTmp(clone(t)), t, "!", _tmp, t); // t_1 = ! t_0
+					emit($$->eval = newTmp(clone(t)), t, "!=", _tmp, t, "0", clone(t)); // t_1 =  t_0 != 0
 				}
 				
 				break;
@@ -561,14 +561,14 @@ unary_expression
 	}
 	| SIZEOF unary_expression			{ $$ = op( $1, 0, 1, ej($2) );
 		$$->eval = to_string(getSize($2->type));
-		Base *b = new Base(LONG_B); b->sign = UNSIGNED_X;
+		Base *b = new Base(INT_B); b->sign = UNSIGNED_X;
 		b->isErr |= $2->type->isErr;
 		$$->type = b;
 		$$->type->lvalue = false;
 	}
 	| SIZEOF '(' type_name ')'			{ $$ = op( $1, 0, 1, ej($3) );
 		$$->eval = to_string(getSize($3->type));
-		Base *b = new Base(LONG_B); b->sign = UNSIGNED_X;
+		Base *b = new Base(INT_B); b->sign = UNSIGNED_X;
 		b->isErr |= $3->type->isErr;
 		$$->type = b;
 		$$->type->lvalue = false;
