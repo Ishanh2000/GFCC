@@ -128,8 +128,8 @@ void regFlush(std::ofstream & f, reg_t reg, bool store = true) {
     // always do in case of global
     inst_t I = getInst(regDscr[reg]->type);
     
-    bool isArr = regDscr[reg]->type->grp() == ARR_G;
-    if (store && !isArr) {
+    // bool isArr = regDscr[reg]->type->grp() == ARR_G;
+    if (store && !isArr(regDscr[reg]->type) && !isStruct(regDscr[reg]->type)) {
       if(regDscr[reg]->parent == SymRoot->root) {
         if(!isFuncType(regDscr[reg]->type)) 
           f << '\t' << I.store_instr << " " << reg2str[reg] + ", global_" + regDscr[reg]->name;
@@ -523,10 +523,10 @@ void genASM(ofstream & f, irquad_t & quad) {
   else if (quad.opr == "goto") {
     resetRegMaps(f);
     string src1 = quad.src1;
+    if( src1 == "---" ) return;
     cout << src1 <<endl;
     if(!src1.empty() &&  src1[0] == 'U'); // TODO: use better check
     else src1 = ("LABEL_" + src1);
-
     f << "\t" <<"b " + src1 << endl;
   }
 
@@ -596,11 +596,14 @@ void genASM(ofstream & f, irquad_t & quad) {
       f << '\t' << Isrc1.store_instr << " " << reg2str[Rsrc1.exreg] + ", -" + to_string(paramOffset)+"("+ reg2str[sp] + ")";
       f << " # load parameter to func" << endl;
     }
-    else {
+    else { // non-const
       int size = lastdelta.src1.Sym->size;
       size = ((size+3)/4)*4;
       string paramAddr = loadArrAddr(f, lastdelta.src1, "1");
-      if(paramAddr != "") { // a[0], a.x
+      
+      if(Isrc1.store_instr != "s.s") Isrc1.store_instr = "sw";
+
+      if(paramAddr != "") { // a[0], a.x complex type
         // TODO:: use better method
         if(lastdelta.src1.Type == 1)
           size = getSize(((Arr *)lastdelta.src1.Sym->type)->item);
@@ -614,7 +617,7 @@ void genASM(ofstream & f, irquad_t & quad) {
       }
       else {  // a
         // TODO struct
-        if(lastdelta.src1.Sym->type->grp() == ARR_G) { 
+        if(isArr(lastdelta.src1.Sym->type)) {
           size = 4; // store only pointer to the array in stack
           paramOffset += size;
           f << '\t' << "sw" << " " << reg2str[regs.src1Reg] + ", -" + to_string(paramOffset)+"("+ reg2str[sp] + ")";
@@ -891,6 +894,13 @@ void assn(ofstream & f, const irquad_t &q) {
     // extra checks for sanity
     if(!tMatch(lastdelta.dst.FinalType, lastdelta.src1.FinalType))
       cerr << "ERROR: struct = non_struct" << endl;
+    
+    // if not-complex --> addr is directly in dstReg and srcReg
+    if(addrDst == "")
+      addrDst = "(" + reg2str[regs.dstReg] + ")";
+    if(addrSrc1 == "")
+      addrSrc1 = "(" + reg2str[regs.src1Reg] + ")";
+
     if(addrDst != "($a0)") // if did optimzations in addr calculation
       f << '\t' << "la" << " " << "$a0" << ", " + addrDst << endl;
     if(addrSrc1 != "($a1)") // if did optimzations in addr calculation
@@ -1016,9 +1026,9 @@ int getNxtLeader(vector<irquad_t> & IR, int leader) {
       if (dstSym->name[0] == '0')
         dstSym->alive = false;
       dstSym->nxtuse = -1;
-      // if(delta.dst.Type == 1) { // a[][]
-        IR[idx].t_dst = dstSym->type;
-      // }
+      IR[idx].t_dst = dstSym->type;
+      if(delta.dst.FinalType == NULL) 
+        delta.dst.FinalType = dstSym->type;
     }
 
     if (src1Sym) {
@@ -1028,9 +1038,9 @@ int getNxtLeader(vector<irquad_t> & IR, int leader) {
       if (src1Sym->name[0] == '0')
         src1Sym->alive = true;
       src1Sym->nxtuse =  idx - leader;
-      // if(delta.src1.Type == 1) { // a[][]
       IR[idx].t_src1 = src1Sym->type;
-      // }
+      if(delta.src1.FinalType == NULL) 
+        delta.src1.FinalType = src1Sym->type;
     }
 
     if (src2Sym) {
@@ -1040,9 +1050,9 @@ int getNxtLeader(vector<irquad_t> & IR, int leader) {
       if (src2Sym->name[0] == '0')
         src2Sym->alive = true;
       src2Sym->nxtuse =  idx - leader;
-      // if(delta.src2.Type == 1) { // a[][]
-        IR[idx].t_src2 = src2Sym->type;
-      // }
+      IR[idx].t_src2 = src2Sym->type;
+      if(delta.src2.FinalType == NULL) 
+        delta.src2.FinalType = src2Sym->type;
     }
     nxtUse.deltas.push_back(delta);
   } // backward pass in the current main block

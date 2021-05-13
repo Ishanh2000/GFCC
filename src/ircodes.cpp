@@ -242,7 +242,11 @@ void dumpIRCode(ofstream &f, int _w, int i, irquad_t &q) { // dump single 3AC co
     f << setw(_w) << (i) << " : ";
 
     // goto <src1>
-    if (q.opr == "goto") f << "goto " << q.src1;
+    if (q.opr == "goto") 
+    {
+        if( q.src1 == "---" ) f << "no_op";
+        else f << "goto " << q.src1;
+    }    
 
     // label <src1>
     else if (q.opr == "label") f << "label " << q.src1;
