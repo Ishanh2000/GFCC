@@ -1,6 +1,6 @@
 float foo(float a[][3]) {
 	// int b[5] = a;
-	return a[0][1];
+	return a[1][1];
 }
 
 int main() {
@@ -17,7 +17,7 @@ int main() {
 	// aa[0][1] = c[3] * b[1]; // 4 * 2 = 8
 	d = foo(aa);
 	g5_printf("asgasdg\n");
-	g5_printf("%d %d\n", foo(aa), 1);
+	g5_printf("%f %d\n", foo(aa), 1);
 
 	return 0;
 }

@@ -13,6 +13,7 @@ int main() {
     struct pair b;
     struct sub a_sub;
     struct sub b_sub;
+    int arr[100];
     a.y = &a_sub;
     b.y = &b_sub;
     b.y->a.aa = 0;

@@ -10,7 +10,6 @@ string loadArrAddr(ofstream & f, deltaOpd & Opd, string pos) {
     *       1 for src1 (use $a1, $a3)
     *       2 for src2 (use $a2, $a3)
   */
-
   if(!Opd.Sym || Opd.Type == 0 ) {
     // cout << "string loadArrAddr: Called for non-array" << endl;
     return "";
@@ -96,6 +95,21 @@ string loadArrAddr(ofstream & f, deltaOpd & Opd, string pos) {
 				  f << '\t' << "addu " + addrReg + ", " + addrReg + ", " << to_string(pfx.symb->offset) 
             << " # offset calc" << endl;
 			}
+      else if (pfx.type == "[]") {
+        if(pfx.symb == NULL) {
+          if (pfx.name != "0")
+          f << '\t' << "addu " + addrReg + ", " + addrReg + ", " << pfx.name
+            << " # offset calc" << endl;
+        }
+        else {
+          f << '\t' << "lw $a3, -" + to_string(pfx.symb->offset) + "($fp)"
+            << " # load " + pfx.symb->name << endl;
+          f << '\t' << "mul $a3, $a3, " + pfx.name
+            << " # width calc" << endl;
+          f << '\t' << "addu " + addrReg + ", " + addrReg + ", $a3"
+            << " # offset calc" << endl;
+        }
+      }
 		}
 		return "("+addrReg+")";
   }
@@ -108,14 +122,14 @@ string loadArrAddr(ofstream & f, deltaOpd & Opd, string pos) {
 
 
 void parseStruct(string & q, deltaOpd & Opd) {
-	vector <string> tokens = {".", ">"};
-	int nxtPos = Find_first_of(q, tokens);
-	if(nxtPos >= 0) {
+	vector <string> tokens = {".", ">", "["};
+	int currPos = Find_first_of(q, tokens);
+	if(currPos >= 0) {
 		Opd.Type = 2;
 		cout <<"Struct parse " << q << endl;
-		string tmp = q.substr(0, nxtPos);
-		if(q[nxtPos] == '>')tmp.pop_back();
-		cout << tmp << endl;
+		string tmp = q.substr(0, currPos);
+		if(q[currPos] == '>')tmp.pop_back();
+		cout << "Base: " + tmp << endl;
 		/* search in sym table */
 		sym* st_sym = SymRoot->gLookup(tmp);
 		Type* st_type;
@@ -131,46 +145,104 @@ void parseStruct(string & q, deltaOpd & Opd) {
 		p.name = tmp;
 		p.symb = st_sym;
 		p.type = "---";
-		Opd.PfxOprs.push_back(p);
+		// Opd.PfxOprs.push_back(p);
 
-		int nnxtPos = Find_first_of(q, tokens, nxtPos+1);
-		while(nnxtPos >= 0){
+    vector<int> dimSize;
+    int counter = 0, dimCount = 0, dimWidth = 1;
+    int nxtPos = Find_first_of(q, tokens, currPos+1);
+		while(currPos >= 0){
 			pfxOpr p;
-			p.type = q[nxtPos]; // ".", ">"
-			p.name = q.substr(nxtPos+1, nnxtPos-nxtPos-1);
-			if(q[nnxtPos] == '>') p.name.pop_back();
-			
-			if(p.type == ">") { // pointer to struct
-				if(!isPtr(st_type)) cout << "-> for non-pointer" << endl;
-				st_type = ((Ptr *) st_type)->pt;
-			}
-			if(!isStruct(st_type)) cout << p.name + " is not an struct" << endl;
-			st_sym = findStructChild(st_type, p.name);
-			st_type = st_sym->type;
-			p.symb = st_sym;
-			Opd.PfxOprs.push_back(p);
-			cout << p.type + "  " + p.name << endl; //!
+      p.type = q[currPos]; // ".", ">", "["
 
-			nxtPos = nnxtPos;
-			nnxtPos = Find_first_of(q, tokens, nxtPos + 1);
-		}
-		if(nxtPos != q.size()) {
-			pfxOpr p;
-			p.type = q[nxtPos]; // ".", ">"
-			p.name = q.substr(nxtPos+1);
-			if(q[nnxtPos] == '>') p.name.pop_back();
+      if(p.type == ">" || p.type == ".") { // ".", "->"
+        p.name = q.substr(currPos+1, nxtPos-currPos-1);
+        if(q[nxtPos] == '>') p.name.pop_back();
+        
+        if(p.type == ">") { // pointer to struct
+          if(!isPtr(st_type)) cout << "-> for non-pointer" << endl;
+          st_type = ((Ptr *) st_type)->pt;
+        }
+        if(!isStruct(st_type)) cout << p.name + " is not an struct" << endl;
+			  st_sym = findStructChild(st_type, p.name);
+			  st_type = st_sym->type;
+        p.symb = st_sym;
+      }
 
-			if(p.type == ">") { // pointer to struct
-				if(!isPtr(st_type)) cout << "-> for non-pointer" << endl;
-				st_type = ((Ptr *) st_type)->pt;
-			}
-			if(!isStruct(st_type)) cout << p.name + " is not an struct" << endl;
-			st_sym = findStructChild(st_type, p.name);
-			st_type = st_sym->type;
-			p.symb = st_sym;
+      else if(p.type == "[") { // "[]" -- either array or pointer
+
+        p.type = "[]";
+        int brkClosePos = q.find_first_of("]", currPos+1);
+        if(brkClosePos == -1) cout << "parseStruct:: Error: can't find ']'" << endl;
+        p.name = q.substr(currPos+1, brkClosePos-currPos-1);
+        p.symb = SymRoot->gLookup(p.name); // NULL if constant
+        nxtPos = Find_first_of(q, tokens, brkClosePos+1);
+
+        if(dimCount == 0) { // start of array or pointer
+          if(!isArr(st_type) && !isPtr(st_type)) cout << "-> for invalid type" << endl;
+          
+          if(isArr(st_type)) {
+            Arr* a = (Arr *) st_type;
+            st_type =  a->item;
+            dimSize = getDimSize(a);
+            cout << "#########" << endl;
+            dimWidth = getWidth(dimSize);
+            dimCount = dimSize.size();
+            counter = 1;
+          }
+          
+          else {
+            // element width == dimWidth
+            dimWidth = 1;
+            counter = 0;
+            st_type = ptrChildType(st_type);
+          }
+        }
+        
+        int dimOffs = getSize(st_type) * dimWidth; // dimWidth * elSize
+        if(!p.symb) { // constant offset
+          p.name = to_string(stoi(p.name) * dimOffs);
+        }
+        else p.name = to_string(dimOffs);
+
+        if(counter == dimCount){ // end multidim array;
+          counter = 0;
+          dimCount = 0;
+        }
+        else { // carry on multi-dim array
+          // get width of nxt dimension
+          dimWidth /= dimSize[counter];
+          counter++;
+        }
+      }
+
 			Opd.PfxOprs.push_back(p);
-			cout << p.type + "  " + p.name << endl; //!
+			cout << p.type + "  " + p.name + " " << counter << endl; //!
+			currPos = nxtPos;
+			nxtPos = Find_first_of(q, tokens, currPos + 1);
 		}
+		// if(currPos != q.size()) {
+		// 	pfxOpr p;
+		// 	p.type = q[currPos]; // ".", ">"
+		// 	p.name = q.substr(currPos+1);
+		// 	if(q[nxtPos] == '>') p.name.pop_back();
+
+		// 	if(p.type == ">") { // pointer to struct
+		// 		if(!isPtr(st_type)) cout << "-> for non-pointer" << endl;
+		// 		st_type = ((Ptr *) st_type)->pt;
+		// 	}
+    //   else if(p.type == "[") {
+    //     p.type = "[]";
+    //     int brkClosePos = q.find_first_of("]", currPos+1);
+    //     if(brkClosePos == -1) cout << "parseStruct:: Error: can't find ']'" << endl;
+    //     nxtPos = brkClosePos;
+    //   }
+		// 	if(!isStruct(st_type)) cout << p.name + " is not an struct" << endl;
+		// 	st_sym = findStructChild(st_type, p.name);
+		// 	st_type = st_sym->type;
+		// 	p.symb = st_sym;
+		// 	Opd.PfxOprs.push_back(p);
+		// 	cout << p.type + "  " + p.name << endl; //!
+		// }
 		q = tmp;
 		Opd.FinalType = st_type;
 	}
@@ -213,6 +285,36 @@ sym* findStructChild(Type* st_type, string chName) {
 	return NULL;
 }
 
+Type* ptrChildType(Type * t) {
+  if(!isPtr(t)) return NULL;
+  Ptr* p = (Ptr *) clone(t);
+  if(p->ptrs.size()==1) return p->pt;
+  else {
+    p->ptrs.pop_back();
+    return p;
+  }
+}
+
+vector<int> getDimSize(Arr* a) {
+  vector<int> dimSize;
+  for(auto dim: a->dims) {
+    int * sizePtr = eval(dim);
+    if(!sizePtr) {
+      dimSize.push_back(INT16_MAX);
+    }
+    else dimSize.push_back(*sizePtr);
+  }
+  return dimSize;
+}
+
+int getWidth(vector<int> dimSize) {
+  int width = 1;
+  for(int i = 1; i < dimSize.size(); i++) {
+    width *= dimSize[i];
+  }
+  cout << "width " << width << endl;
+  return width;
+}
 
 size_t Find_first_of(string s, vector<string> tokens, size_t pos) {
 	size_t nxtPos = -1;
