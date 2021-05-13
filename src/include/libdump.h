@@ -12,7 +12,15 @@
 #include <iostream>
 #include <fstream>
 
+extern int lib_reqs; // library requirements (default none)
+
 std::string float2Dec(std::string); // IEEE 754 conversion
+
+void libDumpBasic();
+void libDumpTypo();
+void libDumpMath();
+void libDumpStd();
+void libDumpString();
 
 void libDumpSym(int);
 

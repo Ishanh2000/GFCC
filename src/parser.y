@@ -464,6 +464,8 @@ unary_expression
 	| unary_operator cast_expression	{ $$ = op( $1, 0, 1, ej($2) );
 		Type *t = $2->type; grp_t g = t->grp(); base_t bs; bool tilda_good = false; Type* _t = clone(t);
 		Arr *a; Ptr *p;
+		bool doEmitForPtr = false;
+
 		if (t->isErr) { $$->type = t; }
 		else switch ($1->tok) {
 			case '+' : case '-' :
@@ -518,13 +520,13 @@ unary_expression
 				switch (g) {
 					case ARR_G :
 						a = (Arr *) t;
-						if (a->dims.size() > 1) { a->dims.erase(a->dims.begin()); $$->type = a; }
-                		else if (a->dims.size() == 1) $$->type = a->item;
+						if (a->dims.size() > 1) { a->dims.erase(a->dims.begin()); $$->type = a;	}
+						else if (a->dims.size() == 1) $$->type = a->item;
 						break;
 
 					case PTR_G :
 						p = (Ptr *) t;
-						if (p->ptrs.size() > 1) { p->ptrs.pop_back(); $$->type = p; }
+						if (p->ptrs.size() > 1) { p->ptrs.pop_back(); $$->type = p; doEmitForPtr = true; }
 						else if (p->ptrs.size() == 1) { $$->type = p->pt; }
 						break;
 
@@ -538,6 +540,9 @@ unary_expression
 				$$->type->lvalue = true;
 				/* emit($$->eval = newTmp(clone($$->type)), $$->type, "*", $2->eval, t); // t_1 = * t_0 */
 				/* if (isReal($$->type)) IRDump.back().eq = "real="; */
+				/* if (doEmitForPtr) {
+					emit($$->eval = newTmp(clone($$->type)), $$->type, "*", $2->eval, _t); // t_1 = * t_0
+				} else */
 				$$->eval = "*" + $2->eval;
 				break;
 

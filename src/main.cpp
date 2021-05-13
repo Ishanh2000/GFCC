@@ -31,6 +31,7 @@ vector<unsigned int> offsets = { 0 }; // line i starts at offsets[i-1], line 1 s
 vector<struct _token_t> tokDump;
 ifstream in_file;
 loc_t nonPos = { 0, 0, 0x0 };
+int lib_reqs = 0x0; // library requirements (default none)
 
 // CLA: <exec-name> [some options] in_1 in_2 ... in_N
 // CLA: <exec-name> [some options] in_1 in_2 ... in_N -o[=tok,ast,sym,3ac,asm] { dot_i csv_i 3ac_i asm_i } x N
@@ -54,7 +55,6 @@ int main (int argc , char *argv[]) {
 	int start = 1;
 	int o_flag_index = -1, num_t_flag = 0, num_r_flag = 0, num_l_flag = 0;
 	int out_reqs = 0x1f, out_to_in = 5; // output file requirements (default all) [out_to_in = # output files per input file]
-	int lib_reqs = 0x0; // library requirements (default none)
 
 	// CHECK CLA LIST SEARCHING FOR VARIOUS OPTIONS
 	for (int i = start; i < argc; i++) {
@@ -151,14 +151,6 @@ int main (int argc , char *argv[]) {
 	}
 
 	if (num_t_flag) std::cout << _C_BOLD_ << _FORE_YELLOW_ << "Tab length set to " << tab_len << ".\n" << _C_NONE_;
-	
-	string usedLibs;
-	if (lib_reqs & LIB_TYPO) usedLibs += ", typography (typo)";
-	if (lib_reqs & LIB_MATH) usedLibs += ", maths (math)";
-	if (lib_reqs & LIB_STD ) usedLibs += ", standard (std)";
-	if (lib_reqs & LIB_STRING ) usedLibs += ", string (string)";
-	if (usedLibs.size()) usedLibs = usedLibs.substr(2); // remove prefixed ", "
-	std::cout << _C_BOLD_ << _FORE_YELLOW_ << "Using GFCC library(ies) : " << usedLibs << endl << _C_NONE_;
 
 	start += (2*num_t_flag) + num_r_flag + num_l_flag;
 

@@ -12,10 +12,12 @@ IS			(u|U|l|L)*
 
 
 #include <parser.tab.h>
+#include <gfcc_colors.h>
 #include <gfcc_lexer.h>
 #include <symtab.h>
 #include <types2.h>
 #include <typo.h>
+#include <libdump.h>
 
 using namespace std;
 
@@ -25,7 +27,17 @@ using namespace std;
 
 "//"([^\n\0])*		{ count(); }
 "/*"				{ comment(); }
-"#"([^\n\0])*		{ count(); }
+"#"([^\n\0])*		{
+    count();
+    string hash(yytext);
+    if (hash.substr(0, 8) == "#include") hash = hash.substr(8);
+    while (hash != "" && hash[0] == ' ') hash = hash.substr(1);
+         if (hash.substr(0, 11) ==   "<g5_typo.h>" && !(lib_reqs & LIB_TYPO  )) { lib_reqs |= LIB_TYPO;   libDumpTypo();   }
+    else if (hash.substr(0, 11) ==   "<g5_math.h>" && !(lib_reqs & LIB_MATH  )) { lib_reqs |= LIB_MATH;   libDumpMath();   }
+    else if (hash.substr(0, 10) ==    "<g5_std.h>" && !(lib_reqs & LIB_STD   )) { lib_reqs |= LIB_STD;    libDumpStd();    }
+    else if (hash.substr(0, 13) == "<g5_string.h>" && !(lib_reqs & LIB_STRING)) { lib_reqs |= LIB_STRING; libDumpString(); }
+    else { cout << _C_BOLD_ << _FORE_YELLOW_ << "Unkown library \"" << hash << "\" known. Ignoring it." << endl << _C_NONE_;  }
+}
 
 "auto"			{ count(); yylval.node = Nd(AUTO, "auto", strg_class_attr, gpos); pushTok(gpos, AUTO, "auto"); return (AUTO); }
 
