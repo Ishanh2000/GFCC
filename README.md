@@ -3,7 +3,7 @@
 ## About:
 <!-- ![GFCC Logo](./logo_t.png) -->
 <p align="center">
-  <img src="./logo_t.png" width="400" margin="200">
+  <img src="./img/logo_t.png" width="400" margin="200">
 </p>
 
 CS335A (Compiler Design) Project, Semester 6, 2020-21-II (Jan - Apr 2021).
