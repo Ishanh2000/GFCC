@@ -1,8 +1,8 @@
-struct sub {struct {int aa; char bb;} a; int b;};
+struct sub {struct {int aa; float bb[10];} a; int b;};
 struct pair {
     int x;
     struct sub *y;
-    short z;
+    float z[10];
     int p;
 };
 
@@ -16,14 +16,12 @@ int main() {
     int arr[100];
     a.y = &a_sub;
     b.y = &b_sub;
-    b.y->a.aa = 0;
-    g5_printf("%d\n", b.y->a.aa);
-    a.y->a.aa = 1;
-    b.y->a = a.y->a;
-    // b.y.a = a.y.a;
-    g5_printf("%d\n", b.y->a.aa);
-    // a.y->a.aa = a.y->a.aa + b->y->a.aa;
-    // b->y->a.aa = a.y->a.aa;
-    // b = a;
+    a.z[1] = 1;
+    g5_printf("%f\n", a.z[1]);
+    a.y->a.bb[5] = 111;
+    b.y->a.bb[5] = 10;
+    g5_printf("Before: %f %f\n", a.y->a.bb[5], b.y->a.bb[5]);
+    b = a;
+    g5_printf("After: %f %f\n", a.y->a.bb[5], b.y->a.bb[5]);
     return 0;
 }

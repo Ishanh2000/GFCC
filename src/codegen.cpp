@@ -199,9 +199,9 @@ oprRegs getReg(std::ofstream & f, const irquad_t &q) {
   sym *dst = lastdelta.dst.Sym;
   oprRegs ret;
   
-  tmp_regs src1regs = getTmpRegs(q.t_src1);
-  tmp_regs src2regs = getTmpRegs(q.t_src2);
-  tmp_regs dstregs = getTmpRegs(q.t_dst);
+  tmp_regs src1regs = getTmpRegs(lastdelta.src1.FinalType);
+  tmp_regs src2regs = getTmpRegs(lastdelta.src2.FinalType);
+  tmp_regs dstregs = getTmpRegs(lastdelta.dst.FinalType);
   
   /* return value */
   if (q.src1 == "$retval") {ret.src1Reg = src1regs.retreg1;}
@@ -417,12 +417,12 @@ void genASM(ofstream & f, irquad_t & quad) {
   else if (quad.opr == "int2real")
   {
     // Instr
-    inst_t Isrc1 = getInst(quad.t_src1);
-    inst_t Idst = getInst(quad.t_dst);
+    inst_t Isrc1 = getInst(lastdelta.src1.FinalType);
+    inst_t Idst = getInst(lastdelta.dst.FinalType);
     // temp registor for src
-    tmp_regs Rsrc1 = getTmpRegs(quad.t_src1);
+    tmp_regs Rsrc1 = getTmpRegs(lastdelta.src1.FinalType);
     // tmp registor for dst
-    tmp_regs Rdst = getTmpRegs(quad.t_dst);
+    tmp_regs Rdst = getTmpRegs(lastdelta.dst.FinalType);
 
     oprRegs Reg = getReg(f,quad);
     string addrDst = loadArrAddr(f, lastdelta.dst, "0");
@@ -452,12 +452,12 @@ void genASM(ofstream & f, irquad_t & quad) {
   else if (quad.opr == "real2int")
   {
     // Instr
-    inst_t Isrc1 = getInst(quad.t_src1);
-    inst_t Idst = getInst(quad.t_dst);
+    inst_t Isrc1 = getInst(lastdelta.src1.FinalType);
+    inst_t Idst = getInst(lastdelta.dst.FinalType);
     // temp registor for src
-    tmp_regs Rsrc1 = getTmpRegs(quad.t_src1);
+    tmp_regs Rsrc1 = getTmpRegs(lastdelta.src1.FinalType);
     // tmp registor for dst
-    tmp_regs Rdst = getTmpRegs(quad.t_dst);
+    tmp_regs Rdst = getTmpRegs(lastdelta.dst.FinalType);
     oprRegs Reg = getReg(f,quad);
 
     string addrDst = loadArrAddr(f,lastdelta.dst, "0");
@@ -506,20 +506,20 @@ void genASM(ofstream & f, irquad_t & quad) {
   //   oprRegs regs = getReg(f, quad);
   
   //   string instr = "negu";
-  //   if( isReal(quad.t_dst) &&  quad.opr == "real-")
+    // if( isReal(lastdelta.dst.FinalType) &&  quad.opr == "real-")
   //   {
   //     instr = "neg.s";
   //   }
 
-  //   inst_t Isrc1 = getInst(quad.t_src1);
-  //   inst_t Idst = getInst(quad.t_dst);
-  //   tmp_regs Rsrc1 = getTmpRegs(quad.t_src1);
-  //   tmp_regs Rdst = getTmpRegs(quad.t_dst);
+    // inst_t Isrc1 = getInst(lastdelta.src1.FinalType);
+    // inst_t Idst = getInst(lastdelta.dst.FinalType);
+    // tmp_regs Rsrc1 = getTmpRegs(lastdelta.src1.FinalType);
+    // tmp_regs Rdst = getTmpRegs(lastdelta.dst.FinalType);
 
   //   string addrDst = loadArrAddr(f,lastdelta.dst, "0");
   //   string addrSrc1 = loadArrAddr(f, lastdelta.src1, "1");
     
-  //   if ( isReal(quad.t_dst) && regs.src2Reg == zero )
+  //   if ( isReal(lastdelta.dst.FinalType) && regs.src2Reg == zero )
   //   {
   //     f << '\t' << Idst.load_const << " " << reg2str[Rdst.exreg] << ", " << q.src2 << endl;
   //     q.src2 = reg2str[Rdst.exreg];
@@ -634,8 +634,8 @@ void genASM(ofstream & f, irquad_t & quad) {
   
   else if(quad.opr == "param") {
     
-    inst_t Isrc1 = getInst(quad.t_src1);
-    tmp_regs Rsrc1 = getTmpRegs(quad.t_src1);
+    inst_t Isrc1 = getInst(lastdelta.src1.FinalType);
+    tmp_regs Rsrc1 = getTmpRegs(lastdelta.src1.FinalType);
       
     oprRegs regs = getReg(f, quad);
     if (regs.src1Reg == zero) {
@@ -698,9 +698,9 @@ void genASM(ofstream & f, irquad_t & quad) {
   else if (quad.opr == "return") {
     // resetRegMaps(f);
     // TODO
-    inst_t Isrc1 = getInst(quad.t_src1);
-    tmp_regs Rsrc1 = getTmpRegs(quad.t_src1);
     oprRegs regs = getReg(f, quad);
+    inst_t Isrc1 = getInst(lastdelta.src1.FinalType);
+    tmp_regs Rsrc1 = getTmpRegs(lastdelta.src1.FinalType);
     if (regs.src1Reg == zero) {
       f << '\t' << Isrc1.load_const << " " << reg2str[Rsrc1.retreg1] + ", " + quad.src1;
       f << " # load return value" << endl;
@@ -809,7 +809,7 @@ void binOpr(std::ofstream & f, irquad_t & q) {
   sym *src1 = lastdelta.src1.Sym, *src2 = lastdelta.src2.Sym;
   sym *dst = lastdelta.dst.Sym;
   string instr;
-  if( isReal(q.t_dst) )
+  if( isReal(lastdelta.src2.FinalType) )
   {
     if   (opr == "real+") instr     = "add.s";
     else if (opr == "real-") instr  = "sub.s";
@@ -839,12 +839,12 @@ void binOpr(std::ofstream & f, irquad_t & q) {
     else if (opr == "%") instr = "remu";
   }
     
-    inst_t Isrc1 = getInst(q.t_src1);
-    inst_t Isrc2 = getInst(q.t_src2);
-    inst_t Idst = getInst(q.t_dst);
-    tmp_regs Rsrc1 = getTmpRegs(q.t_src1);
-    tmp_regs Rsrc2 = getTmpRegs(q.t_src2);
-    tmp_regs Rdst = getTmpRegs(q.t_dst);    
+    inst_t Isrc1 = getInst(lastdelta.src1.FinalType);
+    inst_t Isrc2 = getInst(lastdelta.src2.FinalType);
+    inst_t Idst = getInst(lastdelta.dst.FinalType);
+    tmp_regs Rsrc1 = getTmpRegs(lastdelta.src1.FinalType);
+    tmp_regs Rsrc2 = getTmpRegs(lastdelta.src2.FinalType);
+    tmp_regs Rdst = getTmpRegs(lastdelta.dst.FinalType);
     
     // dst = src1 + src2  
     oprRegs regs = getReg(f, q);
@@ -861,7 +861,7 @@ void binOpr(std::ofstream & f, irquad_t & q) {
       regs.src2Reg = Rsrc2.retreg2;
     }
 
-    if ( isReal(q.t_dst) && regs.src2Reg == zero )
+    if ( isReal(lastdelta.dst.FinalType) && regs.src2Reg == zero )
     {
       f << '\t' << Idst.load_const << " " << reg2str[Rdst.exreg] << ", " << q.src2 << endl;
       q.src2 = reg2str[Rdst.exreg];
@@ -909,12 +909,12 @@ void assn(ofstream & f, const irquad_t &q) {
   deltaNxtUse lastdelta = nxtUse.lastdelta;
   oprRegs regs = getReg(f, q);
   
-  inst_t Isrc1 = getInst(q.t_src1);
-  inst_t Isrc2 = getInst(q.t_src2);
-  inst_t Idst = getInst(q.t_dst);
-  tmp_regs Rsrc1 = getTmpRegs(q.t_src1);
-  tmp_regs Rsrc2 = getTmpRegs(q.t_src2);
-  tmp_regs Rdst = getTmpRegs(q.t_dst);
+  inst_t Isrc1 = getInst(lastdelta.src1.FinalType);
+  inst_t Isrc2 = getInst(lastdelta.src2.FinalType);
+  inst_t Idst = getInst(lastdelta.dst.FinalType);
+  tmp_regs Rsrc1 = getTmpRegs(lastdelta.src1.FinalType);
+  tmp_regs Rsrc2 = getTmpRegs(lastdelta.src2.FinalType);
+  tmp_regs Rdst = getTmpRegs(lastdelta.dst.FinalType);
     
   
   string addrDst = loadArrAddr(f,lastdelta.dst, "0");
@@ -1034,9 +1034,9 @@ int getNxtLeader(vector<irquad_t> & IR, int leader) {
         dstSym->alive = false;
       dstSym->nxtuse = -1;
       IR[idx].t_dst = dstSym->type;
-      if(delta.dst.FinalType == NULL) 
-        delta.dst.FinalType = dstSym->type;
     }
+    if(delta.dst.FinalType == NULL) 
+      delta.dst.FinalType = IR[idx].t_dst;
 
     if (src1Sym) {
       delta.src1.Sym    = src1Sym;
@@ -1046,9 +1046,9 @@ int getNxtLeader(vector<irquad_t> & IR, int leader) {
         src1Sym->alive = true;
       src1Sym->nxtuse =  idx - leader;
       IR[idx].t_src1 = src1Sym->type;
-      if(delta.src1.FinalType == NULL) 
-        delta.src1.FinalType = src1Sym->type;
     }
+    if(delta.src1.FinalType == NULL) 
+      delta.src1.FinalType = IR[idx].t_src1;
 
     if (src2Sym) {
       delta.src2.Sym    = src2Sym;
@@ -1058,9 +1058,11 @@ int getNxtLeader(vector<irquad_t> & IR, int leader) {
         src2Sym->alive = true;
       src2Sym->nxtuse =  idx - leader;
       IR[idx].t_src2 = src2Sym->type;
-      if(delta.src2.FinalType == NULL) 
-        delta.src2.FinalType = src2Sym->type;
     }
+
+    if(delta.src2.FinalType == NULL) 
+      delta.src2.FinalType = IR[idx].t_src2;
+    
     nxtUse.deltas.push_back(delta);
   } // backward pass in the current main block
   return nxtLeader;
